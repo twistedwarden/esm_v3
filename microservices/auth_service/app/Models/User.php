@@ -1,0 +1,83 @@
+<?php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable
+{
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, Notifiable, HasApiTokens;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'citizen_id',
+        'email',
+        'password',
+        'first_name',
+        'last_name',
+        'middle_name',
+        'extension_name',
+        'mobile',
+        'birthdate',
+        'address',
+        'house_number',
+        'street',
+        'barangay',
+        'role',
+        'status',
+        'is_active',
+        'email_verification_token',
+        'email_verified_at',
+        'google_id',
+        'assigned_school_id',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+    /**
+     * Get the assigned school ID for this user (for PS reps)
+     * Note: School data is fetched from scholarship service
+     */
+    public function getAssignedSchoolIdAttribute()
+    {
+        return $this->attributes['assigned_school_id'];
+    }
+
+    /**
+     * Get the school assigned to this user
+     */
+    public function assignedSchool()
+    {
+        return $this->belongsTo(School::class, 'assigned_school_id');
+    }
+}

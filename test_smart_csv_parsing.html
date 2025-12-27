@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart CSV Parsing Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Smart CSV Parsing Test</h1>
+    <p>This demonstrates the enhanced CSV parsing capabilities that can handle ANY field names and data formats.</p>
+
+    <div class="test-section">
+        <h3>Test CSV Examples</h3>
+        <p>Try uploading these sample CSVs to see the intelligent parsing in action:</p>
+        
+        <h4>Example 1: Basic Student Data</h4>
+        <pre>Student ID,First Name,Last Name,Program,Year Level,Enrollment Date,Currently Enrolled
+2024-001,Juan,Cruz,Computer Science,2nd Year,08/15/2024,Yes
+2024-002,Maria,Santos,Psychology,1st Year,08/16/2024,True
+2024-003,Jose,Garcia,Engineering,3rd Year,08/17/2024,Active</pre>
+
+        <h4>Example 2: Different Field Names</h4>
+        <pre>stud_id,fname,lname,course,yr_lvl,enroll_date,status
+STU-001,Alice,Johnson,CS,1st,2024-08-15,enrolled
+STU-002,Bob,Smith,IT,2nd,2024-08-16,active
+STU-003,Carol,Williams,BSBA,3rd,2024-08-17,studying</pre>
+
+        <h4>Example 3: Mixed Formats</h4>
+        <pre>ID Number,Given Name,Surname,Degree Program,Academic Year,Date Enrolled,Enrollment Status
+12345,David,Brown,Bachelor of Science in Computer Science,1st Year,Aug 15 2024,Yes
+67890,Emma,Davis,Bachelor of Arts in Psychology,2nd Year,Aug 16 2024,True
+11111,Frank,Miller,Bachelor of Science in Engineering,3rd Year,Aug 17 2024,Active</pre>
+
+        <h4>Example 4: Abbreviated Fields</h4>
+        <pre>id,fname,lname,prog,yr,enroll_dt,enrolled
+001,John,Doe,CS,1,08/15/24,yes
+002,Jane,Smith,IT,2,08/16/24,true
+003,Jim,Wilson,BSBA,3,08/17/24,1</pre>
+    </div>
+
+    <div class="test-section">
+        <h3>Smart Features Demonstrated</h3>
+        <ul>
+            <li><strong>Field Name Recognition:</strong> student_id, student id, stud_id, id, etc. → student_id_number</li>
+            <li><strong>Name Capitalization:</strong> juan cruz → Juan Cruz</li>
+            <li><strong>Date Parsing:</strong> 08/15/2024, Aug 15 2024, 2024-08-15 → 2024-08-15</li>
+            <li><strong>Program Detection:</strong> CS, Computer Science, BSCS → Bachelor of Science in Computer Science</li>
+            <li><strong>Boolean Detection:</strong> yes, true, 1, enrolled, active → true</li>
+            <li><strong>Year Level:</strong> 1st, 1st Year, Grade 12 → 1st Year</li>
+            <li><strong>Student ID Formatting:</strong> 001, 2024-001 → STU-2024-001</li>
+        </ul>
+    </div>
+
+    <div class="test-section success">
+        <h3>✅ Ready to Test!</h3>
+        <p>The system is now ready to handle ANY CSV format. Upload any of the examples above or your own CSV file to see the intelligent parsing in action!</p>
+        <p><strong>Console logs will show:</strong></p>
+        <ul>
+            <li>🔄 Value normalized: "juan" → "Juan" (field: first_name) [Name capitalization]</li>
+            <li>🔄 Value normalized: "CS" → "Bachelor of Science in Computer Science" (field: program) [Program pattern detection]</li>
+            <li>🔄 Value normalized: "08/15/2024" → "2024-08-15" (field: enrollment_date) [Date formatting]</li>
+        </ul>
+    </div>
+
+    <script>
+        console.log('🚀 Smart CSV Parsing System Ready!');
+        console.log('📋 Upload any CSV file to see intelligent field mapping and data normalization in action.');
+        console.log('🔍 Check the console for detailed transformation logs.');
+    </script>
+</body>
+</html>
