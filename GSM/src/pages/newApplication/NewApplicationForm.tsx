@@ -1,3 +1,4 @@
+// Force refresh: Updated formatting
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -931,7 +932,7 @@ export const NewApplicationForm: React.FC = () => {
 
         // Family members
         family_members: [
-          {
+          ...(data.isFatherAvailable === 'yes' ? [{
             relationship: 'father' as const,
             first_name: data.fatherFirstName || '',
             last_name: data.fatherLastName || '',
@@ -940,13 +941,13 @@ export const NewApplicationForm: React.FC = () => {
             contact_number: data.fatherContactNumber || undefined,
             occupation: data.fatherOccupation || undefined,
             monthly_income: data.fatherMonthlyIncome ? parseIncomeToNumber(data.fatherMonthlyIncome) : undefined,
-            is_alive: data.isFatherAvailable === 'yes',
+            is_alive: true,
             is_employed: Boolean(data.fatherMonthlyIncome || data.fatherOccupation),
             is_ofw: false,
             is_pwd: false,
             pwd_specification: undefined,
-          },
-          {
+          }] : []),
+          ...(data.isMotherAvailable === 'yes' ? [{
             relationship: 'mother' as const,
             first_name: data.motherFirstName || '',
             last_name: data.motherLastName || '',
@@ -955,12 +956,12 @@ export const NewApplicationForm: React.FC = () => {
             contact_number: data.motherContactNumber || undefined,
             occupation: data.motherOccupation || undefined,
             monthly_income: data.motherMonthlyIncome ? parseIncomeToNumber(data.motherMonthlyIncome) : undefined,
-            is_alive: data.isMotherAvailable === 'yes',
+            is_alive: true,
             is_employed: Boolean(data.motherMonthlyIncome || data.motherOccupation),
             is_ofw: false,
             is_pwd: false,
             pwd_specification: undefined,
-          }
+          }] : [])
         ],
 
         // Emergency contacts
@@ -1315,20 +1316,20 @@ export const NewApplicationForm: React.FC = () => {
                     <button
                       onClick={() => handleStepNavigation(1)}
                       className={`text-sm whitespace-nowrap transition-colors ${currentStep === 1
-                          ? 'text-orange-600 font-semibold'
-                          : currentStep > 1
-                            ? 'text-green-600 font-medium hover:text-green-700'
-                            : 'text-gray-400 hover:text-gray-600'
+                        ? 'text-orange-600 font-semibold'
+                        : currentStep > 1
+                          ? 'text-green-600 font-medium hover:text-green-700'
+                          : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
                       1. Personal Information
                     </button>
                   ) : (
                     <span className={`text-sm whitespace-nowrap ${currentStep === 1
-                        ? 'text-orange-600 font-semibold'
-                        : currentStep > 1
-                          ? 'text-green-600 font-medium'
-                          : 'text-gray-400'
+                      ? 'text-orange-600 font-semibold'
+                      : currentStep > 1
+                        ? 'text-green-600 font-medium'
+                        : 'text-gray-400'
                       }`}>
                       1. Personal Information
                     </span>
@@ -1344,20 +1345,20 @@ export const NewApplicationForm: React.FC = () => {
                     <button
                       onClick={() => handleStepNavigation(2)}
                       className={`text-sm whitespace-nowrap transition-colors ${currentStep === 2
-                          ? 'text-orange-600 font-semibold'
-                          : currentStep > 2
-                            ? 'text-green-600 font-medium hover:text-green-700'
-                            : 'text-gray-400 hover:text-gray-600'
+                        ? 'text-orange-600 font-semibold'
+                        : currentStep > 2
+                          ? 'text-green-600 font-medium hover:text-green-700'
+                          : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
                       2. Family Information
                     </button>
                   ) : (
                     <span className={`text-sm whitespace-nowrap ${currentStep === 2
-                        ? 'text-orange-600 font-semibold'
-                        : currentStep > 2
-                          ? 'text-green-600 font-medium'
-                          : 'text-gray-400'
+                      ? 'text-orange-600 font-semibold'
+                      : currentStep > 2
+                        ? 'text-green-600 font-medium'
+                        : 'text-gray-400'
                       }`}>
                       2. Family Information
                     </span>
@@ -1373,20 +1374,20 @@ export const NewApplicationForm: React.FC = () => {
                     <button
                       onClick={() => handleStepNavigation(3)}
                       className={`text-sm whitespace-nowrap transition-colors ${currentStep === 3
-                          ? 'text-orange-600 font-semibold'
-                          : currentStep > 3
-                            ? 'text-green-600 font-medium hover:text-green-700'
-                            : 'text-gray-400 hover:text-gray-600'
+                        ? 'text-orange-600 font-semibold'
+                        : currentStep > 3
+                          ? 'text-green-600 font-medium hover:text-green-700'
+                          : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
                       3. Financial Information
                     </button>
                   ) : (
                     <span className={`text-sm whitespace-nowrap ${currentStep === 3
-                        ? 'text-orange-600 font-semibold'
-                        : currentStep > 3
-                          ? 'text-green-600 font-medium'
-                          : 'text-gray-400'
+                      ? 'text-orange-600 font-semibold'
+                      : currentStep > 3
+                        ? 'text-green-600 font-medium'
+                        : 'text-gray-400'
                       }`}>
                       3. Financial Information
                     </span>
@@ -1402,20 +1403,20 @@ export const NewApplicationForm: React.FC = () => {
                     <button
                       onClick={() => handleStepNavigation(4)}
                       className={`text-sm whitespace-nowrap transition-colors ${currentStep === 4
-                          ? 'text-orange-600 font-semibold'
-                          : currentStep > 4
-                            ? 'text-green-600 font-medium hover:text-green-700'
-                            : 'text-gray-400 hover:text-gray-600'
+                        ? 'text-orange-600 font-semibold'
+                        : currentStep > 4
+                          ? 'text-green-600 font-medium hover:text-green-700'
+                          : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
                       4. Academic Information
                     </button>
                   ) : (
                     <span className={`text-sm whitespace-nowrap ${currentStep === 4
-                        ? 'text-orange-600 font-semibold'
-                        : currentStep > 4
-                          ? 'text-green-600 font-medium'
-                          : 'text-gray-400'
+                      ? 'text-orange-600 font-semibold'
+                      : currentStep > 4
+                        ? 'text-green-600 font-medium'
+                        : 'text-gray-400'
                       }`}>
                       4. Academic Information
                     </span>
@@ -3323,8 +3324,8 @@ export const NewApplicationForm: React.FC = () => {
                   type="submit"
                   disabled={isSubmitting}
                   className={`px-6 py-2 text-white rounded-md flex items-center ${isSubmitting
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-orange-500 hover:bg-orange-600'
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-orange-500 hover:bg-orange-600'
                     }`}
                 >
                   {isSubmitting && (

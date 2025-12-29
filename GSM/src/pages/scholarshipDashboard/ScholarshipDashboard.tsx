@@ -24,7 +24,7 @@ export const ScholarshipDashboard: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Notification state
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -50,7 +50,7 @@ export const ScholarshipDashboard: React.FC = () => {
   // Notification functions
   const generateMockNotifications = useCallback((application: any) => {
     const mockNotifications = [];
-    
+
     if (application) {
       // Status-based notifications
       switch (application.status) {
@@ -187,9 +187,9 @@ export const ScholarshipDashboard: React.FC = () => {
   }, []);
 
   const markNotificationAsRead = (notificationId: number) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === notificationId 
+    setNotifications(prev =>
+      prev.map(notif =>
+        notif.id === notificationId
           ? { ...notif, isRead: true }
           : notif
       )
@@ -197,7 +197,7 @@ export const ScholarshipDashboard: React.FC = () => {
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(notif => ({ ...notif, isRead: true }))
     );
   };
@@ -233,7 +233,7 @@ export const ScholarshipDashboard: React.FC = () => {
         ]);
         setApplications(userApplications);
         setRequiredDocuments(requiredDocumentsData);
-        
+
         // Fetch documents if there's a current application
         if (userApplications.length > 0) {
           const currentApp = userApplications[0];
@@ -275,7 +275,7 @@ export const ScholarshipDashboard: React.FC = () => {
       ]);
       setApplications(userApplications);
       setRequiredDocuments(requiredDocumentsData);
-      
+
       // Refresh documents if there's a current application
       if (userApplications.length > 0) {
         const currentApp = userApplications[0];
@@ -364,7 +364,7 @@ export const ScholarshipDashboard: React.FC = () => {
   const createDocumentsChecklist = () => {
     // Use API data if available, otherwise fall back to standard documents
     const documentsToCheck = requiredDocuments.length > 0 ? requiredDocuments : standardRequiredDocuments;
-    
+
     const checklist = documentsToCheck.map(requiredDoc => {
       // For standard documents, try to match by document type ID or name
       const submittedDoc = documents.find(doc => {
@@ -377,7 +377,7 @@ export const ScholarshipDashboard: React.FC = () => {
         }
         return false;
       });
-      
+
       return {
         id: requiredDoc.id,
         name: requiredDoc.name,
@@ -405,7 +405,7 @@ export const ScholarshipDashboard: React.FC = () => {
         }
         return false;
       });
-      
+
       if (!isInRequired) {
         checklist.push({
           id: submittedDoc.document_type_id,
@@ -440,7 +440,7 @@ export const ScholarshipDashboard: React.FC = () => {
   const completionPercentage = requiredDocumentsCount > 0 ? Math.round((submittedRequiredCount / requiredDocumentsCount) * 100) : 0;
 
   // Determine eligibility to submit: draft status AND all required documents submitted
-  const canSubmitApplication = !!currentApplication 
+  const canSubmitApplication = !!currentApplication
     && currentApplication.status === 'draft'
     && requiredDocumentsCount > 0
     && submittedRequiredCount === requiredDocumentsCount;
@@ -482,13 +482,13 @@ export const ScholarshipDashboard: React.FC = () => {
     setIsDeleting(true);
     try {
       await scholarshipApiService.deleteDocument(documentToDelete.id);
-      
+
       // Refresh documents after successful deletion
       const documentsData = await scholarshipApiService.getDocuments({
         application_id: currentApplication.id
       });
       setDocuments(documentsData.data || []);
-      
+
       setShowDeleteModal(false);
       setDocumentToDelete(null);
     } catch (err) {
@@ -498,7 +498,7 @@ export const ScholarshipDashboard: React.FC = () => {
       setIsDeleting(false);
     }
   };
-  
+
   // Helper function to get status display
   const getStatusDisplay = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -542,7 +542,7 @@ export const ScholarshipDashboard: React.FC = () => {
   // Enhanced scholarship data with real application information
   const scholarshipData = currentApplication ? {
     referenceNumber: currentApplication.application_number || `APP-${currentApplication.id}`,
-    
+
     // Personal Information
     studentName: `${currentApplication.student?.first_name || ''} ${currentApplication.student?.middle_name || ''} ${currentApplication.student?.last_name || ''}`.trim() || 'Not specified',
     firstName: currentApplication.student?.first_name || 'Not specified',
@@ -561,9 +561,9 @@ export const ScholarshipDashboard: React.FC = () => {
     pwdSpecification: currentApplication.student?.pwd_specification || 'N/A',
     contactNumber: currentApplication.student?.contact_number || 'Not specified',
     emailAddress: currentApplication.student?.email_address || 'Not specified',
-    
+
     // Address Information
-    presentAddress: currentApplication.student?.addresses?.[0] ? 
+    presentAddress: currentApplication.student?.addresses?.[0] ?
       [currentApplication.student.addresses[0].address_line_1, currentApplication.student.addresses[0].address_line_2]
         .filter(Boolean).join(', ') || 'Not specified' : 'Not specified',
     addressLine1: currentApplication.student?.addresses?.[0]?.address_line_1 || 'Not specified',
@@ -574,36 +574,36 @@ export const ScholarshipDashboard: React.FC = () => {
     province: currentApplication.student?.addresses?.[0]?.province || 'Not specified',
     region: currentApplication.student?.addresses?.[0]?.region || 'Not specified',
     zipCode: currentApplication.student?.addresses?.[0]?.zip_code || 'Not specified',
-    
+
     // Family Information - from family_members table
     familyMembers: currentApplication.student?.family_members || [],
-    
+
     numberOfSiblings: currentApplication.student?.financial_information?.number_of_siblings?.toString() || 'Not specified',
     numberOfSiblingsInSchool: currentApplication.student?.financial_information?.siblings_currently_enrolled?.toString() || 'Not specified',
     homeOwnershipStatus: currentApplication.student?.financial_information?.home_ownership_status || 'Not specified',
-    
+
     // Employment & Financial
     isEmployed: currentApplication.student?.is_employed ? 'Yes' : 'No',
     studentOccupation: currentApplication.student?.occupation || 'Not specified',
     studentMonthlyIncome: currentApplication.student?.financial_information?.monthly_income ? `₱${parseFloat(currentApplication.student.financial_information.monthly_income).toLocaleString()}` : 'Not specified',
     totalFamilyMonthlyIncome: currentApplication.student?.financial_information?.family_monthly_income_range ? `₱${currentApplication.student.financial_information.family_monthly_income_range}` : 'Not specified',
     totalAnnualIncome: 'Not specified', // This field is no longer used as we now use family_monthly_income_range
-    
+
     // Marginalized Groups
     isSoloParent: currentApplication.student?.is_solo_parent ? 'Yes' : 'No',
     isIndigenousGroup: currentApplication.student?.is_indigenous_group ? 'Yes' : 'No',
     is4PsBeneficiary: currentApplication.student?.financial_information?.is_4ps_beneficiary ? 'Yes' : 'No',
     isPwdBeneficiary: currentApplication.student?.family_information?.is_pwd_beneficiary ? 'Yes' : 'No',
-    
+
     // Voter & Payment
     isRegisteredVoter: currentApplication.student?.is_registered_voter ? 'Yes' : 'No',
     voterNationality: currentApplication.student?.voter_nationality || 'N/A',
     hasPayMayaAccount: currentApplication.student?.has_paymaya_account ? 'Yes' : 'No',
-    
+
     // Academic Information
-    course: currentApplication.student?.current_academic_record?.track_specialization || 
-            currentApplication.student?.current_academic_record?.area_of_specialization || 
-            currentApplication.student?.current_academic_record?.program || 'Not specified',
+    course: currentApplication.student?.current_academic_record?.track_specialization ||
+      currentApplication.student?.current_academic_record?.area_of_specialization ||
+      currentApplication.student?.current_academic_record?.program || 'Not specified',
     school: currentApplication.school?.name || 'Not specified',
     schoolAddress: currentApplication.school?.address || 'Not specified',
     schoolType: currentApplication.school?.classification || 'Not specified',
@@ -615,12 +615,12 @@ export const ScholarshipDashboard: React.FC = () => {
     gwa: currentApplication.student?.current_academic_record?.general_weighted_average?.toString() || 'Not specified',
     isCurrentlyEnrolled: currentApplication.student?.is_currently_enrolled ? 'Yes' : 'No',
     isGraduating: currentApplication.student?.is_graduating ? 'Yes' : 'No',
-    
+
     // Scholarship Information
     scholarshipType: currentApplication.category?.name || 'Not specified',
     scholarshipSubtype: currentApplication.subcategory?.name || 'Not specified',
-    amount: currentApplication.approved_amount ? `₱${currentApplication.approved_amount.toLocaleString()}` : 
-            currentApplication.requested_amount ? `₱${currentApplication.requested_amount.toLocaleString()}` : 'Not specified',
+    amount: currentApplication.approved_amount ? `₱${currentApplication.approved_amount.toLocaleString()}` :
+      currentApplication.requested_amount ? `₱${currentApplication.requested_amount.toLocaleString()}` : 'Not specified',
     requestedAmount: currentApplication.requested_amount ? `₱${currentApplication.requested_amount.toLocaleString()}` : 'Not specified',
     approvedAmount: currentApplication.approved_amount ? `₱${currentApplication.approved_amount.toLocaleString()}` : 'Not approved',
     status: getStatusDisplay(currentApplication.status),
@@ -647,10 +647,8 @@ export const ScholarshipDashboard: React.FC = () => {
       verificationNotes: doc.verification_notes,
       verifiedAt: doc.verified_at ? new Date(doc.verified_at).toLocaleDateString() : null
     })),
-    disbursements: [
-      { date: 'May 15, 2024', amount: '₱12,500.00', status: 'Completed' },
-      { date: 'August 15, 2024', amount: '₱12,500.00', status: 'Pending' }
-    ]
+    disbursements: []
+
   } : {
     referenceNumber: 'No Application',
     studentName: `${currentUser?.first_name || ''} ${currentUser?.middle_name || ''} ${currentUser?.last_name || ''}`.trim() || 'Not specified',
@@ -805,10 +803,9 @@ export const ScholarshipDashboard: React.FC = () => {
     };
 
     return (
-      <div 
-        className={`p-4 border-l-4 ${getPriorityColor(notification.priority)} ${
-          !notification.isRead ? 'bg-opacity-100' : 'bg-opacity-50'
-        } hover:bg-opacity-75 transition-all duration-200 cursor-pointer`}
+      <div
+        className={`p-4 border-l-4 ${getPriorityColor(notification.priority)} ${!notification.isRead ? 'bg-opacity-100' : 'bg-opacity-50'
+          } hover:bg-opacity-75 transition-all duration-200 cursor-pointer`}
         onClick={() => markNotificationAsRead(notification.id)}
       >
         <div className="flex items-start justify-between">
@@ -966,7 +963,7 @@ export const ScholarshipDashboard: React.FC = () => {
                 <p className="text-sm text-gray-600">Track your application and manage documents</p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               {/* Notifications Button */}
               <div className="relative">
@@ -985,7 +982,7 @@ export const ScholarshipDashboard: React.FC = () => {
 
                 {/* Notifications Dropdown */}
                 {showNotifications && (
-                  <div 
+                  <div
                     data-notification-dropdown
                     className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-hidden max-w-[calc(100vw-2rem)]"
                   >
@@ -1033,7 +1030,7 @@ export const ScholarshipDashboard: React.FC = () => {
                   <span>Edit Application</span>
                 </button>
               )}
-              
+
               {/* Refresh Button */}
               <button
                 onClick={refreshApplications}
@@ -1043,10 +1040,10 @@ export const ScholarshipDashboard: React.FC = () => {
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
-                  </div>
-              </div>
-          
-          
+            </div>
+          </div>
+
+
           {error && (
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg shadow-sm">
               <div className="flex items-center space-x-2">
@@ -1055,15 +1052,15 @@ export const ScholarshipDashboard: React.FC = () => {
               </div>
             </div>
           )}
-          
+
           {!isLoading && !error && applications.length === 0 && (
             <div className="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
               <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-yellow-500" />
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-500" />
                   <span className="text-sm text-yellow-700">No applications found. Submit a new application to get started.</span>
                 </div>
-                <button 
+                <button
                   onClick={() => navigate('/new-application')}
                   className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
                 >
@@ -1114,70 +1111,67 @@ export const ScholarshipDashboard: React.FC = () => {
             <Clipboard className="h-5 w-5 text-orange-500" />
             <span>Application Process</span>
           </h2>
-           <div className="relative">
-                           {/* Progress Bar */}
+          <div className="relative">
+            {/* Progress Bar */}
             <div className="flex items-center justify-between mb-6">
-                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-500 ease-in-out ${
-                    scholarshipData.currentStage === -1 ? 'bg-red-500' : 'bg-gradient-to-r from-orange-500 to-orange-600'
+              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 ease-in-out ${scholarshipData.currentStage === -1 ? 'bg-red-500' : 'bg-gradient-to-r from-orange-500 to-orange-600'
                     }`}
-                    style={{ 
-                      width: scholarshipData.currentStage === -1 
-                        ? '100%' 
-                        : `${Math.max(0, ((scholarshipData.currentStage + 1) / processStages.length) * 100)}%` 
-                    }}
-                  ></div>
-                </div>
+                  style={{
+                    width: scholarshipData.currentStage === -1
+                      ? '100%'
+                      : `${Math.max(0, ((scholarshipData.currentStage + 1) / processStages.length) * 100)}%`
+                  }}
+                ></div>
               </div>
-             
-             {/* Process Stages */}
+            </div>
+
+            {/* Process Stages */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-               {processStages.map((stage, index) => {
-                 const IconComponent = stage.icon;
-                 const isCompleted = scholarshipData.currentStage === -1 ? false : index <= scholarshipData.currentStage;
-                 const isCurrent = index === scholarshipData.currentStage;
-                 const isRejected = scholarshipData.currentStage === -1;
-                 
-                 return (
-                   <div key={stage.id} className="text-center">
+              {processStages.map((stage, index) => {
+                const IconComponent = stage.icon;
+                const isCompleted = scholarshipData.currentStage === -1 ? false : index <= scholarshipData.currentStage;
+                const isCurrent = index === scholarshipData.currentStage;
+                const isRejected = scholarshipData.currentStage === -1;
+
+                return (
+                  <div key={stage.id} className="text-center">
                     <div className="relative mb-3">
-                      <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-                          isRejected
-                          ? 'bg-red-500 border-red-500 text-white shadow-lg'
-                            : isCompleted 
-                          ? 'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-500 text-white shadow-lg' 
-                            : 'bg-gray-100 border-gray-300 text-gray-400'
+                      <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center border-2 transition-all duration-300 ${isRejected
+                        ? 'bg-red-500 border-red-500 text-white shadow-lg'
+                        : isCompleted
+                          ? 'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-500 text-white shadow-lg'
+                          : 'bg-gray-100 border-gray-300 text-gray-400'
                         }`}>
                         <IconComponent className="w-6 h-6" />
-                       </div>
-                       {isCurrent && !isRejected && (
+                      </div>
+                      {isCurrent && !isRejected && (
                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
                           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                         </div>
-                       )}
-                       {isRejected && (
+                        </div>
+                      )}
+                      {isRejected && (
                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
-                           <AlertCircle className="w-3 h-3 text-white" />
-                         </div>
-                       )}
-                     </div>
-                    <h3 className={`text-[10px] font-bold uppercase mb-1 ${
-                        isRejected 
-                          ? 'text-red-600' 
-                          : isCompleted ? 'text-orange-600' : 'text-gray-400'
+                          <AlertCircle className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <h3 className={`text-[10px] font-bold uppercase mb-1 ${isRejected
+                      ? 'text-red-600'
+                      : isCompleted ? 'text-orange-600' : 'text-gray-400'
                       }`}>
-                       {stage.title}
-                     </h3>
+                      {stage.title}
+                    </h3>
                     <p className="text-[9px] text-gray-500 hidden md:block leading-tight">
-                       {stage.description}
-                     </p>
-                   </div>
-                 );
-               })}
-             </div>
-           </div>
-         </div>
+                      {stage.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1202,10 +1196,10 @@ export const ScholarshipDashboard: React.FC = () => {
                 {scholarshipData.isPwd === 'Yes' && (
                   <div className="sm:col-span-2">
                     <InfoRow label="PWD Specification" value={scholarshipData.pwdSpecification} />
-             </div>
+                  </div>
                 )}
-               </div>
-              
+              </div>
+
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center space-x-2">
                   <Home className="h-4 w-4 text-orange-500" />
@@ -1214,7 +1208,7 @@ export const ScholarshipDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="sm:col-span-2 md:col-span-3">
                     <InfoRow label="Present Address" value={scholarshipData.presentAddress} />
-             </div>
+                  </div>
                   <InfoRow label="Address Line 1" value={scholarshipData.addressLine1} />
                   <InfoRow label="Address Line 2" value={scholarshipData.addressLine2} />
                   <InfoRow label="Barangay" value={scholarshipData.barangay} />
@@ -1223,8 +1217,8 @@ export const ScholarshipDashboard: React.FC = () => {
                   <InfoRow label="Province" value={scholarshipData.province} />
                   <InfoRow label="Region" value={scholarshipData.region} />
                   <InfoRow label="Zip Code" value={scholarshipData.zipCode} />
-           </div>
-         </div>
+                </div>
+              </div>
 
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center space-x-2">
@@ -1235,7 +1229,7 @@ export const ScholarshipDashboard: React.FC = () => {
                   <InfoRow label="Contact Number" value={scholarshipData.contactNumber} />
                   <InfoRow label="Email Address" value={scholarshipData.emailAddress} />
                 </div>
-                </div>
+              </div>
             </CollapsibleSection>
 
             {/* Family Information */}
@@ -1247,9 +1241,9 @@ export const ScholarshipDashboard: React.FC = () => {
                     <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                       <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center space-x-2">
                         <span className="text-orange-500">
-                          {member.relationship === 'father' ? '👨' : 
-                           member.relationship === 'mother' ? '👩' : 
-                           member.relationship === 'guardian' ? '👤' : '👨‍👩‍👧‍👦'}
+                          {member.relationship === 'father' ? '👨' :
+                            member.relationship === 'mother' ? '👩' :
+                              member.relationship === 'guardian' ? '👤' : '👨‍👩‍👧‍👦'}
                         </span>
                         <span className="capitalize">{member.relationship}'s Information</span>
                       </h3>
@@ -1260,24 +1254,24 @@ export const ScholarshipDashboard: React.FC = () => {
                         <InfoRow label="Extension Name" value={member.extension_name || 'N/A'} />
                         <InfoRow label="Contact Number" value={member.contact_number || 'Not specified'} />
                         <InfoRow label="Occupation/Employer" value={member.occupation || 'Not specified'} />
-                        <InfoRow 
-                          label="Monthly Income" 
-                          value={member.monthly_income ? `₱${parseFloat(member.monthly_income).toLocaleString()}` : 'Not specified'} 
+                        <InfoRow
+                          label="Monthly Income"
+                          value={member.monthly_income ? `₱${parseFloat(member.monthly_income).toLocaleString()}` : 'Not specified'}
                         />
                         <InfoRow label="Is Alive" value={member.is_alive ? 'Yes' : 'No'} />
                         <InfoRow label="Is Employed" value={member.is_employed ? 'Yes' : 'No'} />
                         <InfoRow label="Is OFW" value={member.is_ofw ? 'Yes' : 'No'} />
                         <InfoRow label="Is PWD" value={member.is_pwd ? 'Yes' : 'No'} />
-                </div>
-                </div>
+                      </div>
+                    </div>
                   ))
                 ) : (
                   <div className="text-center py-6 text-gray-500">
                     <Heart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p className="text-sm">No family members information available</p>
-                </div>
+                  </div>
                 )}
-                
+
                 {/* Household Information */}
                 <div className="pt-4 border-t border-gray-200">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Household Information</h3>
@@ -1285,9 +1279,9 @@ export const ScholarshipDashboard: React.FC = () => {
                     <InfoRow label="Number of Siblings" value={scholarshipData.numberOfSiblings} />
                     <InfoRow label="Siblings in School" value={scholarshipData.numberOfSiblingsInSchool} />
                     <InfoRow label="Home Ownership" value={scholarshipData.homeOwnershipStatus} />
+                  </div>
                 </div>
-                </div>
-                </div>
+              </div>
             </CollapsibleSection>
 
             {/* Academic Information */}
@@ -1295,11 +1289,11 @@ export const ScholarshipDashboard: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="sm:col-span-2">
                   <InfoRow label="School Name" value={scholarshipData.school} highlight />
-              </div>
+                </div>
                 <InfoRow label="School Type" value={scholarshipData.schoolType} />
                 <div className="sm:col-span-2 md:col-span-3">
                   <InfoRow label="School Address" value={scholarshipData.schoolAddress} />
-            </div>
+                </div>
                 <InfoRow label="Educational Level" value={scholarshipData.educationalLevel} />
                 <InfoRow label="Grade/Year Level" value={scholarshipData.gradeYearLevel} />
                 <div className="sm:col-span-2">
@@ -1326,14 +1320,14 @@ export const ScholarshipDashboard: React.FC = () => {
                   <InfoRow label="Family Monthly Income" value={scholarshipData.totalFamilyMonthlyIncome} highlight />
                   <InfoRow label="Family Annual Income" value={scholarshipData.totalAnnualIncome} highlight />
                 </div>
-                
+
                 <div className="pt-4 border-t border-gray-200">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Financial Need Description</h3>
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <p className="text-sm text-gray-700">{scholarshipData.financialNeedDescription}</p>
+                  </div>
                 </div>
-                </div>
-                
+
                 {scholarshipData.walletAccountNumber !== 'Not provided' && (
                   <div className="pt-4 border-t border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center space-x-2">
@@ -1345,7 +1339,7 @@ export const ScholarshipDashboard: React.FC = () => {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="pt-4 border-t border-gray-200">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Marginalized Groups & Benefits</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -1353,16 +1347,16 @@ export const ScholarshipDashboard: React.FC = () => {
                     <InfoRow label="Indigenous Group" value={scholarshipData.isIndigenousGroup} />
                     <InfoRow label="4Ps Beneficiary" value={scholarshipData.is4PsBeneficiary} />
                     <InfoRow label="PWD Beneficiary" value={scholarshipData.isPwdBeneficiary} />
-              </div>
-            </div>
+                  </div>
+                </div>
 
                 <div className="pt-4 border-t border-gray-200">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Voter Information</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InfoRow label="Registered Voter" value={scholarshipData.isRegisteredVoter} />
+                  </div>
                 </div>
-                </div>
-                </div>
+              </div>
             </CollapsibleSection>
 
             {/* Application Details */}
@@ -1376,7 +1370,7 @@ export const ScholarshipDashboard: React.FC = () => {
                   <InfoRow label="Reviewed Date" value={scholarshipData.reviewedDate} />
                   <InfoRow label="Approval Date" value={scholarshipData.approvalDate} />
                 </div>
-                
+
                 {scholarshipData.type === 'Renewal Application' && scholarshipData.reasonForRenewal !== 'N/A' && (
                   <div className="pt-4 border-t border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-900 mb-2">Reason for Renewal</h3>
@@ -1385,7 +1379,7 @@ export const ScholarshipDashboard: React.FC = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {scholarshipData.rejectionReason && (
                   <div className="pt-4 border-t border-gray-200">
                     <h3 className="text-sm font-semibold text-red-700 mb-2">Rejection Reason</h3>
@@ -1394,7 +1388,7 @@ export const ScholarshipDashboard: React.FC = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {scholarshipData.notes && (
                   <div className="pt-4 border-t border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-900 mb-2">Additional Notes</h3>
@@ -1413,22 +1407,21 @@ export const ScholarshipDashboard: React.FC = () => {
                   {submittedRequiredCount} of {requiredDocumentsCount} required documents submitted
                 </p>
 
-              {/* Progress Bar */}
+                {/* Progress Bar */}
                 <div className="relative">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
                     <span className="font-medium">Completion Progress</span>
                     <span className="font-bold text-orange-600">{completionPercentage}%</span>
-                </div>
+                  </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
-                    <div 
-                      className={`h-3 rounded-full transition-all duration-500 shadow-sm ${
-                        completionPercentage === 100 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
-                        completionPercentage >= 75 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 
-                        completionPercentage >= 50 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
-                        'bg-gradient-to-r from-red-500 to-red-600'
-                    }`}
-                    style={{ width: `${completionPercentage}%` }}
-                  ></div>
+                    <div
+                      className={`h-3 rounded-full transition-all duration-500 shadow-sm ${completionPercentage === 100 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                        completionPercentage >= 75 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                          completionPercentage >= 50 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                            'bg-gradient-to-r from-red-500 to-red-600'
+                        }`}
+                      style={{ width: `${completionPercentage}%` }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -1461,112 +1454,110 @@ export const ScholarshipDashboard: React.FC = () => {
                           {categoryLabels[category as keyof typeof categoryLabels] || `📄 ${category.charAt(0).toUpperCase() + category.slice(1)} Documents`}
                         </h4>
                         {items.map((item, index) => (
-                    <div key={index} className={`p-3 rounded-lg border transition-all hover:shadow-sm ${
-                      item.isRequired 
-                        ? item.isSubmitted 
-                          ? item.status === 'verified' 
-                            ? 'bg-green-50 border-green-300' 
-                            : item.status === 'rejected'
-                            ? 'bg-red-50 border-red-300'
-                            : 'bg-blue-50 border-blue-300'
-                          : 'bg-yellow-50 border-yellow-300'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start space-x-2 flex-1 min-w-0">
-                          <div className="flex-shrink-0 mt-0.5">
-                            {item.isSubmitted ? (
-                              item.status === 'verified' ? (
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                              ) : item.status === 'rejected' ? (
-                                <AlertCircle className="h-4 w-4 text-red-500" />
-                              ) : (
-                                <Clock className="h-4 w-4 text-blue-500" />
-                              )
-                            ) : (
-                              <div className="h-4 w-4 border-2 border-gray-300 rounded-full"></div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 flex-wrap">
-                              <h3 className="text-sm font-medium text-gray-900">{item.name}</h3>
-                              {item.isRequired && (
-                                <span className="px-2 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-800 rounded-full">
-                                  Required
-                                </span>
-                              )}
-                            </div>
-                            {item.description && (
-                              <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">{item.description}</p>
-                            )}
-                            {item.isSubmitted && (
-                              <div className="mt-1">
-                                <p className="text-xs text-gray-500">
-                                  {item.submittedAt}
-                                  {item.fileName && ` • ${item.fileName}`}
-                                </p>
-                                {item.verificationNotes && (
-                                  <div className="mt-1 p-2 bg-white rounded border border-gray-200">
-                                    <p className="text-xs text-gray-700">
-                                      <strong>Note:</strong> {item.verificationNotes}
-                                    </p>
+                          <div key={index} className={`p-3 rounded-lg border transition-all hover:shadow-sm ${item.isRequired
+                            ? item.isSubmitted
+                              ? item.status === 'verified'
+                                ? 'bg-green-50 border-green-300'
+                                : item.status === 'rejected'
+                                  ? 'bg-red-50 border-red-300'
+                                  : 'bg-blue-50 border-blue-300'
+                              : 'bg-yellow-50 border-yellow-300'
+                            : 'bg-gray-50 border-gray-200'
+                            }`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start space-x-2 flex-1 min-w-0">
+                                <div className="flex-shrink-0 mt-0.5">
+                                  {item.isSubmitted ? (
+                                    item.status === 'verified' ? (
+                                      <CheckCircle className="h-4 w-4 text-green-500" />
+                                    ) : item.status === 'rejected' ? (
+                                      <AlertCircle className="h-4 w-4 text-red-500" />
+                                    ) : (
+                                      <Clock className="h-4 w-4 text-blue-500" />
+                                    )
+                                  ) : (
+                                    <div className="h-4 w-4 border-2 border-gray-300 rounded-full"></div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center space-x-2 flex-wrap">
+                                    <h3 className="text-sm font-medium text-gray-900">{item.name}</h3>
+                                    {item.isRequired && (
+                                      <span className="px-2 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-800 rounded-full">
+                                        Required
+                                      </span>
+                                    )}
                                   </div>
+                                  {item.description && (
+                                    <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">{item.description}</p>
+                                  )}
+                                  {item.isSubmitted && (
+                                    <div className="mt-1">
+                                      <p className="text-xs text-gray-500">
+                                        {item.submittedAt}
+                                        {item.fileName && ` • ${item.fileName}`}
+                                      </p>
+                                      {item.verificationNotes && (
+                                        <div className="mt-1 p-2 bg-white rounded border border-gray-200">
+                                          <p className="text-xs text-gray-700">
+                                            <strong>Note:</strong> {item.verificationNotes}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-1 flex-shrink-0">
+                                {currentApplication ? (
+                                  <SecureDocumentUpload
+                                    documentTypeId={item.id}
+                                    documentTypeName={item.name}
+                                    studentId={currentApplication.student_id}
+                                    applicationId={currentApplication.id}
+                                    isUploading={isUploading}
+                                    existingDocument={item.document}
+                                    onUploadStart={() => setIsUploading(true)}
+                                    onUploadSuccess={async () => {
+                                      setIsUploading(false);
+                                      // Refresh documents
+                                      const documentsData = await scholarshipApiService.getDocuments({
+                                        application_id: currentApplication.id
+                                      });
+                                      setDocuments(documentsData.data || []);
+                                    }}
+                                    onUploadError={(error) => {
+                                      setIsUploading(false);
+                                      setUploadError(error);
+                                    }}
+                                    showRemoveButton={item.isSubmitted && currentApplication.status === 'draft'}
+                                    onRemove={() => handleRemoveDocument(item.document)}
+                                    maxSizeMB={10}
+                                    acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
+                                    className="min-w-0 flex-1"
+                                  />
+                                ) : (
+                                  <span className={`px-2 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${item.isSubmitted
+                                    ? item.status === 'verified'
+                                      ? 'bg-green-100 text-green-800'
+                                      : item.status === 'rejected'
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-blue-100 text-blue-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                    {item.isSubmitted
+                                      ? item.status === 'verified'
+                                        ? '✓ Verified'
+                                        : item.status === 'rejected'
+                                          ? '✗ Rejected'
+                                          : '⏱ Pending'
+                                      : '⚠ Missing'
+                                    }
+                                  </span>
                                 )}
                               </div>
-                            )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center space-x-1 flex-shrink-0">
-                          {currentApplication ? (
-                            <SecureDocumentUpload
-                              documentTypeId={item.id}
-                              documentTypeName={item.name}
-                              studentId={currentApplication.student_id}
-                              applicationId={currentApplication.id}
-                              isUploading={isUploading}
-                              existingDocument={item.document}
-                              onUploadStart={() => setIsUploading(true)}
-                              onUploadSuccess={async () => {
-                                setIsUploading(false);
-                                // Refresh documents
-                                const documentsData = await scholarshipApiService.getDocuments({
-                                  application_id: currentApplication.id
-                                });
-                                setDocuments(documentsData.data || []);
-                              }}
-                              onUploadError={(error) => {
-                                setIsUploading(false);
-                                setUploadError(error);
-                              }}
-                              showRemoveButton={item.isSubmitted && currentApplication.status === 'draft'}
-                              onRemove={() => handleRemoveDocument(item.document)}
-                              maxSizeMB={10}
-                              acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
-                              className="min-w-0 flex-1"
-                            />
-                          ) : (
-                            <span className={`px-2 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${
-                              item.isSubmitted 
-                                ? item.status === 'verified' 
-                                  ? 'bg-green-100 text-green-800'
-                                  : item.status === 'rejected'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-blue-100 text-blue-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {item.isSubmitted 
-                                ? item.status === 'verified' 
-                                  ? '✓ Verified' 
-                                  : item.status === 'rejected'
-                                  ? '✗ Rejected'
-                                  : '⏱ Pending'
-                                : '⚠ Missing'
-                              }
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
                         ))}
                       </div>
                     ));
@@ -1614,7 +1605,7 @@ export const ScholarshipDashboard: React.FC = () => {
                 </div>
               )}
             </CollapsibleSection>
-            </div>
+          </div>
 
           {/* Right Sidebar */}
           <div className="lg:col-span-1 space-y-4">
@@ -1625,21 +1616,21 @@ export const ScholarshipDashboard: React.FC = () => {
                   <DollarSign className="h-5 w-5" />
                   <span>Summary</span>
                 </h2>
-                      </div>
+              </div>
               <div className="p-4 space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
                   <span className="text-sm font-medium text-gray-700">Total Amount</span>
                   <span className="text-xl font-bold text-green-600">{scholarshipData.amount}</span>
-                      </div>
+                </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Application Date</span>
                     <span className="font-medium text-gray-900">{scholarshipData.applicationDate}</span>
-                    </div>
+                  </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Reviewed Date</span>
                     <span className="font-medium text-gray-900">{scholarshipData.reviewedDate}</span>
-                    </div>
+                  </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Approval Date</span>
                     <span className="font-medium text-gray-900">{scholarshipData.approvalDate}</span>
@@ -1650,16 +1641,16 @@ export const ScholarshipDashboard: React.FC = () => {
                       {submittedRequiredCount}/{requiredDocumentsCount} Complete
                     </span>
                   </div>
+                </div>
               </div>
             </div>
-          </div>
 
             {/* Enrollment Verification Card - Removed (automatic verification disabled) */}
             {/* Manual enrollment verification is now handled by administrators */}
 
             {/* Interview Schedule Card */}
             {currentApplication && (scholarshipData.rawStatus === 'interview_scheduled' || scholarshipData.rawStatus === 'interview_completed') && (
-              <InterviewScheduleCard 
+              <InterviewScheduleCard
                 applicationId={currentApplication.id}
               />
             )}
@@ -1680,77 +1671,76 @@ export const ScholarshipDashboard: React.FC = () => {
                       <span className={`font-bold ${canSubmitApplication ? 'text-green-600' : 'text-orange-600'}`}>
                         {completionPercentage}%
                       </span>
-                </div>
+                    </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className={`h-2 rounded-full transition-all ${canSubmitApplication ? 'bg-green-500' : 'bg-orange-500'}`}
                         style={{ width: `${completionPercentage}%` }}
                       ></div>
-                </div>
-                </div>
-                  
-                    <button
-                      onClick={handleSubmitApplication}
-                      disabled={!canSubmitApplication || isSubmittingApp}
-                    className={`w-full inline-flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
-                        !canSubmitApplication || isSubmittingApp
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-md hover:shadow-lg'
-                    }`}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSubmitApplication}
+                    disabled={!canSubmitApplication || isSubmittingApp}
+                    className={`w-full inline-flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${!canSubmitApplication || isSubmittingApp
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-md hover:shadow-lg'
+                      }`}
                     title={!canSubmitApplication ? 'Upload all required documents first' : 'Submit your application'}
                   >
                     {isSubmittingApp ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                         Submitting...
-                  </>
-                ) : (
-                  <>
+                      </>
+                    ) : (
+                      <>
                         <Send className="h-4 w-4 mr-2" />
                         Submit Application
                       </>
                     )}
-                    </button>
-                  
+                  </button>
+
                   {!canSubmitApplication && (
                     <p className="mt-2 text-xs text-gray-500 text-center">
                       Complete all {requiredDocumentsCount} required documents to submit
                     </p>
                   )}
-                  
-              {(submitError || submitSuccess) && (
-                <div className={`mt-3 p-3 rounded-lg border ${submitError ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                  <div className="flex items-center space-x-2">
-                    {submitError ? (
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    )}
+
+                  {(submitError || submitSuccess) && (
+                    <div className={`mt-3 p-3 rounded-lg border ${submitError ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                      <div className="flex items-center space-x-2">
+                        {submitError ? (
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        )}
                         <span className={`text-xs ${submitError ? 'text-red-700' : 'text-green-700'}`}>{submitError || submitSuccess}</span>
-                  </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
             )}
 
             {/* Disbursements Card */}
-            {scholarshipData.disbursements.length > 0 && (
-              <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                <div className="bg-gradient-to-r from-green-500 to-green-600 p-4">
-                  <h2 className="text-lg font-semibold text-white flex items-center space-x-2">
-                    <HandCoins className="h-5 w-5" />
-                    <span>Disbursements</span>
-                  </h2>
-        </div>
-                <div className="p-4 space-y-3">
-                  {scholarshipData.disbursements.map((disbursement, index) => (
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="bg-gradient-to-r from-green-500 to-green-600 p-4">
+                <h2 className="text-lg font-semibold text-white flex items-center space-x-2">
+                  <HandCoins className="h-5 w-5" />
+                  <span>Disbursements</span>
+                </h2>
+              </div>
+              <div className="p-4 space-y-3">
+                {scholarshipData.disbursements.length > 0 ? (
+                  scholarshipData.disbursements.map((disbursement, index) => (
                     <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4 text-gray-500" />
                           <span className="text-sm text-gray-700">{disbursement.date}</span>
-      </div>
+                        </div>
                         <div className={`px-2 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(disbursement.status)}`}>
                           {disbursement.status}
                         </div>
@@ -1760,10 +1750,14 @@ export const ScholarshipDashboard: React.FC = () => {
                         <span className="text-lg font-bold text-gray-900">{disbursement.amount}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500 font-medium italic">No record found</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Help Card */}
             <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-md p-4 border border-blue-200">
@@ -1796,14 +1790,14 @@ export const ScholarshipDashboard: React.FC = () => {
                   <p className="text-sm text-gray-600">Are you sure you want to remove this document?</p>
                 </div>
               </div>
-              
+
               {documentToDelete && (
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                   <p className="text-sm font-medium text-gray-900">{documentToDelete.file_name}</p>
                   <p className="text-xs text-gray-600">This action cannot be undone.</p>
                 </div>
               )}
-              
+
               <div className="flex space-x-3 justify-end">
                 <button
                   onClick={() => {
