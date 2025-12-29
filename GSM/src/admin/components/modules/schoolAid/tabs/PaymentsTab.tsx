@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Filter, 
-  Download, 
+import {
+  Search,
+  Filter,
+  Download,
   MoreHorizontal,
   Eye,
   CheckCircle,
@@ -20,10 +20,10 @@ import {
   Grid,
   List
 } from 'lucide-react';
-import { 
-  ScholarshipApplication, 
-  ApplicationStatus, 
-  Priority, 
+import {
+  ScholarshipApplication,
+  ApplicationStatus,
+  Priority,
   SubmoduleConfig,
   ModalState,
   PaymentRecord,
@@ -39,6 +39,7 @@ interface PaymentsTabProps {
   setSelectedApplications: (ids: string[]) => void;
   modalState: ModalState;
   setModalState: (state: ModalState) => void;
+  lastUpdated?: number;
 }
 
 const PaymentsTab: React.FC<PaymentsTabProps> = ({
@@ -48,7 +49,8 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
   selectedApplications,
   setSelectedApplications,
   modalState,
-  setModalState
+  setModalState,
+  lastUpdated
 }) => {
   const [applications, setApplications] = useState<ScholarshipApplication[]>([]);
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
@@ -60,7 +62,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
   useEffect(() => {
     fetchPaymentData();
-  }, [activeSubmodule]);
+  }, [activeSubmodule, lastUpdated]);
 
   useEffect(() => {
     filterApplications();
@@ -73,12 +75,12 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
         status: submodule.statusFilter?.[0],
         submodule: activeSubmodule
       };
-      
+
       const [applicationsData, paymentRecordsData] = await Promise.all([
         schoolAidService.getApplications(filters),
         schoolAidService.getPaymentRecords(filters)
       ]);
-      
+
       setApplications(applicationsData);
       setPaymentRecords(paymentRecordsData);
     } catch (error) {
@@ -216,7 +218,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
     try {
       // Retry payment through service
       const newPaymentRecord = await schoolAidService.retryPayment(paymentRecord.id);
-      
+
       // Update processing state
       setProcessingStates(prev => ({
         ...prev,
@@ -229,7 +231,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       }));
 
       // Status is already updated by the retryPayment service, no need to update again
-      
+
       // Refresh data
       fetchPaymentData();
 
@@ -332,7 +334,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
         buttons.push(
           <button
             key="receipt"
-            onClick={() => {/* TODO: Implement view receipt */}}
+            onClick={() => {/* TODO: Implement view receipt */ }}
             className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 dark:bg-green-900 text-green-700 rounded hover:bg-green-200 transition-colors"
           >
             <Eye className="w-4 h-4" />
@@ -359,7 +361,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <span className="text-sm text-blue-600 dark:text-blue-400">{Math.round(processingState.progress)}%</span>
         </div>
         <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
-          <div 
+          <div
             className="bg-blue-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${processingState.progress}%` }}
           ></div>
@@ -441,11 +443,10 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <div className="flex border border-gray-300 dark:border-slate-600 rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode('list')}
-              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${
-                viewMode === 'list'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-              }`}
+              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${viewMode === 'list'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600'
+                }`}
               title="List View"
             >
               <List className="w-4 h-4" />
@@ -453,11 +454,10 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 border-l border-gray-300 dark:border-slate-600 ${
-                viewMode === 'grid'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-              }`}
+              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 border-l border-gray-300 dark:border-slate-600 ${viewMode === 'grid'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-600'
+                }`}
               title="Grid View"
             >
               <Grid className="w-4 h-4" />
@@ -498,156 +498,156 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
-                    onChange={handleSelectAll}
-                    className="rounded border-gray-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
-                  />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Student
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  School
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment Method
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredApplications.map((application) => {
-                const paymentRecord = paymentRecords.find(p => p.applicationId === application.id);
-                return (
-                  <tr key={application.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        checked={selectedApplications.includes(application.id)}
-                        onChange={() => handleSelectApplication(application.id)}
-                        className="rounded border-gray-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
-                      />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                            <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedApplications.length === filteredApplications.length && filteredApplications.length > 0}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Student
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    School
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Payment Method
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredApplications.map((application) => {
+                  const paymentRecord = paymentRecords.find(p => p.applicationId === application.id);
+                  return (
+                    <tr key={application.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedApplications.includes(application.id)}
+                          onChange={() => handleSelectApplication(application.id)}
+                          className="rounded border-gray-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                              <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {application.studentName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {application.studentId}
+                            </div>
                           </div>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {application.studentName}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {application.studentId}
-                          </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <School className="w-4 h-4 text-gray-400 dark:text-slate-400 mr-2" />
+                          <div className="text-sm text-gray-900 dark:text-white">{application.school}</div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <School className="w-4 h-4 text-gray-400 dark:text-slate-400 mr-2" />
-                        <div className="text-sm text-gray-900 dark:text-white">{application.school}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {formatCurrency(application.amount)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {getPaymentMethodIcon(paymentRecord?.method || 'bank_transfer')}
-                        <span className="ml-2 text-sm text-gray-900 dark:text-white capitalize">
-                          {paymentRecord?.method?.replace('_', ' ') || 'Bank Transfer'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {formatCurrency(application.amount)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {getPaymentMethodIcon(paymentRecord?.method || 'bank_transfer')}
+                          <span className="ml-2 text-sm text-gray-900 dark:text-white capitalize">
+                            {paymentRecord?.method?.replace('_', ' ') || 'Bank Transfer'}
+                          </span>
+                        </div>
+                        {paymentRecord?.reference && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Ref: {paymentRecord.reference}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(application.status)}`}>
+                          {application.status.replace('_', ' ').toUpperCase()}
                         </span>
-                      </div>
-                      {paymentRecord?.reference && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Ref: {paymentRecord.reference}
+                        {paymentRecord && (
+                          <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(paymentRecord.status)}`}>
+                            {paymentRecord.status.toUpperCase()}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          {formatDate(application.processingDate || application.disbursedDate || application.approvalDate || application.submittedDate)}
                         </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(application.status)}`}>
-                        {application.status.replace('_', ' ').toUpperCase()}
-                      </span>
-                      {paymentRecord && (
-                        <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(paymentRecord.status)}`}>
-                          {paymentRecord.status.toUpperCase()}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {formatDate(application.processingDate || application.disbursedDate || application.approvalDate || application.submittedDate)}
-                      </div>
-                      {paymentRecord?.completedAt && (
-                        <div className="text-xs text-gray-400 dark:text-slate-400 mt-1">
-                          Completed: {formatDateTime(paymentRecord.completedAt)}
+                        {paymentRecord?.completedAt && (
+                          <div className="text-xs text-gray-400 dark:text-slate-400 mt-1">
+                            Completed: {formatDateTime(paymentRecord.completedAt)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          {getActionButtons(application)}
+                          <button className="p-1 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-300">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
                         </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        {getActionButtons(application)}
-                        <button className="p-1 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-300">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-        {/* Processing Progress Overlays */}
-        {Object.entries(processingStates).map(([appId, state]) => {
-          const application = applications.find(app => app.id === appId);
-          if (!application || !state.isProcessing) return null;
-          
-          return (
-            <div key={appId} className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center">
-              <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
-                <div className="text-center">
-                  <div className="mb-4">
-                    <RefreshCw className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mx-auto" />
+          {/* Processing Progress Overlays */}
+          {Object.entries(processingStates).map(([appId, state]) => {
+            const application = applications.find(app => app.id === appId);
+            if (!application || !state.isProcessing) return null;
+
+            return (
+              <div key={appId} className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center">
+                <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
+                  <div className="text-center">
+                    <div className="mb-4">
+                      <RefreshCw className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mx-auto" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Processing Payment</h3>
+                    <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">{application.studentName}</p>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${state.progress}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-sm text-blue-600 dark:text-blue-400">{state.currentStep}</p>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Processing Payment</h3>
-                  <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">{application.studentName}</p>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${state.progress}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-sm text-blue-600 dark:text-blue-400">{state.currentStep}</p>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       ) : (
         /* Grid View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -720,7 +720,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <p className="mt-1 text-sm text-gray-500">
             {searchTerm
               ? 'Try adjusting your search criteria.'
-              : activeSubmodule === 'processing' 
+              : activeSubmodule === 'processing'
                 ? 'No applications are currently being processed. Use "Process Grant" in the Processing Grants tab to move applications here.'
                 : 'No disbursements match the current submodule filter.'}
           </p>

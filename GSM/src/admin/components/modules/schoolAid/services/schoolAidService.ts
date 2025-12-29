@@ -5,6 +5,44 @@ import { API_CONFIG } from '../../../../../config/api';
 const API_BASE_URL = `${API_CONFIG.AID_SERVICE.BASE_URL}/api`;
 
 class SchoolAidService {
+  private buildAuthHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      ...extraHeaders,
+    };
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+
+      try {
+        const userData = localStorage.getItem('user_data');
+        if (userData) {
+          const user = JSON.parse(userData);
+          if (user?.id != null) {
+            headers['X-User-ID'] = String(user.id);
+          }
+          if (user?.role) {
+            headers['X-User-Role'] = String(user.role);
+          }
+          if (user?.email) {
+            headers['X-User-Email'] = String(user.email);
+          }
+          if (user?.first_name) {
+            headers['X-User-First-Name'] = String(user.first_name);
+          }
+          if (user?.last_name) {
+            headers['X-User-Last-Name'] = String(user.last_name);
+          }
+        }
+      } catch (error) {
+        console.warn('SchoolAidService: failed to parse user_data from localStorage', error);
+      }
+    }
+
+    return headers;
+  }
   // Applications
   async getApplications(filters?: {
     status?: string;
@@ -18,7 +56,9 @@ class SchoolAidService {
     if (filters?.search) params.append('search', filters.search);
     if (filters?.submodule) params.append('submodule', filters.submodule);
 
-    const response = await fetch(`${API_BASE_URL}/school-aid/applications?${params}`);
+    const response = await fetch(`${API_BASE_URL}/school-aid/applications?${params}`, {
+      headers: this.buildAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch applications: ${response.statusText}`);
     }
@@ -29,9 +69,9 @@ class SchoolAidService {
   async updateApplicationStatus(applicationId: string, status: string, notes?: string): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/school-aid/applications/${applicationId}/status`, {
       method: 'PATCH',
-      headers: {
+      headers: this.buildAuthHeaders({
         'Content-Type': 'application/json',
-      },
+      }),
       body: JSON.stringify({ status, notes }),
     });
     
@@ -43,9 +83,9 @@ class SchoolAidService {
   async processGrant(applicationId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/school-aid/applications/${applicationId}/process-grant`, {
       method: 'POST',
-      headers: {
+      headers: this.buildAuthHeaders({
         'Content-Type': 'application/json',
-      },
+      }),
     });
     
     if (!response.ok) {
@@ -58,9 +98,9 @@ class SchoolAidService {
   async batchUpdateApplications(applicationIds: string[], status: string): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/school-aid/applications/batch-update`, {
       method: 'PATCH',
-      headers: {
+      headers: this.buildAuthHeaders({
         'Content-Type': 'application/json',
-      },
+      }),
       body: JSON.stringify({ applicationIds, status }),
     });
     
@@ -73,9 +113,9 @@ class SchoolAidService {
   async processPayment(applicationId: string, paymentMethod: string): Promise<PaymentRecord> {
     const response = await fetch(`${API_BASE_URL}/school-aid/payments/process`, {
       method: 'POST',
-      headers: {
+      headers: this.buildAuthHeaders({
         'Content-Type': 'application/json',
-      },
+      }),
       body: JSON.stringify({ applicationId, paymentMethod }),
     });
     
@@ -115,6 +155,7 @@ class SchoolAidService {
 
     const response = await fetch(`${API_BASE_URL}/school-aid/applications/${applicationId}/disburse`, {
       method: 'POST',
+      headers: this.buildAuthHeaders(),
       body: formData,
     });
     
@@ -128,6 +169,7 @@ class SchoolAidService {
   async retryPayment(paymentId: string): Promise<PaymentRecord> {
     const response = await fetch(`${API_BASE_URL}/school-aid/payments/${paymentId}/retry`, {
       method: 'POST',
+      headers: this.buildAuthHeaders(),
     });
     
     if (!response.ok) {
@@ -141,7 +183,9 @@ class SchoolAidService {
     const params = new URLSearchParams();
     if (filters?.status) params.append('status', filters.status);
 
-    const response = await fetch(`${API_BASE_URL}/school-aid/payments?${params}`);
+    const response = await fetch(`${API_BASE_URL}/school-aid/payments?${params}`, {
+      headers: this.buildAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch payment records: ${response.statusText}`);
     }
@@ -165,7 +209,9 @@ class SchoolAidService {
     if (filters?.sortBy) params.append('sortBy', filters.sortBy);
     if (filters?.sortDir) params.append('sortDir', filters.sortDir);
 
-    const response = await fetch(`${API_BASE_URL}/school-aid/disbursements?${params}`);
+    const response = await fetch(`${API_BASE_URL}/school-aid/disbursements?${params}`, {
+      headers: this.buildAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch disbursement history: ${response.statusText}`);
     }
@@ -175,7 +221,9 @@ class SchoolAidService {
 
   // Analytics
   async getMetrics(): Promise<ProcessingMetrics> {
-    const response = await fetch(`${API_BASE_URL}/school-aid/metrics`);
+    const response = await fetch(`${API_BASE_URL}/school-aid/metrics`, {
+      headers: this.buildAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch metrics: ${response.statusText}`);
     }
@@ -184,7 +232,9 @@ class SchoolAidService {
   }
 
   async getAnalyticsData(type: string, dateRange: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/school-aid/analytics/${type}?range=${dateRange}`);
+    const response = await fetch(`${API_BASE_URL}/school-aid/analytics/${type}?range=${dateRange}`, {
+      headers: this.buildAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch analytics data: ${response.statusText}`);
     }
@@ -194,7 +244,9 @@ class SchoolAidService {
 
   // Settings
   async getSettings(): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/school-aid/settings`);
+    const response = await fetch(`${API_BASE_URL}/school-aid/settings`, {
+      headers: this.buildAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch settings: ${response.statusText}`);
     }
@@ -205,9 +257,9 @@ class SchoolAidService {
   async updateSettings(settings: any): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/school-aid/settings`, {
       method: 'PUT',
-      headers: {
+      headers: this.buildAuthHeaders({
         'Content-Type': 'application/json',
-      },
+      }),
       body: JSON.stringify(settings),
     });
     
@@ -219,6 +271,7 @@ class SchoolAidService {
   async testConfiguration(type: string): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${API_BASE_URL}/school-aid/settings/test/${type}`, {
       method: 'POST',
+      headers: this.buildAuthHeaders(),
     });
     
     if (!response.ok) {

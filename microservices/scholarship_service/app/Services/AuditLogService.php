@@ -3,8 +3,9 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class AuditLogService
 {
@@ -22,13 +23,13 @@ class AuditLogService
         ?string $status = 'success'
     ): void {
         try {
-            $user = Auth::user();
             $request = request();
+            $userData = self::resolveUserData();
 
             AuditLog::create([
-                'user_id' => $user?->id,
-                'user_email' => $user?->email,
-                'user_role' => $user?->role,
+                'user_id' => $userData['id'] ?? null,
+                'user_email' => $userData['email'] ?? null,
+                'user_role' => $userData['role'] ?? null,
                 'action' => $action,
                 'resource_type' => $resourceType,
                 'resource_id' => $resourceId,
@@ -42,7 +43,7 @@ class AuditLogService
                 'metadata' => $metadata,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to create audit log', [
+            Log::error('Failed to create audit log from scholarship_service', [
                 'error' => $e->getMessage(),
                 'action' => $action,
                 'description' => $description,
@@ -236,5 +237,89 @@ class AuditLogService
     public static function getUserActivity(string $userId): array
     {
         return AuditLog::getByUser($userId)->toArray();
+    }
+
+    protected static function resolveUserData(): ?array
+    {
+        $request = request();
+
+        if (!$request) {
+            return null;
+        }
+
+        $authUser = $request->get('auth_user');
+        if (is_array($authUser)) {
+            return [
+                'id' => $authUser['id'] ?? null,
+                'email' => $authUser['email'] ?? null,
+                'role' => $authUser['role'] ?? null,
+            ];
+        }
+
+        $headerUserId = $request->header('X-User-ID');
+        $headerUserEmail = $request->header('X-User-Email');
+        $headerUserRole = $request->header('X-User-Role');
+
+        if ($headerUserId || $headerUserEmail || $headerUserRole) {
+            return [
+                'id' => $headerUserId ? (int) $headerUserId : null,
+                'email' => $headerUserEmail ?: null,
+                'role' => $headerUserRole ?: null,
+            ];
+        }
+
+        $localUser = Auth::user();
+        if ($localUser) {
+            return [
+                'id' => $localUser->id ?? null,
+                'email' => $localUser->email ?? null,
+                'role' => $localUser->role ?? null,
+            ];
+        }
+
+        $token = $request->bearerToken();
+        if (!$token) {
+            return null;
+        }
+
+        try {
+            $authServiceUrl = config('services.auth_service.url', 'http://localhost:8000');
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+            ])->get($authServiceUrl . '/api/user');
+
+            if (!$response->successful()) {
+                Log::warning('Failed to fetch user from auth_service for audit log', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                return null;
+            }
+
+            $json = $response->json();
+            if (!is_array($json)) {
+                return null;
+            }
+
+            $user = $json['data']['user'] ?? null;
+            if (!is_array($user)) {
+                return null;
+            }
+
+            return [
+                'id' => $user['id'] ?? null,
+                'email' => $user['email'] ?? null,
+                'role' => $user['role'] ?? null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Exception while resolving user from auth_service for audit log', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 }

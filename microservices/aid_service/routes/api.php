@@ -31,6 +31,7 @@ Route::prefix('school-aid')->group(function () {
 
     // Disbursement history
     Route::get('/disbursements', [SchoolAidController::class, 'getDisbursementHistory']);
+    Route::get('/disbursements/{id}/receipt', [SchoolAidController::class, 'viewDisbursementReceipt']);
 
     // Update application status
     Route::patch('/applications/{id}/status', [SchoolAidController::class, 'updateApplicationStatus']);

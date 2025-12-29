@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { 
-  FileText, 
+import {
+  FileText,
   DollarSign
 } from 'lucide-react';
 import { TabConfig, ScholarshipApplication } from './types';
@@ -19,6 +19,7 @@ const SchoolAidDistribution = () => {
     application: null as ScholarshipApplication | null,
     mode: 'view' as 'view' | 'process' | 'edit'
   });
+  const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
 
   const tabs: TabConfig[] = [
     {
@@ -43,12 +44,12 @@ const SchoolAidDistribution = () => {
   const handleProcessPayment = async (application: ScholarshipApplication, formData?: any): Promise<void> => {
     try {
       console.log('Processing payment for:', application, 'with data:', formData);
-      
+
       // If form data is provided (from ManualDisbursementModal), process with that data
       if (formData) {
         // Process payment with form data - this already sets status to grants_disbursed
         const paymentRecord = await schoolAidService.processPaymentWithDetails(
-          application.id, 
+          application.id,
           formData.method,
           formData.providerName,
           formData.referenceNumber,
@@ -57,21 +58,24 @@ const SchoolAidDistribution = () => {
           currentUser ? currentUser.id : undefined,
           currentUser ? getFullName(currentUser) : undefined
         );
-        
+
         console.log('Payment processed successfully with form data:', paymentRecord);
       } else {
         // Legacy processing (without form data)
         const paymentRecord = await schoolAidService.processPayment(application.id, 'bank_transfer');
-        
+
         // Update application status to processing
         await schoolAidService.updateApplicationStatus(application.id, 'grants_processing');
-        
+
         console.log('Payment processed successfully:', paymentRecord);
       }
-      
+
       // Close modal after successful processing
       setModalState(prev => ({ ...prev, isOpen: false }));
-      
+
+      // Trigger refresh
+      setLastUpdated(Date.now());
+
     } catch (error) {
       console.error('Error processing payment:', error);
       throw error;
@@ -81,16 +85,19 @@ const SchoolAidDistribution = () => {
   const handleBatchProcessPayments = async (applicationIds: string[]) => {
     try {
       console.log('Batch processing payments for:', applicationIds);
-      
+
       // Update all applications to processing status
       await schoolAidService.batchUpdateApplications(applicationIds, 'grants_processing');
-      
+
       // Process each payment
       for (const applicationId of applicationIds) {
         await schoolAidService.processPayment(applicationId, 'bank_transfer');
       }
-      
+
       console.log('Batch payment processing completed');
+
+      // Trigger refresh
+      setLastUpdated(Date.now());
     } catch (error) {
       console.error('Error batch processing payments:', error);
       throw error;
@@ -101,6 +108,7 @@ const SchoolAidDistribution = () => {
     try {
       await schoolAidService.updateApplicationStatus(applicationId, 'approved');
       console.log('Application approved:', applicationId);
+      setLastUpdated(Date.now());
     } catch (error) {
       console.error('Error approving application:', error);
       throw error;
@@ -111,6 +119,7 @@ const SchoolAidDistribution = () => {
     try {
       await schoolAidService.updateApplicationStatus(applicationId, 'rejected', reason);
       console.log('Application rejected:', applicationId, reason);
+      setLastUpdated(Date.now());
     } catch (error) {
       console.error('Error rejecting application:', error);
       throw error;
@@ -122,11 +131,12 @@ const SchoolAidDistribution = () => {
       // Process grant using the dedicated API endpoint
       const result = await schoolAidService.processGrant(application.id);
       console.log('Grant processing initiated for application:', application.id, result);
-      
+
       // Show success message or notification
       // You can add additional logic here for grant processing
       // For example, creating disbursement records, sending notifications, etc.
-      
+
+      setLastUpdated(Date.now());
     } catch (error) {
       console.error('Error processing grant:', error);
       throw error;
@@ -138,7 +148,7 @@ const SchoolAidDistribution = () => {
     if (!activeTabConfig || !activeTabConfig.component) {
       return null;
     }
-    
+
     const Component = activeTabConfig.component;
     const submoduleConfig = {
       id: activeTabConfig.id,
@@ -148,7 +158,7 @@ const SchoolAidDistribution = () => {
       statusFilter: activeTabConfig.statusFilter,
       actions: []
     };
-    
+
     return (
       <Component
         submodule={submoduleConfig}
@@ -163,6 +173,7 @@ const SchoolAidDistribution = () => {
         onBatchProcessPayments={handleBatchProcessPayments}
         onApproveApplication={handleApproveApplication}
         onRejectApplication={handleRejectApplication}
+        lastUpdated={lastUpdated}
       />
     );
   };
@@ -187,7 +198,7 @@ const SchoolAidDistribution = () => {
               <span className="text-xs sm:text-sm text-gray-600 dark:text-slate-400">
                 {selectedApplications.length} selected
               </span>
-              <button 
+              <button
                 onClick={() => setSelectedApplications([])}
                 className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
               >
@@ -212,10 +223,9 @@ const SchoolAidDistribution = () => {
                   className={`
                     flex items-center gap-1 sm:gap-2 py-2 sm:py-3 lg:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm
                     transition-colors duration-200 relative whitespace-nowrap flex-shrink-0
-                    ${
-                      isActive
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600'
+                    ${isActive
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600'
                     }
                   `}
                 >

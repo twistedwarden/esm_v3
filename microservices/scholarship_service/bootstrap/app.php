@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         
         $middleware->api(append: [
             \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\AuditLogMiddleware::class,
         ]);
         
         $middleware->alias([

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Download, 
+import {
+  Search,
+  Download,
   MoreHorizontal,
   Eye,
   CheckCircle,
@@ -14,12 +14,12 @@ import {
   FileText,
   Gift
 } from 'lucide-react';
-import { 
-  ScholarshipApplication, 
-  ApplicationStatus, 
-  Priority, 
+import {
+  ScholarshipApplication,
+  ApplicationStatus,
+  Priority,
   SubmoduleConfig,
-  ModalState 
+  ModalState
 } from '../types';
 import { schoolAidService } from '../services/schoolAidService';
 
@@ -36,6 +36,7 @@ interface ApplicationsTabProps {
   onBatchProcessPayments?: (applicationIds: string[]) => Promise<void>;
   onApproveApplication?: (applicationId: string) => Promise<void>;
   onRejectApplication?: (applicationId: string, reason: string) => Promise<void>;
+  lastUpdated?: number;
 }
 
 const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
@@ -48,7 +49,8 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   onProcessGrant,
   onBatchProcessPayments,
   onApproveApplication,
-  onRejectApplication
+  onRejectApplication,
+  lastUpdated
 }) => {
   const [applications, setApplications] = useState<ScholarshipApplication[]>([]);
   const [filteredApplications, setFilteredApplications] = useState<ScholarshipApplication[]>([]);
@@ -60,7 +62,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
 
   useEffect(() => {
     fetchApplications();
-  }, [activeSubmodule]);
+  }, [activeSubmodule, lastUpdated]);
 
   useEffect(() => {
     filterApplications();
@@ -73,7 +75,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
         status: submodule.statusFilter?.[0],
         submodule: activeSubmodule
       };
-      
+
       const data = await schoolAidService.getApplications(filters);
       setApplications(data);
     } catch (error) {
@@ -129,8 +131,11 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
       submitted: 'bg-gray-100 text-gray-800',
       under_review: 'bg-yellow-100 text-yellow-800',
       approved: 'bg-blue-100 text-blue-800',
+      pending_disbursement: 'bg-orange-100 text-orange-800',
       grants_processing: 'bg-purple-100 text-purple-800',
       grants_disbursed: 'bg-green-100 text-green-800',
+      disbursed: 'bg-green-100 text-green-800',
+      received: 'bg-green-100 text-green-800',
       payment_failed: 'bg-red-100 text-red-800',
       rejected: 'bg-red-100 text-red-800'
     };
@@ -289,7 +294,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
         buttons.push(
           <button
             key="complete"
-            onClick={() => {/* TODO: Implement complete */}}
+            onClick={() => {/* TODO: Implement complete */ }}
             className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
           >
             <CheckCircle className="w-4 h-4" />
@@ -301,7 +306,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
         buttons.push(
           <button
             key="retry"
-            onClick={() => {/* TODO: Implement retry */}}
+            onClick={() => {/* TODO: Implement retry */ }}
             className="flex items-center gap-1 px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors"
           >
             <AlertCircle className="w-4 h-4" />
@@ -373,21 +378,19 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             <div className="flex border border-gray-300 dark:border-slate-600 rounded-lg">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-l-lg transition-colors ${
-                  viewMode === 'table'
-                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-r border-gray-300 dark:border-slate-600'
-                    : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
-                }`}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-l-lg transition-colors ${viewMode === 'table'
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-r border-gray-300 dark:border-slate-600'
+                  : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+                  }`}
               >
                 Table
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-r-lg transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                    : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
-                }`}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-r-lg transition-colors ${viewMode === 'grid'
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                  : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+                  }`}
               >
                 Grid
               </button>
@@ -413,7 +416,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             <span className="sm:hidden">Export</span>
           </button>
           {activeSubmodule === 'approved' && selectedApplications.length > 0 && (
-            <button 
+            <button
               onClick={handleBatchProcessPaymentsClick}
               className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -559,18 +562,18 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                   {getActionButtons(application)}
                 </div>
               </div>
-              
+
               <div className="space-y-2 sm:space-y-3">
                 <div>
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{application.studentName}</h3>
                   <p className="text-xs sm:text-sm text-gray-500 truncate">{application.studentId}</p>
                 </div>
-                
+
                 <div className="flex items-center text-xs sm:text-sm text-gray-600">
                   <School className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
                   <span className="truncate">{application.school}</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-lg sm:text-2xl font-bold text-gray-900">
                     {formatCurrency(application.amount)}
@@ -584,7 +587,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center text-xs sm:text-sm text-gray-500">
                   <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
                   <span className="truncate">{formatDate(application.approvalDate || application.submittedDate)}</span>

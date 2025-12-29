@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { ScholarshipDirectoryModal } from '../components/ScholarshipDirectoryModal';
-import { scholarshipApiService } from '../services/scholarshipApiService';
+import { scholarshipApiService, ScholarshipCategory } from '../services/scholarshipApiService';
 import { useAuthStore } from '../store/v1authStore';
 import { Skeleton } from '../components/ui/Skeleton';
 import { HumanVerification } from '../components/HumanVerification';
@@ -83,6 +83,7 @@ export const Portal: React.FC = () => {
   const navigate = useNavigate();
   const [showDirectoryModal, setShowDirectoryModal] = useState(false);
   const [hasActiveApplication, setHasActiveApplication] = useState(false);
+  const [categories, setCategories] = useState<ScholarshipCategory[]>([]);
   const [isCheckingApplications, setIsCheckingApplications] = useState(true);
   const [showToast, setShowToast] = useState(false);
   const [showHumanVerification, setShowHumanVerification] = useState(false);
@@ -110,13 +111,13 @@ export const Portal: React.FC = () => {
       try {
         setIsCheckingApplications(true);
         const applications = await scholarshipApiService.getUserApplications();
-        
+
         // Check if user has any pending or active applications
         // Pending/Active statuses: draft, submitted, documents_reviewed, interview_scheduled, interview_completed, endorsed_to_ssc, approved, grants_processing, grants_disbursed, on_hold
         // Only rejected and cancelled applications allow new applications
         const activeStatuses = ['draft', 'submitted', 'documents_reviewed', 'interview_scheduled', 'interview_completed', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'for_compliance', 'compliance_documents_submitted'];
         const hasActive = applications.some(app => activeStatuses.includes(app.status?.toLowerCase()));
-        
+
         setHasActiveApplication(hasActive);
         console.log('User applications:', applications);
         console.log('Has active application:', hasActive);
@@ -132,16 +133,31 @@ export const Portal: React.FC = () => {
     checkExistingApplications();
   }, [currentUser]);
 
+  // Fetch scholarship categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await scholarshipApiService.getScholarshipCategories();
+        console.log('Fetched scholarship categories:', data);
+        setCategories(data);
+      } catch (error) {
+        console.error('Error fetching scholarship categories:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
   // Show modal after component mounts (after login)
   useEffect(() => {
     console.log('Portal component mounted, checking for directory modal...');
     const hasSeenDirectory = localStorage.getItem('hasSeenDirectory');
     console.log('hasSeenDirectory:', hasSeenDirectory);
-    
+
     // For now, always show the modal for testing
     // You can change this back to check localStorage later
     setShowDirectoryModal(true);
-    
+
     // Original logic (commented out for testing):
     // if (!hasSeenDirectory) {
     //   setShowDirectoryModal(true);
@@ -166,13 +182,13 @@ export const Portal: React.FC = () => {
   return (
     <div>
       {/* Scholarship Directory Modal */}
-      <ScholarshipDirectoryModal 
-        isOpen={showDirectoryModal} 
-        onClose={handleCloseModal} 
+      <ScholarshipDirectoryModal
+        isOpen={showDirectoryModal}
+        onClose={handleCloseModal}
       />
-      
+
       {/* Hero Section - World-Class Design */}
-      <section 
+      <section
         className="relative h-96 flex items-center justify-center overflow-hidden"
         style={{
           backgroundImage: 'url(/ll.svg)',
@@ -210,30 +226,30 @@ export const Portal: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 justify-center items-center max-w-6xl mx-auto">
               <div className="bg-gray-100 rounded-xl p-3 sm:p-4 shadow-lg">
                 <Link to="/scholarship-dashboard" className="block w-full">
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
                   >
                     Scholar Dashboard
                   </Button>
                 </Link>
               </div>
-                
+
               <div className="bg-gray-100 rounded-xl p-3 sm:p-4 shadow-lg">
                 {isCheckingApplications ? (
                   <div className="w-full h-10 sm:h-11 lg:h-12">
                     <Skeleton variant="rectangular" height="100%" />
                   </div>
                 ) : hasActiveApplication ? (
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     onClick={handleNewApplicationClick}
                     className="bg-gray-400 text-white border-0 shadow-md hover:bg-gray-500 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 text-sm sm:text-base lg:text-lg font-semibold w-full h-12 sm:h-14 lg:h-16 flex items-center justify-center whitespace-nowrap uppercase tracking-wide transition-colors"
                   >
                     New Application
                   </Button>
                 ) : (
-                  <Button 
+                  <Button
                     size="lg"
                     onClick={() => setShowHumanVerification(true)}
                     className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
@@ -242,21 +258,21 @@ export const Portal: React.FC = () => {
                   </Button>
                 )}
               </div>
-                
+
               <div className="bg-gray-100 rounded-xl p-3 sm:p-4 shadow-lg">
                 <Link to="/renewal" className="block w-full">
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
                   >
                     Renewal Application
                   </Button>
                 </Link>
               </div>
-                
+
               <div className="bg-gray-100 rounded-xl p-3 sm:p-4 shadow-lg">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="bg-gradient-to-r from-secondary-500 to-secondary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
                 >
                   Tertiary Portal
@@ -282,12 +298,86 @@ export const Portal: React.FC = () => {
                 <p className="text-gray-600 smooth-transition hover:text-gray-800">Access our comprehensive directory and support</p>
               </div>
             </div>
+
+            {/* Scholarship Programs Section */}
+            <div className="mt-16 mb-8">
+              <div className="text-center mb-10">
+                <h3 className="text-2xl lg:text-4xl font-bold text-gray-800 mb-4 drop-shadow-sm">Available Scholarship Programs</h3>
+                <div className="h-1 w-24 bg-primary-500 mx-auto rounded-full"></div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {categories.length > 0 ? (
+                  categories.map((category) => (
+                    <div key={category.id} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 flex flex-col h-full">
+                      <div className="p-1 bg-gradient-to-r from-primary-400 to-primary-600"></div>
+                      <div className="p-6 flex-grow">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-xl font-bold text-gray-800 line-clamp-2" title={category.name}>{category.name}</h4>
+                          <span className={`px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold uppercase rounded-full border border-blue-100`}>
+                            {category.type?.replace('_', ' ') || 'SCHOLARSHIP'}
+                          </span>
+                        </div>
+
+                        <p className="text-gray-600 text-sm mb-6 line-clamp-3 h-14">
+                          {category.description || 'No description available for this scholarship program.'}
+                        </p>
+
+                        {category.subcategories && category.subcategories.length > 0 && (
+                          <div className="mt-auto">
+                            <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Available Categories</h5>
+                            <div className="space-y-2">
+                              {category.subcategories.slice(0, 3).map(sub => (
+                                <div key={sub.id} className="flex items-center text-sm text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
+                                  <svg className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  <span className="truncate">{sub.name}</span>
+                                </div>
+                              ))}
+                              {category.subcategories.length > 3 && (
+                                <p className="text-xs text-center text-gray-500 italic mt-1">
+                                  +{category.subcategories.length - 3} more categories
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4 bg-gray-50 border-t border-gray-100">
+                        <Button
+                          className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md hover:shadow-lg hover:from-primary-600 hover:to-primary-700 transform hover:-translate-y-0.5 transition-all duration-200 font-bold tracking-wide"
+                          onClick={() => {
+                            if (!hasActiveApplication) {
+                              navigate('/new-application');
+                            } else {
+                              setShowToast(true);
+                              setTimeout(() => setShowToast(false), 5000);
+                            }
+                          }}
+                        >
+                          APPLY NOW
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  // Loading skeletons or empty state
+                  [1, 2, 3].map((i) => (
+                    <div key={i} className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-100 h-96">
+                      <Skeleton variant="rectangular" height="100%" />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
       {/* Human Verification Modal */}
-      <HumanVerification 
+      <HumanVerification
         isOpen={showHumanVerification}
         onClose={() => setShowHumanVerification(false)}
         onVerified={() => {

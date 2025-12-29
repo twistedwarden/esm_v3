@@ -109,7 +109,7 @@ export const NewApplicationForm: React.FC = () => {
       zipCode: '',
       contactNumber: '',
       emailAddress: '',
-      
+
       // Parent/Guardian Information
       motherFirstName: '',
       motherLastName: '',
@@ -127,12 +127,12 @@ export const NewApplicationForm: React.FC = () => {
       fatherContactNumber: '',
       fatherOccupation: '',
       fatherMonthlyIncome: '',
-      
+
       // Emergency Contact
       emergencyContactName: '',
       emergencyContactNumber: '',
       emergencyContactRelationship: '',
-      
+
       // Employment & Financial
       isStudentEmployed: '',
       studentOccupation: '',
@@ -142,29 +142,29 @@ export const NewApplicationForm: React.FC = () => {
       numberOfSiblings: '',
       numberOfSiblingsInSchool: '',
       homeOwnershipStatus: '',
-      
+
       // Marginalized Groups & Benefits
       isSoloParent: '',
       isIndigenousGroup: '',
       indigenousGroupName: '',
       is4PsBeneficiary: '',
       isPwdBeneficiary: '',
-      
+
       // Voter & Payment
       isRegisteredVoter: '',
       voterNationality: '',
       paymentMethod: '',
       accountNumber: '',
       preferredMobileNumber: '',
-      
+
       // Financial Need
       financialNeedDescription: '',
-      
+
       // Scholarship Information
       scholarshipCategory: '',
       scholarshipSubCategory: '',
       howDidYouKnow: [],
-      
+
       // Academic Information
       educationalLevel: 'TERTIARY/COLLEGE',
       isSchoolAtCaloocan: 'YES',
@@ -180,7 +180,7 @@ export const NewApplicationForm: React.FC = () => {
       previousSchoolAddress: '',
       unitsCompleted: 'N/A',
       generalWeightedAverage: '',
-      
+
       // Legacy/deprecated fields
       marginalizedGroups: [],
       digitalWallets: [],
@@ -217,7 +217,7 @@ export const NewApplicationForm: React.FC = () => {
       return await validateCurrentStepEditMode(step);
     }
     let fieldsToValidate = stepFields[step as keyof typeof stepFields] || [];
-    
+
     // For step 1, conditionally include pwdSpecification based on isPwd
     if (step === 1) {
       const currentIsPwd = watch('isPwd');
@@ -225,43 +225,43 @@ export const NewApplicationForm: React.FC = () => {
         fieldsToValidate = [...fieldsToValidate, 'pwdSpecification'];
       }
     }
-    
+
     // For step 2, conditionally include mother's info based on isMotherAvailable
     if (step === 2) {
       const currentIsMotherAvailable = watch('isMotherAvailable');
       if (currentIsMotherAvailable === 'yes') {
         fieldsToValidate = [...fieldsToValidate, 'motherFirstName', 'motherLastName', 'motherContactNumber', 'motherOccupation', 'motherMonthlyIncome'];
       }
-      
+
       // For step 2, conditionally include father's info based on isFatherAvailable
       const currentIsFatherAvailable = watch('isFatherAvailable');
       if (currentIsFatherAvailable === 'yes') {
         fieldsToValidate = [...fieldsToValidate, 'fatherFirstName', 'fatherLastName', 'fatherContactNumber', 'fatherOccupation', 'fatherMonthlyIncome'];
       }
     }
-    
+
     // For step 3, conditionally validate fields
     if (step === 3) {
       const currentPaymentMethod = watch('paymentMethod');
       const currentIsStudentEmployed = watch('isStudentEmployed');
       const currentIsIndigenousGroup = watch('isIndigenousGroup');
-      
+
       // Add accountNumber if payment method is not Cash
       if (currentPaymentMethod && currentPaymentMethod !== 'Cash') {
         fieldsToValidate = [...fieldsToValidate, 'accountNumber'];
       }
-      
+
       // Add student occupation and income if employed
       if (currentIsStudentEmployed === 'yes') {
         fieldsToValidate = [...fieldsToValidate, 'studentOccupation', 'studentMonthlyIncome'];
       }
-      
+
       // Add indigenous group name if member
       if (currentIsIndigenousGroup === 'yes') {
         fieldsToValidate = [...fieldsToValidate, 'indigenousGroupName'];
       }
     }
-    
+
     // For step 4, conditionally validate major field for college students
     if (step === 4) {
       const currentEducationalLevel = watch('educationalLevel');
@@ -269,15 +269,15 @@ export const NewApplicationForm: React.FC = () => {
         fieldsToValidate = [...fieldsToValidate, 'major'];
       }
     }
-    
-    
+
+
     console.log(`Validating step ${step} fields:`, fieldsToValidate);
     console.log(`Current step is: ${currentStep}`);
-    
+
     // Clear errors for fields not in current step
     const allFields = [
       ...stepFields[1],
-      ...stepFields[2], 
+      ...stepFields[2],
       ...stepFields[3],
       ...stepFields[4]
     ];
@@ -287,23 +287,23 @@ export const NewApplicationForm: React.FC = () => {
         clearErrors(field as any);
       }
     });
-    
+
     // Small delay to ensure errors are cleared and form state is updated
     await new Promise(resolve => setTimeout(resolve, 50));
-    
+
     // Only validate the specific fields for the current step
     const isValid = await trigger(fieldsToValidate);
     console.log(`Step ${step} validation result:`, isValid);
-    
+
     // Log current form values for debugging
     const currentValues = watch();
     console.log('Current form values:', currentValues);
-    
+
     // Log which fields have errors
     console.log('Form errors:', errors);
     console.log('isPwd value:', watch('isPwd'));
     console.log('isPwd type:', typeof watch('isPwd'));
-    
+
     // Log specific field values for step 1
     if (step === 1) {
       console.log('Step 1 field values:');
@@ -312,7 +312,7 @@ export const NewApplicationForm: React.FC = () => {
         console.log(`${field}:`, value, typeof value);
       });
     }
-    
+
     return isValid;
   };
 
@@ -325,10 +325,10 @@ export const NewApplicationForm: React.FC = () => {
   // More lenient validation for edit mode
   const validateCurrentStepEditMode = async (step: number): Promise<boolean> => {
     console.log(`Edit mode validation for step ${step}`);
-    
+
     // In edit mode, we're more lenient - only validate truly critical fields
     let criticalFields: string[] = [];
-    
+
     switch (step) {
       case 1:
         criticalFields = ['lastName', 'firstName', 'sex', 'civilStatus', 'dateOfBirth', 'contactNumber', 'emailAddress'];
@@ -343,13 +343,13 @@ export const NewApplicationForm: React.FC = () => {
         criticalFields = ['scholarshipCategory', 'educationalLevel', 'schoolName', 'campus'];
         break;
     }
-    
+
     console.log(`Edit mode critical fields for step ${step}:`, criticalFields);
-    
+
     // Only validate critical fields
     const isValid = await trigger(criticalFields);
     console.log(`Edit mode validation result for step ${step}:`, isValid);
-    
+
     // In edit mode, we're more permissive - if most fields are valid, allow progression
     return isValid;
   };
@@ -357,7 +357,7 @@ export const NewApplicationForm: React.FC = () => {
   // Helper function to parse income values
   const parseIncomeToNumber = (incomeString: string): number => {
     if (!incomeString) return 0;
-    
+
     // Handle different income range formats
     if (incomeString.includes('Below')) return 50000; // Below 100,000
     if (incomeString.includes('Above')) return 750000; // Above 500,000
@@ -365,7 +365,7 @@ export const NewApplicationForm: React.FC = () => {
       const [min, max] = incomeString.split('-').map(s => parseInt(s.replace(/[^\d]/g, '')));
       return (min + max) / 2; // Return average
     }
-    
+
     return parseFloat(incomeString.replace(/[^\d]/g, '')) || 0;
   };
 
@@ -373,7 +373,7 @@ export const NewApplicationForm: React.FC = () => {
   const convertPercentageToGWA = (percentage: number): number => {
     // Clamp percentage to valid range (0-100)
     const clampedPercentage = Math.max(0, Math.min(100, percentage));
-    
+
     if (clampedPercentage >= 96) return 1.00;
     if (clampedPercentage >= 94) return 1.25;
     if (clampedPercentage >= 92) return 1.50;
@@ -399,25 +399,25 @@ export const NewApplicationForm: React.FC = () => {
       try {
         setIsCheckingApplications(true);
         const applications = await scholarshipApiService.getUserApplications();
-        
+
         // Check if user has any pending or active applications
         // Check if user has any active applications that would prevent creating a new one
         // Draft applications can be edited, so they don't block access to this page
         // Only non-draft active statuses block new applications
         const blockingStatuses = ['submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'for_compliance', 'compliance_documents_submitted'];
         const hasBlockingApplication = applications.some(app => blockingStatuses.includes(app.status?.toLowerCase()));
-        
+
         // Check if user has a draft application that they might want to edit
         const draftApplication = applications.find(app => app.status?.toLowerCase() === 'draft');
         const hasDraftApplication = !!draftApplication;
-        
+
         // Allow access if:
         // 1. No blocking applications exist, OR
         // 2. User has only draft applications (which can be edited)
         const shouldAllowAccess = !hasBlockingApplication;
-        
+
         setAccessDenied(!shouldAllowAccess);
-        
+
         // Set edit mode if user has a draft application
         if (draftApplication && shouldAllowAccess) {
           setIsEditMode(true);
@@ -438,7 +438,7 @@ export const NewApplicationForm: React.FC = () => {
             console.log('Edit mode detected. Using basic application data (no ID):', draftApplication);
           }
         }
-        
+
         console.log('User applications:', applications);
         console.log('Has blocking application:', hasBlockingApplication);
         console.log('Has draft application:', hasDraftApplication);
@@ -465,11 +465,11 @@ export const NewApplicationForm: React.FC = () => {
           scholarshipApiService.getSchools(),
           scholarshipApiService.getScholarshipCategories()
         ]);
-        
+
         // Ensure data is in array format
         setSchools(Array.isArray(schoolsData) ? schoolsData : []);
         setScholarshipCategories(Array.isArray(categoriesData) ? categoriesData : []);
-        
+
         console.log('Loaded schools:', schoolsData);
         console.log('Loaded categories:', categoriesData);
       } catch (error) {
@@ -527,7 +527,7 @@ export const NewApplicationForm: React.FC = () => {
       console.log('Student data:', existingApplication.student);
       console.log('Student data keys:', Object.keys(existingApplication.student || {}));
       console.log('Emergency contacts:', existingApplication.student?.emergency_contacts);
-      
+
       // Map the existing application data to form fields
       const formData = {
         // Personal Information
@@ -556,7 +556,7 @@ export const NewApplicationForm: React.FC = () => {
         zipCode: existingApplication.student?.addresses?.[0]?.zip_code || '',
         contactNumber: existingApplication.student?.contact_number || '',
         emailAddress: existingApplication.student?.email_address || '',
-        
+
         // Parent/Guardian Information
         motherFirstName: existingApplication.student?.family_members?.find((member: any) => member.relationship === 'mother')?.first_name || '',
         motherLastName: existingApplication.student?.family_members?.find((member: any) => member.relationship === 'mother')?.last_name || '',
@@ -574,12 +574,12 @@ export const NewApplicationForm: React.FC = () => {
         fatherContactNumber: existingApplication.student?.family_members?.find((member: any) => member.relationship === 'father')?.contact_number || '',
         fatherOccupation: existingApplication.student?.family_members?.find((member: any) => member.relationship === 'father')?.occupation || '',
         fatherMonthlyIncome: existingApplication.student?.family_members?.find((member: any) => member.relationship === 'father')?.monthly_income?.toString() || '',
-        
+
         // Emergency Contact
         emergencyContactName: existingApplication.student?.emergency_contacts?.[0]?.full_name || '',
         emergencyContactNumber: existingApplication.student?.emergency_contacts?.[0]?.contact_number || '',
         emergencyContactRelationship: existingApplication.student?.emergency_contacts?.[0]?.relationship || '',
-        
+
         // Employment & Financial
         isStudentEmployed: existingApplication.student?.is_employed ? 'yes' : 'no',
         studentOccupation: existingApplication.student?.occupation || '',
@@ -589,14 +589,14 @@ export const NewApplicationForm: React.FC = () => {
         numberOfSiblings: existingApplication.student?.financial_information?.number_of_siblings?.toString() || '',
         numberOfSiblingsInSchool: existingApplication.student?.financial_information?.siblings_currently_enrolled?.toString() || '',
         homeOwnershipStatus: existingApplication.student?.financial_information?.home_ownership_status || '',
-        
+
         // Marginalized Groups & Benefits
         isSoloParent: existingApplication.student?.is_solo_parent ? 'yes' : 'no',
         isIndigenousGroup: existingApplication.student?.is_indigenous_group ? 'yes' : 'no',
         indigenousGroupName: existingApplication.student?.indigenous_group_name || '',
         is4PsBeneficiary: existingApplication.student?.financial_information?.is_4ps_beneficiary ? 'yes' : 'no',
         isPwdBeneficiary: existingApplication.student?.family_information?.is_pwd_beneficiary ? 'yes' : 'no',
-        
+
         // Voter & Payment
         isRegisteredVoter: existingApplication.student?.is_registered_voter ? 'yes' : 'no',
         voterNationality: existingApplication.student?.voter_nationality || '',
@@ -604,7 +604,7 @@ export const NewApplicationForm: React.FC = () => {
         accountNumber: existingApplication.wallet_account_number || '',
         hasPayMayaAccount: existingApplication.student?.has_paymaya_account ? 'yes' : 'no',
         preferredMobileNumber: existingApplication.student?.preferred_mobile_number || '',
-        
+
         // Scholarship Information
         scholarshipCategory: existingApplication.category_id?.toString() || '',
         scholarshipSubCategory: existingApplication.subcategory_id?.toString() || '',
@@ -616,7 +616,7 @@ export const NewApplicationForm: React.FC = () => {
         digitalWallets: existingApplication.digital_wallets || [],
         walletAccountNumber: existingApplication.wallet_account_number || '',
         isSchoolAtCaloocan: existingApplication.is_school_at_caloocan ? 'yes' : 'no',
-        
+
         // Academic Information
         educationalLevel: existingApplication.student?.current_academic_record?.educational_level || '',
         courseProgram: existingApplication.student?.current_academic_record?.program || '',
@@ -635,27 +635,27 @@ export const NewApplicationForm: React.FC = () => {
         generalWeightedAverage: existingApplication.student?.current_academic_record?.general_weighted_average?.toString() || '',
         previousSchool: existingApplication.student?.current_academic_record?.previous_school || '',
         previousSchoolAddress: existingApplication.student?.current_academic_record?.previous_school_address || '',
-        
+
         // Additional academic fields
         isCurrentlyEnrolled: existingApplication.student?.current_academic_record?.is_currently_enrolled ? 'yes' : 'no',
         isGraduating: existingApplication.student?.current_academic_record?.is_graduating ? 'yes' : 'no',
-        
+
         // Application type
         type: existingApplication.type || 'new',
         reasonForRenewal: existingApplication.reason_for_renewal || '',
         parentApplicationId: existingApplication.parent_application_id || '',
         notes: existingApplication.notes || ''
       };
-      
+
       // Debug log the form data before reset
       console.log('Form data to be populated:', formData);
-      
+
       // Reset form with populated data
       reset(formData);
-      
+
       // Ensure we start from step 1 in edit mode
       setCurrentStep(1);
-      
+
       // Set the selected IDs for dropdowns
       if (existingApplication.category_id) {
         setSelectedCategoryId(existingApplication.category_id);
@@ -666,7 +666,7 @@ export const NewApplicationForm: React.FC = () => {
       if (existingApplication.school?.name) {
         setSelectedSchoolId(existingApplication.school.name);
       }
-      
+
       // Set GWA input format based on existing data
       const gwaValue = existingApplication.student?.current_academic_record?.general_weighted_average;
       if (gwaValue) {
@@ -676,7 +676,7 @@ export const NewApplicationForm: React.FC = () => {
           setGwaInputFormat('percentage');
         }
       }
-      
+
       // Set student ID type
       const studentId = existingApplication.student?.student_id_number;
       if (studentId) {
@@ -686,12 +686,12 @@ export const NewApplicationForm: React.FC = () => {
           setStudentIdType('school');
         }
       }
-      
+
       // Handle religion field for "OTHERS, PLEASE SPECIFY"
       if (formData.religion === 'OTHERS, PLEASE SPECIFY') {
         setShowReligionOther(true);
       }
-      
+
       console.log('=== FORM POPULATION COMPLETED ===');
       console.log('Form populated with existing application data');
       console.log('Current step set to:', 1);
@@ -711,20 +711,20 @@ export const NewApplicationForm: React.FC = () => {
       // Check if there's saved data in localStorage - if so, don't auto-populate
       const savedData = loadFormDataFromStorage();
       const forceAutoPopulate = new URLSearchParams(window.location.search).get('force-populate') === 'true';
-      
+
       if (savedData && !forceAutoPopulate) {
         console.log('Skipping auto-population - saved form data exists in localStorage');
         console.log('To test auto-population, add ?force-populate=true to URL or clear localStorage');
         return;
       }
-      
+
       if (forceAutoPopulate && savedData) {
         console.log('Force auto-population enabled - clearing saved data and populating from user record');
         clearFormDataFromStorage();
       }
 
       console.log('Auto-populating form with user data:', currentUser);
-      
+
       // Only populate fields that have actual data from the citizen record
       if (currentUser.first_name) {
         setValue('firstName', currentUser.first_name);
@@ -757,13 +757,13 @@ export const NewApplicationForm: React.FC = () => {
       // Optionally try to fetch additional student data if it exists (from previous applications)
       try {
         const studentsResponse = await scholarshipApiService.getStudents();
-        const existingStudent: Student | null = studentsResponse.data && studentsResponse.data.length > 0 
-          ? studentsResponse.data[0] 
+        const existingStudent: Student | null = studentsResponse.data && studentsResponse.data.length > 0
+          ? studentsResponse.data[0]
           : null;
 
         if (existingStudent) {
           console.log('Found existing student record, populating additional fields:', existingStudent);
-          
+
           // Populate additional fields from student record
           if (existingStudent.contact_number) {
             setValue('contactNumber', existingStudent.contact_number);
@@ -798,7 +798,7 @@ export const NewApplicationForm: React.FC = () => {
           if (existingStudent.pwd_specification) {
             setValue('pwdSpecification', existingStudent.pwd_specification);
           }
-          
+
           // Populate address if available
           if (existingStudent.addresses && existingStudent.addresses.length > 0) {
             const address = existingStudent.addresses[0];
@@ -811,7 +811,7 @@ export const NewApplicationForm: React.FC = () => {
             setValue('region', address.region || '');
             setValue('zipCode', address.zip_code || '');
           }
-          
+
           // Populate employment info
           if (existingStudent.is_employed !== undefined) {
             setValue('isStudentEmployed', existingStudent.is_employed ? 'yes' : 'no');
@@ -819,7 +819,7 @@ export const NewApplicationForm: React.FC = () => {
           if (existingStudent.occupation) {
             setValue('studentOccupation', existingStudent.occupation);
           }
-          
+
           // Populate other flags
           if (existingStudent.is_solo_parent !== undefined) {
             setValue('isSoloParent', existingStudent.is_solo_parent ? 'yes' : 'no');
@@ -839,7 +839,7 @@ export const NewApplicationForm: React.FC = () => {
           if (existingStudent.preferred_mobile_number) {
             setValue('preferredMobileNumber', existingStudent.preferred_mobile_number);
           }
-          
+
           // Populate student ID if available
           if (existingStudent.student_id_number) {
             setValue('studentId', existingStudent.student_id_number);
@@ -880,7 +880,7 @@ export const NewApplicationForm: React.FC = () => {
         setSubmitError('Your citizen ID is missing. Please log in again or contact support.');
         return;
       }
-      
+
       const applicationData = {
         // Student data
         citizen_id: currentUser.citizen_id,
@@ -992,7 +992,7 @@ export const NewApplicationForm: React.FC = () => {
         school_id: (() => {
           // Find the school ID based on the selected school name and campus
           if (selectedSchoolId && data.campus && Array.isArray(schools)) {
-            const selectedSchool = schools.find(school => 
+            const selectedSchool = schools.find(school =>
               school.name === selectedSchoolId && school.campus === data.campus
             );
             return selectedSchool ? selectedSchool.id : 2;
@@ -1001,10 +1001,10 @@ export const NewApplicationForm: React.FC = () => {
         })(),
         type: 'new' as const,
         financial_need_description: data.financialNeedDescription || 'Financial assistance needed for education',
-        requested_amount: selectedSubcategoryId ? 
+        requested_amount: selectedSubcategoryId ?
           (scholarshipCategories
             .find(cat => cat.subcategories?.some(sub => sub.id === selectedSubcategoryId))
-            ?.subcategories?.find(sub => sub.id === selectedSubcategoryId)?.amount || 50000) 
+            ?.subcategories?.find(sub => sub.id === selectedSubcategoryId)?.amount || 50000)
           : 50000,
         marginalized_groups: data.marginalizedGroups || [],
         digital_wallets: data.paymentMethod && data.paymentMethod !== 'Cash' ? [data.paymentMethod] : [],
@@ -1028,7 +1028,7 @@ export const NewApplicationForm: React.FC = () => {
           general_weighted_average: data.generalWeightedAverage ? (() => {
             const inputValue = parseFloat(data.generalWeightedAverage);
             let gwa;
-            
+
             if (gwaInputFormat === 'percentage') {
               gwa = convertPercentageToGWA(inputValue);
               console.log(`Converting GWA: ${inputValue}% -> ${gwa} GWA`);
@@ -1036,7 +1036,7 @@ export const NewApplicationForm: React.FC = () => {
               gwa = inputValue; // Already in GWA format
               console.log(`Using GWA directly: ${gwa}`);
             }
-            
+
             return gwa;
           })() : undefined,
           previous_school: data.previousSchool || null,
@@ -1050,19 +1050,19 @@ export const NewApplicationForm: React.FC = () => {
       console.log('Submitting application data:', applicationData);
       console.log('Selected IDs:', { selectedCategoryId, selectedSubcategoryId, selectedSchoolId });
       console.log('Form data:', data);
-      
+
       // Check authentication before submitting
       const token = localStorage.getItem('auth_token');
       console.log('Auth token present:', !!token);
       console.log('Auth token value:', token ? token.substring(0, 20) + '...' : 'No token');
-      
+
       // Save or update the application
       let result;
       try {
         if (isEditMode && existingApplication) {
           // Update existing application - need to update both student and application data
           console.log('Updating existing application:', existingApplication.id);
-          
+
           // Separate student data from application data
           const studentData = {
             first_name: applicationData.first_name,
@@ -1135,7 +1135,7 @@ export const NewApplicationForm: React.FC = () => {
           stack: apiError instanceof Error ? apiError.stack : undefined,
           name: apiError instanceof Error ? apiError.name : 'Unknown'
         });
-        
+
         // Handle specific database constraint violations
         const errorMessage = apiError instanceof Error ? apiError.message : String(apiError);
         if (errorMessage.includes('Duplicate entry') && errorMessage.includes('citizen_id_unique')) {
@@ -1147,13 +1147,13 @@ export const NewApplicationForm: React.FC = () => {
           throw new Error(`Failed to ${actionText}: ${errorMessage}`);
         }
       }
-      
-      
+
+
       setShowSuccessModal(true);
-      
+
       // Clear saved form data after successful submission
       clearFormDataFromStorage();
-      
+
     } catch (error) {
       console.error(`Failed to ${isEditMode ? 'update' : 'save draft'}:`, error);
       const actionText = isEditMode ? 'update' : 'save draft';
@@ -1173,7 +1173,7 @@ export const NewApplicationForm: React.FC = () => {
               <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
                 <h1 className="text-2xl font-bold text-white">New Scholarship Application</h1>
               </div>
-              
+
               {/* Navigation */}
               <div className="px-6 py-3 bg-gray-50 border-b">
                 <button
@@ -1186,7 +1186,7 @@ export const NewApplicationForm: React.FC = () => {
                   Back to Portal
                 </button>
               </div>
-              
+
               <div className="p-8">
                 <div className="space-y-6">
                   <div className="text-center mb-6">
@@ -1204,7 +1204,7 @@ export const NewApplicationForm: React.FC = () => {
         </div>
       );
     }
-    
+
     // Show access denied if user has active applications
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -1213,7 +1213,7 @@ export const NewApplicationForm: React.FC = () => {
             <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
               <h1 className="text-2xl font-bold text-white">Access Restricted</h1>
             </div>
-            
+
             {/* Navigation */}
             <div className="px-6 py-3 bg-gray-50 border-b">
               <button
@@ -1226,7 +1226,7 @@ export const NewApplicationForm: React.FC = () => {
                 Back to Portal
               </button>
             </div>
-            
+
             <div className="p-8 text-center">
               <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
                 <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1302,7 +1302,7 @@ export const NewApplicationForm: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-gray-700">Step {currentStep} of 4</span>
               <div className="w-64 bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-orange-500 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${(currentStep / 4) * 100}%` }}
                 ></div>
@@ -1314,24 +1314,22 @@ export const NewApplicationForm: React.FC = () => {
                   {isEditMode ? (
                     <button
                       onClick={() => handleStepNavigation(1)}
-                      className={`text-sm whitespace-nowrap transition-colors ${
-                        currentStep === 1 
-                          ? 'text-orange-600 font-semibold' 
-                          : currentStep > 1 
-                            ? 'text-green-600 font-medium hover:text-green-700' 
+                      className={`text-sm whitespace-nowrap transition-colors ${currentStep === 1
+                          ? 'text-orange-600 font-semibold'
+                          : currentStep > 1
+                            ? 'text-green-600 font-medium hover:text-green-700'
                             : 'text-gray-400 hover:text-gray-600'
-                      }`}
+                        }`}
                     >
                       1. Personal Information
                     </button>
                   ) : (
-                    <span className={`text-sm whitespace-nowrap ${
-                      currentStep === 1 
-                        ? 'text-orange-600 font-semibold' 
-                        : currentStep > 1 
-                          ? 'text-green-600 font-medium' 
+                    <span className={`text-sm whitespace-nowrap ${currentStep === 1
+                        ? 'text-orange-600 font-semibold'
+                        : currentStep > 1
+                          ? 'text-green-600 font-medium'
                           : 'text-gray-400'
-                    }`}>
+                      }`}>
                       1. Personal Information
                     </span>
                   )}
@@ -1345,24 +1343,22 @@ export const NewApplicationForm: React.FC = () => {
                   {isEditMode ? (
                     <button
                       onClick={() => handleStepNavigation(2)}
-                      className={`text-sm whitespace-nowrap transition-colors ${
-                        currentStep === 2 
-                          ? 'text-orange-600 font-semibold' 
-                          : currentStep > 2 
-                            ? 'text-green-600 font-medium hover:text-green-700' 
+                      className={`text-sm whitespace-nowrap transition-colors ${currentStep === 2
+                          ? 'text-orange-600 font-semibold'
+                          : currentStep > 2
+                            ? 'text-green-600 font-medium hover:text-green-700'
                             : 'text-gray-400 hover:text-gray-600'
-                      }`}
+                        }`}
                     >
                       2. Family Information
                     </button>
                   ) : (
-                    <span className={`text-sm whitespace-nowrap ${
-                      currentStep === 2 
-                        ? 'text-orange-600 font-semibold' 
-                        : currentStep > 2 
-                          ? 'text-green-600 font-medium' 
+                    <span className={`text-sm whitespace-nowrap ${currentStep === 2
+                        ? 'text-orange-600 font-semibold'
+                        : currentStep > 2
+                          ? 'text-green-600 font-medium'
                           : 'text-gray-400'
-                    }`}>
+                      }`}>
                       2. Family Information
                     </span>
                   )}
@@ -1376,24 +1372,22 @@ export const NewApplicationForm: React.FC = () => {
                   {isEditMode ? (
                     <button
                       onClick={() => handleStepNavigation(3)}
-                      className={`text-sm whitespace-nowrap transition-colors ${
-                        currentStep === 3 
-                          ? 'text-orange-600 font-semibold' 
-                          : currentStep > 3 
-                            ? 'text-green-600 font-medium hover:text-green-700' 
+                      className={`text-sm whitespace-nowrap transition-colors ${currentStep === 3
+                          ? 'text-orange-600 font-semibold'
+                          : currentStep > 3
+                            ? 'text-green-600 font-medium hover:text-green-700'
                             : 'text-gray-400 hover:text-gray-600'
-                      }`}
+                        }`}
                     >
                       3. Financial Information
                     </button>
                   ) : (
-                    <span className={`text-sm whitespace-nowrap ${
-                      currentStep === 3 
-                        ? 'text-orange-600 font-semibold' 
-                        : currentStep > 3 
-                          ? 'text-green-600 font-medium' 
+                    <span className={`text-sm whitespace-nowrap ${currentStep === 3
+                        ? 'text-orange-600 font-semibold'
+                        : currentStep > 3
+                          ? 'text-green-600 font-medium'
                           : 'text-gray-400'
-                    }`}>
+                      }`}>
                       3. Financial Information
                     </span>
                   )}
@@ -1407,24 +1401,22 @@ export const NewApplicationForm: React.FC = () => {
                   {isEditMode ? (
                     <button
                       onClick={() => handleStepNavigation(4)}
-                      className={`text-sm whitespace-nowrap transition-colors ${
-                        currentStep === 4 
-                          ? 'text-orange-600 font-semibold' 
-                          : currentStep > 4 
-                            ? 'text-green-600 font-medium hover:text-green-700' 
+                      className={`text-sm whitespace-nowrap transition-colors ${currentStep === 4
+                          ? 'text-orange-600 font-semibold'
+                          : currentStep > 4
+                            ? 'text-green-600 font-medium hover:text-green-700'
                             : 'text-gray-400 hover:text-gray-600'
-                      }`}
+                        }`}
                     >
                       4. Academic Information
                     </button>
                   ) : (
-                    <span className={`text-sm whitespace-nowrap ${
-                      currentStep === 4 
-                        ? 'text-orange-600 font-semibold' 
-                        : currentStep > 4 
-                          ? 'text-green-600 font-medium' 
+                    <span className={`text-sm whitespace-nowrap ${currentStep === 4
+                        ? 'text-orange-600 font-semibold'
+                        : currentStep > 4
+                          ? 'text-green-600 font-medium'
                           : 'text-gray-400'
-                    }`}>
+                      }`}>
                       4. Academic Information
                     </span>
                   )}
@@ -1536,7 +1528,7 @@ export const NewApplicationForm: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {studentIdType === 'school' ? 'Student ID' : 'LRN (Learner Reference Number)'} *
                     </label>
-                    
+
                     {/* ID Type Switch */}
                     <div className="mb-3">
                       <div className="flex space-x-4">
@@ -1568,7 +1560,7 @@ export const NewApplicationForm: React.FC = () => {
                     <Controller
                       name="studentId"
                       control={control}
-                      rules={{ 
+                      rules={{
                         required: `${studentIdType === 'school' ? 'Student ID' : 'LRN'} is required`,
                         minLength: {
                           value: studentIdType === 'lrn' ? 10 : 1,
@@ -1580,8 +1572,8 @@ export const NewApplicationForm: React.FC = () => {
                           {...field}
                           type="text"
                           placeholder={
-                            studentIdType === 'school' 
-                              ? 'e.g., 2024-00123' 
+                            studentIdType === 'school'
+                              ? 'e.g., 2024-00123'
                               : 'e.g., 123456789012'
                           }
                           maxLength={studentIdType === 'lrn' ? 12 : undefined}
@@ -1590,8 +1582,8 @@ export const NewApplicationForm: React.FC = () => {
                       )}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      {studentIdType === 'school' 
-                        ? 'Enter your school-issued student ID number' 
+                      {studentIdType === 'school'
+                        ? 'Enter your school-issued student ID number'
                         : 'Enter your 12-digit Learner Reference Number (LRN)'}
                     </p>
                     {errors.studentId && <p className="mt-1 text-sm text-red-600">{String(errors.studentId.message)}</p>}
@@ -1779,7 +1771,7 @@ export const NewApplicationForm: React.FC = () => {
                       <Controller
                         name="isPwd"
                         control={control}
-                        rules={{ 
+                        rules={{
                           validate: (value) => {
                             if (value === true || value === false) {
                               return true; // Valid boolean value
@@ -1832,8 +1824,8 @@ export const NewApplicationForm: React.FC = () => {
                       <Controller
                         name="pwdSpecification"
                         control={control}
-                        rules={{ 
-                          required: isPwd ? 'PWD specification is required' : false 
+                        rules={{
+                          required: isPwd ? 'PWD specification is required' : false
                         }}
                         render={({ field }) => (
                           <input
@@ -1922,7 +1914,7 @@ export const NewApplicationForm: React.FC = () => {
                     <Controller
                       name="zipCode"
                       control={control}
-                      rules={{ 
+                      rules={{
                         required: 'Zip Code is required',
                         maxLength: {
                           value: 20,
@@ -1963,7 +1955,7 @@ export const NewApplicationForm: React.FC = () => {
                     <Controller
                       name="emailAddress"
                       control={control}
-                      rules={{ 
+                      rules={{
                         required: 'Email Address is required',
                         pattern: {
                           value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -2003,7 +1995,7 @@ export const NewApplicationForm: React.FC = () => {
                   </div>
 
                   <div className="col-span-full">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Please indicate your mother's status *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Status *</label>
                     <Controller
                       name="isMotherAvailable"
                       control={control}
@@ -2016,6 +2008,7 @@ export const NewApplicationForm: React.FC = () => {
                           <option value="">Select Status</option>
                           <option value="yes">Living</option>
                           <option value="no">Deceased</option>
+                          <option value="no_contact">No Contact / Unknown</option>
                         </select>
                       )}
                     />
@@ -2025,126 +2018,126 @@ export const NewApplicationForm: React.FC = () => {
                   {isMotherAvailable === 'yes' && (
                     <>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                    <Controller
-                      name="motherFirstName"
-                      control={control}
-                      rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s First Name is required' : false }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                        <Controller
+                          name="motherFirstName"
+                          control={control}
+                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s First Name is required' : false }}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="text"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                          )}
                         />
-                      )}
-                    />
-                    {errors.motherFirstName && <p className="mt-1 text-sm text-red-600">{String(errors.motherFirstName.message)}</p>}
-                  </div>
+                        {errors.motherFirstName && <p className="mt-1 text-sm text-red-600">{String(errors.motherFirstName.message)}</p>}
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-                    <Controller
-                      name="motherLastName"
-                      control={control}
-                      rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Last Name is required' : false }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                        <Controller
+                          name="motherLastName"
+                          control={control}
+                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Last Name is required' : false }}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="text"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                          )}
                         />
-                      )}
-                    />
-                    {errors.motherLastName && <p className="mt-1 text-sm text-red-600">{String(errors.motherLastName.message)}</p>}
-                  </div>
+                        {errors.motherLastName && <p className="mt-1 text-sm text-red-600">{String(errors.motherLastName.message)}</p>}
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
-                    <Controller
-                      name="motherMiddleName"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                        <Controller
+                          name="motherMiddleName"
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="text"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                          )}
                         />
-                      )}
-                    />
-                  </div>
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Extension Name</label>
-                    <Controller
-                      name="motherExtensionName"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          placeholder="e.g., Jr., Sr."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Extension Name</label>
+                        <Controller
+                          name="motherExtensionName"
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="text"
+                              placeholder="e.g., Jr., Sr."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                          )}
                         />
-                      )}
-                    />
-                  </div>
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
-                    <Controller
-                      name="motherContactNumber"
-                      control={control}
-                      rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Contact Number is required' : false }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="tel"
-                          placeholder="e.g., 09171234567"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
+                        <Controller
+                          name="motherContactNumber"
+                          control={control}
+                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Contact Number is required' : false }}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="tel"
+                              placeholder="e.g., 09171234567"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                          )}
                         />
-                      )}
-                    />
-                    {errors.motherContactNumber && <p className="mt-1 text-sm text-red-600">{String(errors.motherContactNumber.message)}</p>}
-                  </div>
+                        {errors.motherContactNumber && <p className="mt-1 text-sm text-red-600">{String(errors.motherContactNumber.message)}</p>}
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Occupation *</label>
-                    <Controller
-                      name="motherOccupation"
-                      control={control}
-                      rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Occupation is required' : false }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          placeholder="e.g., Teacher, Housewife"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Occupation *</label>
+                        <Controller
+                          name="motherOccupation"
+                          control={control}
+                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Occupation is required' : false }}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="text"
+                              placeholder="e.g., Teacher, Housewife"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                          )}
                         />
-                      )}
-                    />
-                    {errors.motherOccupation && <p className="mt-1 text-sm text-red-600">{String(errors.motherOccupation.message)}</p>}
-                  </div>
+                        {errors.motherOccupation && <p className="mt-1 text-sm text-red-600">{String(errors.motherOccupation.message)}</p>}
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Income *</label>
-                    <Controller
-                      name="motherMonthlyIncome"
-                      control={control}
-                      rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Monthly Income is required' : false }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="e.g., 15000 (Enter 0 if not applicable)"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Income *</label>
+                        <Controller
+                          name="motherMonthlyIncome"
+                          control={control}
+                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Monthly Income is required' : false }}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="e.g., 15000 (Enter 0 if not applicable)"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                          )}
                         />
-                      )}
-                    />
-                    {errors.motherMonthlyIncome && <p className="mt-1 text-sm text-red-600">{String(errors.motherMonthlyIncome.message)}</p>}
-                  </div>
+                        {errors.motherMonthlyIncome && <p className="mt-1 text-sm text-red-600">{String(errors.motherMonthlyIncome.message)}</p>}
+                      </div>
 
                     </>
                   )}
@@ -2155,7 +2148,7 @@ export const NewApplicationForm: React.FC = () => {
                   </div>
 
                   <div className="col-span-full">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Please indicate your father's status *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Status *</label>
                     <Controller
                       name="isFatherAvailable"
                       control={control}
@@ -2168,6 +2161,7 @@ export const NewApplicationForm: React.FC = () => {
                           <option value="">Select Status</option>
                           <option value="yes">Living</option>
                           <option value="no">Deceased</option>
+                          <option value="no_contact">No Contact / Unknown</option>
                         </select>
                       )}
                     />
@@ -2353,6 +2347,7 @@ export const NewApplicationForm: React.FC = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         >
                           <option value="">Select Relationship</option>
+                          <option value="Parent">Parent</option>
                           <option value="Sibling">Sibling</option>
                           <option value="Aunt/Uncle">Aunt/Uncle</option>
                           <option value="Grandparent">Grandparent</option>
@@ -2660,7 +2655,7 @@ export const NewApplicationForm: React.FC = () => {
                     <Controller
                       name="financialNeedDescription"
                       control={control}
-                      rules={{ 
+                      rules={{
                         required: 'Financial need description is required',
                         minLength: {
                           value: 20,
@@ -2721,7 +2716,7 @@ export const NewApplicationForm: React.FC = () => {
                       <Controller
                         name="accountNumber"
                         control={control}
-                        rules={{ 
+                        rules={{
                           required: paymentMethod !== 'Cash' ? 'Account number is required' : false,
                           minLength: {
                             value: 10,
@@ -2748,7 +2743,7 @@ export const NewApplicationForm: React.FC = () => {
             {currentStep === 4 && (
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Scholarship and Enrollment Information</h2>
-                
+
                 {isLoadingData && (
                   <div className="space-y-6">
                     <Skeleton variant="text" height={24} width={250} />
@@ -2772,522 +2767,522 @@ export const NewApplicationForm: React.FC = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Scholarship Category *</label>
-                    <Controller
-                      name="scholarshipCategory"
-                      control={control}
-                      rules={{ required: 'Scholarship Category is required' }}
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            const categoryId = parseInt(e.target.value);
-                            setSelectedCategoryId(categoryId);
-                            // Reset subcategory when category changes
-                            setSelectedSubcategoryId(null);
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        >
-                          <option value="">Select Scholarship Category</option>
-                          {Array.isArray(scholarshipCategories) && scholarshipCategories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    />
-                    {errors.scholarshipCategory && <p className="mt-1 text-sm text-red-600">{String(errors.scholarshipCategory.message)}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Scholarship Subcategory *</label>
-                    <Controller
-                      name="scholarshipSubCategory"
-                      control={control}
-                      rules={{ required: 'Scholarship Subcategory is required' }}
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            const subcategoryId = parseInt(e.target.value);
-                            setSelectedSubcategoryId(subcategoryId);
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                          disabled={!selectedCategoryId}
-                        >
-                          <option value="">Select Subcategory</option>
-                          {selectedCategoryId && Array.isArray(scholarshipCategories) && scholarshipCategories
-                            .find(cat => cat.id === selectedCategoryId)
-                            ?.subcategories?.map((subcategory) => (
-                              <option key={subcategory.id} value={subcategory.id}>
-                                {subcategory.name}
+                      <Controller
+                        name="scholarshipCategory"
+                        control={control}
+                        rules={{ required: 'Scholarship Category is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const categoryId = parseInt(e.target.value);
+                              setSelectedCategoryId(categoryId);
+                              // Reset subcategory when category changes
+                              setSelectedSubcategoryId(null);
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            <option value="">Select Scholarship Category</option>
+                            {Array.isArray(scholarshipCategories) && scholarshipCategories.map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.name}
                               </option>
                             ))}
-                        </select>
-                      )}
-                    />
-                    {errors.scholarshipSubCategory && <p className="mt-1 text-sm text-red-600">{String(errors.scholarshipSubCategory.message)}</p>}
-                  </div>
-
-                  {/* Display Scholarship Amount */}
-                  {selectedSubcategoryId && (
-                    <div className="col-span-full">
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 className="text-sm font-medium text-blue-800 mb-2">Scholarship Details</h4>
-                        <p className="text-sm text-blue-700">
-                          <strong>Amount:</strong> ₱{scholarshipCategories
-                            .find(cat => cat.subcategories?.some(sub => sub.id === selectedSubcategoryId))
-                            ?.subcategories?.find(sub => sub.id === selectedSubcategoryId)?.amount?.toLocaleString() || '0'}
-                        </p>
-                        <p className="text-xs text-blue-600 mt-1">
-                          This is the predetermined amount for the selected scholarship subcategory.
-                        </p>
-                      </div>
+                          </select>
+                        )}
+                      />
+                      {errors.scholarshipCategory && <p className="mt-1 text-sm text-red-600">{String(errors.scholarshipCategory.message)}</p>}
                     </div>
-                  )}
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">How did you hear about this scholarship program? *</label>
-                    <Controller
-                      name="howDidYouKnow"
-                      control={control}
-                      rules={{ 
-                        required: 'Please select at least one option',
-                        validate: (value) => {
-                          if (Array.isArray(value) && value.length === 0) {
-                            return 'Please select at least one option';
-                          }
-                          return true;
-                        }
-                      }}
-                      render={({ field }) => (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {['Social Media', 'School Announcement', 'Friend/Family', 'Barangay Official', 'Website', 'Other'].map((source) => (
-                            <label key={source} className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                value={source}
-                                checked={field.value?.includes(source) || false}
-                                onChange={(e) => {
-                                  const currentValue = field.value || [];
-                                  if (e.target.checked) {
-                                    field.onChange([...currentValue, source]);
-                                  } else {
-                                    field.onChange(currentValue.filter((v: string) => v !== source));
-                                  }
-                                }}
-                                className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                              />
-                              <span className="text-sm text-gray-700">{source}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    />
-                    {errors.howDidYouKnow && <p className="mt-1 text-sm text-red-600">{String(errors.howDidYouKnow.message)}</p>}
-                  </div>
-
-                  {/* Current School Information */}
-                  <div className="col-span-full mt-6">
-                    <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Current School Information</h3>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Educational Level *</label>
-                    <Controller
-                      name="educationalLevel"
-                      control={control}
-                      rules={{ required: 'Educational Level is required' }}
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        >
-                          <option value="TERTIARY/COLLEGE">TERTIARY/COLLEGE</option>
-                          <option value="SENIOR HIGH SCHOOL">SENIOR HIGH SCHOOL</option>
-                          <option value="VOCATIONAL">VOCATIONAL</option>
-                        </select>
-                      )}
-                    />
-                    {errors.educationalLevel && <p className="mt-1 text-sm text-red-600">{String(errors.educationalLevel.message)}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Is Current School at Caloocan? *</label>
-                    <Controller
-                      name="isSchoolAtCaloocan"
-                      control={control}
-                      rules={{ required: 'School location is required' }}
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        >
-                          <option value="YES">YES</option>
-                          <option value="NO">NO</option>
-                        </select>
-                      )}
-                    />
-                    {errors.isSchoolAtCaloocan && <p className="mt-1 text-sm text-red-600">{String(errors.isSchoolAtCaloocan.message)}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name of School *</label>
-                    <Controller
-                      name="schoolName"
-                      control={control}
-                      rules={{ required: 'School Name is required' }}
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            const schoolName = e.target.value;
-                            setSelectedSchoolId(schoolName); // Store school name
-                            
-                            // Clear campus field when school changes
-                            setValue('campus', '');
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        >
-                          <option value="">Select School</option>
-                          {Array.isArray(schools) && 
-                            schools
-                              .reduce((unique: School[], school) => {
-                                if (!unique.find(s => s.name === school.name)) {
-                                  unique.push(school);
-                                }
-                                return unique;
-                              }, [])
-                              .map((school) => (
-                                <option key={school.id} value={school.name}>
-                                  {school.name}
-                                </option>
-                              ))
-                          }
-                        </select>
-                      )}
-                    />
-                    {errors.schoolName && <p className="mt-1 text-sm text-red-600">{String(errors.schoolName.message)}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Campus *</label>
-                    <Controller
-                      name="campus"
-                      control={control}
-                      rules={{ required: 'Campus is required' }}
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        >
-                          <option value="">Select Campus</option>
-                          {selectedSchoolId && Array.isArray(schools) && 
-                            schools
-                              .filter(school => school.name === selectedSchoolId)
-                              .map((school, index) => (
-                                <option key={`${school.id}-${index}`} value={school.campus}>
-                                  {school.campus}
-                                </option>
-                              ))
-                          }
-                        </select>
-                      )}
-                    />
-                    {errors.campus && <p className="mt-1 text-sm text-red-600">{String(errors.campus.message)}</p>}
-                  </div>
-
-
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Number of Units Currently Enrolled *</label>
-                    <Controller
-                      name="unitsEnrolled"
-                      control={control}
-                      rules={{ required: 'Units Enrolled is required' }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          placeholder="Write N/A if Senior High School Student"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
-                      )}
-                    />
-                    {errors.unitsEnrolled && <p className="mt-1 text-sm text-red-600">{String(errors.unitsEnrolled.message)}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Grade/Year Level *</label>
-                    <Controller
-                      name="gradeYearLevel"
-                      control={control}
-                      rules={{ required: 'Grade/Year Level is required' }}
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        >
-                          <option value="">Select Grade/Year Level</option>
-                          <option value="1st Year">1st Year</option>
-                          <option value="2nd Year">2nd Year</option>
-                          <option value="3rd Year">3rd Year</option>
-                          <option value="4th Year">4th Year</option>
-                          <option value="5th Year">5th Year</option>
-                          <option value="Grade 11">Grade 11</option>
-                          <option value="Grade 12">Grade 12</option>
-                        </select>
-                      )}
-                    />
-                    {errors.gradeYearLevel && <p className="mt-1 text-sm text-red-600">{String(errors.gradeYearLevel.message)}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {educationalLevel === 'SENIOR HIGH SCHOOL' ? 'Track/Strand' : educationalLevel === 'VOCATIONAL' ? 'Course/Program' : 'Degree Program'} *
-                    </label>
-                    <Controller
-                      name="courseProgram"
-                      control={control}
-                      rules={{ required: `${educationalLevel === 'SENIOR HIGH SCHOOL' ? 'Track/Strand' : 'Degree Program'} is required` }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          placeholder={
-                            educationalLevel === 'SENIOR HIGH SCHOOL' 
-                              ? 'e.g., STEM, ABM, HUMSS, etc.' 
-                              : educationalLevel === 'VOCATIONAL'
-                              ? 'e.g., Automotive Servicing, Cookery, etc.'
-                              : 'e.g., BS Computer Science, AB Psychology, etc.'
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
-                      )}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      {educationalLevel === 'SENIOR HIGH SCHOOL' 
-                        ? 'Enter your SHS track/strand' 
-                        : educationalLevel === 'VOCATIONAL'
-                        ? 'Enter your vocational course'
-                        : 'Enter your college degree program'}
-                    </p>
-                    {errors.courseProgram && <p className="mt-1 text-sm text-red-600">{String(errors.courseProgram.message)}</p>}
-                  </div>
-
-                  {educationalLevel === 'TERTIARY/COLLEGE' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Major/Specialization</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Scholarship Subcategory *</label>
                       <Controller
-                        name="major"
+                        name="scholarshipSubCategory"
+                        control={control}
+                        rules={{ required: 'Scholarship Subcategory is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const subcategoryId = parseInt(e.target.value);
+                              setSelectedSubcategoryId(subcategoryId);
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            disabled={!selectedCategoryId}
+                          >
+                            <option value="">Select Subcategory</option>
+                            {selectedCategoryId && Array.isArray(scholarshipCategories) && scholarshipCategories
+                              .find(cat => cat.id === selectedCategoryId)
+                              ?.subcategories?.map((subcategory) => (
+                                <option key={subcategory.id} value={subcategory.id}>
+                                  {subcategory.name}
+                                </option>
+                              ))}
+                          </select>
+                        )}
+                      />
+                      {errors.scholarshipSubCategory && <p className="mt-1 text-sm text-red-600">{String(errors.scholarshipSubCategory.message)}</p>}
+                    </div>
+
+                    {/* Display Scholarship Amount */}
+                    {selectedSubcategoryId && (
+                      <div className="col-span-full">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-blue-800 mb-2">Scholarship Details</h4>
+                          <p className="text-sm text-blue-700">
+                            <strong>Amount:</strong> ₱{scholarshipCategories
+                              .find(cat => cat.subcategories?.some(sub => sub.id === selectedSubcategoryId))
+                              ?.subcategories?.find(sub => sub.id === selectedSubcategoryId)?.amount?.toLocaleString() || '0'}
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1">
+                            This is the predetermined amount for the selected scholarship subcategory.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">How did you hear about this scholarship program? *</label>
+                      <Controller
+                        name="howDidYouKnow"
+                        control={control}
+                        rules={{
+                          required: 'Please select at least one option',
+                          validate: (value) => {
+                            if (Array.isArray(value) && value.length === 0) {
+                              return 'Please select at least one option';
+                            }
+                            return true;
+                          }
+                        }}
+                        render={({ field }) => (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {['Social Media', 'School Announcement', 'Friend/Family', 'Barangay Official', 'Website', 'Other'].map((source) => (
+                              <label key={source} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  value={source}
+                                  checked={field.value?.includes(source) || false}
+                                  onChange={(e) => {
+                                    const currentValue = field.value || [];
+                                    if (e.target.checked) {
+                                      field.onChange([...currentValue, source]);
+                                    } else {
+                                      field.onChange(currentValue.filter((v: string) => v !== source));
+                                    }
+                                  }}
+                                  className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                                />
+                                <span className="text-sm text-gray-700">{source}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      />
+                      {errors.howDidYouKnow && <p className="mt-1 text-sm text-red-600">{String(errors.howDidYouKnow.message)}</p>}
+                    </div>
+
+                    {/* Current School Information */}
+                    <div className="col-span-full mt-6">
+                      <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Current School Information</h3>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Educational Level *</label>
+                      <Controller
+                        name="educationalLevel"
+                        control={control}
+                        rules={{ required: 'Educational Level is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            <option value="TERTIARY/COLLEGE">TERTIARY/COLLEGE</option>
+                            <option value="SENIOR HIGH SCHOOL">SENIOR HIGH SCHOOL</option>
+                            <option value="VOCATIONAL">VOCATIONAL</option>
+                          </select>
+                        )}
+                      />
+                      {errors.educationalLevel && <p className="mt-1 text-sm text-red-600">{String(errors.educationalLevel.message)}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Is Current School at Caloocan? *</label>
+                      <Controller
+                        name="isSchoolAtCaloocan"
+                        control={control}
+                        rules={{ required: 'School location is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            <option value="YES">YES</option>
+                            <option value="NO">NO</option>
+                          </select>
+                        )}
+                      />
+                      {errors.isSchoolAtCaloocan && <p className="mt-1 text-sm text-red-600">{String(errors.isSchoolAtCaloocan.message)}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Name of School *</label>
+                      <Controller
+                        name="schoolName"
+                        control={control}
+                        rules={{ required: 'School Name is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const schoolName = e.target.value;
+                              setSelectedSchoolId(schoolName); // Store school name
+
+                              // Clear campus field when school changes
+                              setValue('campus', '');
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            <option value="">Select School</option>
+                            {Array.isArray(schools) &&
+                              schools
+                                .reduce((unique: School[], school) => {
+                                  if (!unique.find(s => s.name === school.name)) {
+                                    unique.push(school);
+                                  }
+                                  return unique;
+                                }, [])
+                                .map((school) => (
+                                  <option key={school.id} value={school.name}>
+                                    {school.name}
+                                  </option>
+                                ))
+                            }
+                          </select>
+                        )}
+                      />
+                      {errors.schoolName && <p className="mt-1 text-sm text-red-600">{String(errors.schoolName.message)}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Campus *</label>
+                      <Controller
+                        name="campus"
+                        control={control}
+                        rules={{ required: 'Campus is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            <option value="">Select Campus</option>
+                            {selectedSchoolId && Array.isArray(schools) &&
+                              schools
+                                .filter(school => school.name === selectedSchoolId)
+                                .map((school, index) => (
+                                  <option key={`${school.id}-${index}`} value={school.campus}>
+                                    {school.campus}
+                                  </option>
+                                ))
+                            }
+                          </select>
+                        )}
+                      />
+                      {errors.campus && <p className="mt-1 text-sm text-red-600">{String(errors.campus.message)}</p>}
+                    </div>
+
+
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Number of Units Currently Enrolled *</label>
+                      <Controller
+                        name="unitsEnrolled"
+                        control={control}
+                        rules={{ required: 'Units Enrolled is required' }}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            placeholder="Write N/A if Senior High School Student"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          />
+                        )}
+                      />
+                      {errors.unitsEnrolled && <p className="mt-1 text-sm text-red-600">{String(errors.unitsEnrolled.message)}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Select Grade/Year Level *</label>
+                      <Controller
+                        name="gradeYearLevel"
+                        control={control}
+                        rules={{ required: 'Grade/Year Level is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            <option value="">Select Grade/Year Level</option>
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                            <option value="5th Year">5th Year</option>
+                            <option value="Grade 11">Grade 11</option>
+                            <option value="Grade 12">Grade 12</option>
+                          </select>
+                        )}
+                      />
+                      {errors.gradeYearLevel && <p className="mt-1 text-sm text-red-600">{String(errors.gradeYearLevel.message)}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {educationalLevel === 'SENIOR HIGH SCHOOL' ? 'Track/Strand' : educationalLevel === 'VOCATIONAL' ? 'Course/Program' : 'Degree Program'} *
+                      </label>
+                      <Controller
+                        name="courseProgram"
+                        control={control}
+                        rules={{ required: `${educationalLevel === 'SENIOR HIGH SCHOOL' ? 'Track/Strand' : 'Degree Program'} is required` }}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            placeholder={
+                              educationalLevel === 'SENIOR HIGH SCHOOL'
+                                ? 'e.g., STEM, ABM, HUMSS, etc.'
+                                : educationalLevel === 'VOCATIONAL'
+                                  ? 'e.g., Automotive Servicing, Cookery, etc.'
+                                  : 'e.g., BS Computer Science, AB Psychology, etc.'
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          />
+                        )}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {educationalLevel === 'SENIOR HIGH SCHOOL'
+                          ? 'Enter your SHS track/strand'
+                          : educationalLevel === 'VOCATIONAL'
+                            ? 'Enter your vocational course'
+                            : 'Enter your college degree program'}
+                      </p>
+                      {errors.courseProgram && <p className="mt-1 text-sm text-red-600">{String(errors.courseProgram.message)}</p>}
+                    </div>
+
+                    {educationalLevel === 'TERTIARY/COLLEGE' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Major/Specialization</label>
+                        <Controller
+                          name="major"
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="text"
+                              placeholder="e.g., Software Engineering, Clinical Psychology (Leave blank if not applicable)"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            />
+                          )}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Optional: Enter your major or area of specialization if applicable</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">School Term/Semester *</label>
+                      <Controller
+                        name="schoolTerm"
+                        control={control}
+                        rules={{ required: 'School Term/Semester is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            <option value="">Select Term</option>
+                            <option value="1st Semester">1st Semester</option>
+                            <option value="2nd Semester">2nd Semester</option>
+                            <option value="Summer">Summer</option>
+                          </select>
+                        )}
+                      />
+                      {errors.schoolTerm && <p className="mt-1 text-sm text-red-600">{String(errors.schoolTerm.message)}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">School Year *</label>
+                      <Controller
+                        name="schoolYear"
+                        control={control}
+                        rules={{ required: 'School Year is required' }}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            placeholder="e.g., 2023-2024"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          />
+                        )}
+                      />
+                      {errors.schoolYear && <p className="mt-1 text-sm text-red-600">{String(errors.schoolYear.message)}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Units Completed *</label>
+                      <Controller
+                        name="unitsCompleted"
+                        control={control}
+                        rules={{
+                          required: 'Units Completed is required',
+                          validate: (value) => {
+                            if (!value || value.trim() === '') {
+                              return 'Units Completed is required';
+                            }
+                            if (value !== 'N/A' && isNaN(parseInt(value))) {
+                              return 'Please enter a valid number or N/A';
+                            }
+                            return true;
+                          }
+                        }}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            placeholder="Write N/A if Senior High School Student"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          />
+                        )}
+                      />
+                      {errors.unitsCompleted && <p className="mt-1 text-sm text-red-600">{String(errors.unitsCompleted.message)}</p>}
+                    </div>
+
+                    {/* Previous School Information Section */}
+                    <div className="col-span-full mt-6">
+                      <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Previous School Information</h3>
+                      <p className="text-sm text-gray-600 mb-4">For transferees or if different from current school</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Previous School Name *</label>
+                      <Controller
+                        name="previousSchool"
+                        control={control}
+                        rules={{ required: 'Previous School Name is required' }}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            placeholder="e.g., ABC High School (Write N/A if not applicable)"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          />
+                        )}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Enter your previous school name, or N/A if not applicable</p>
+                      {errors.previousSchool && <p className="mt-1 text-sm text-red-600">{String(errors.previousSchool.message)}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Previous School Address</label>
+                      <Controller
+                        name="previousSchoolAddress"
                         control={control}
                         render={({ field }) => (
                           <input
                             {...field}
                             type="text"
-                            placeholder="e.g., Software Engineering, Clinical Psychology (Leave blank if not applicable)"
+                            placeholder="Optional: City/Municipality where previous school is located"
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                           />
                         )}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Optional: Enter your major or area of specialization if applicable</p>
                     </div>
-                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">School Term/Semester *</label>
-                    <Controller
-                      name="schoolTerm"
-                      control={control}
-                      rules={{ required: 'School Term/Semester is required' }}
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        >
-                          <option value="">Select Term</option>
-                          <option value="1st Semester">1st Semester</option>
-                          <option value="2nd Semester">2nd Semester</option>
-                          <option value="Summer">Summer</option>
-                        </select>
-                      )}
-                    />
-                    {errors.schoolTerm && <p className="mt-1 text-sm text-red-600">{String(errors.schoolTerm.message)}</p>}
-                  </div>
+                    {/* Academic Performance Section */}
+                    <div className="col-span-full mt-6">
+                      <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Academic Performance</h3>
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">School Year *</label>
-                    <Controller
-                      name="schoolYear"
-                      control={control}
-                      rules={{ required: 'School Year is required' }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          placeholder="e.g., 2023-2024"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
-                      )}
-                    />
-                    {errors.schoolYear && <p className="mt-1 text-sm text-red-600">{String(errors.schoolYear.message)}</p>}
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">General Weighted Average *</label>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Units Completed *</label>
-                    <Controller
-                      name="unitsCompleted"
-                      control={control}
-                      rules={{ 
-                        required: 'Units Completed is required',
-                        validate: (value) => {
-                          if (!value || value.trim() === '') {
-                            return 'Units Completed is required';
-                          }
-                          if (value !== 'N/A' && isNaN(parseInt(value))) {
-                            return 'Please enter a valid number or N/A';
-                          }
-                          return true;
-                        }
-                      }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          placeholder="Write N/A if Senior High School Student"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
-                      )}
-                    />
-                    {errors.unitsCompleted && <p className="mt-1 text-sm text-red-600">{String(errors.unitsCompleted.message)}</p>}
-                  </div>
-
-                  {/* Previous School Information Section */}
-                  <div className="col-span-full mt-6">
-                    <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Previous School Information</h3>
-                    <p className="text-sm text-gray-600 mb-4">For transferees or if different from current school</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Previous School Name *</label>
-                    <Controller
-                      name="previousSchool"
-                      control={control}
-                      rules={{ required: 'Previous School Name is required' }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          placeholder="e.g., ABC High School (Write N/A if not applicable)"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
-                      )}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Enter your previous school name, or N/A if not applicable</p>
-                    {errors.previousSchool && <p className="mt-1 text-sm text-red-600">{String(errors.previousSchool.message)}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Previous School Address</label>
-                    <Controller
-                      name="previousSchoolAddress"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          placeholder="Optional: City/Municipality where previous school is located"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
-                      )}
-                    />
-                  </div>
-
-                  {/* Academic Performance Section */}
-                  <div className="col-span-full mt-6">
-                    <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Academic Performance</h3>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">General Weighted Average *</label>
-                    
-                    {/* Input Format Selection */}
-                    <div className="mb-2">
-                      <div className="flex space-x-4">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="gwaFormat"
-                            value="percentage"
-                            checked={gwaInputFormat === 'percentage'}
-                            onChange={() => setGwaInputFormat('percentage')}
-                            className="mr-2"
-                          />
-                          <span className="text-sm text-gray-700">Percentage (0-100)</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="gwaFormat"
-                            value="gwa"
-                            checked={gwaInputFormat === 'gwa'}
-                            onChange={() => setGwaInputFormat('gwa')}
-                            className="mr-2"
-                          />
-                          <span className="text-sm text-gray-700">GWA (1.00-5.00)</span>
-                        </label>
+                      {/* Input Format Selection */}
+                      <div className="mb-2">
+                        <div className="flex space-x-4">
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name="gwaFormat"
+                              value="percentage"
+                              checked={gwaInputFormat === 'percentage'}
+                              onChange={() => setGwaInputFormat('percentage')}
+                              className="mr-2"
+                            />
+                            <span className="text-sm text-gray-700">Percentage (0-100)</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name="gwaFormat"
+                              value="gwa"
+                              checked={gwaInputFormat === 'gwa'}
+                              onChange={() => setGwaInputFormat('gwa')}
+                              className="mr-2"
+                            />
+                            <span className="text-sm text-gray-700">GWA (1.00-5.00)</span>
+                          </label>
+                        </div>
                       </div>
-                    </div>
 
-                    <Controller
-                      name="generalWeightedAverage"
-                      control={control}
-                      rules={{ 
-                        required: 'General Weighted Average is required',
-                        validate: (value) => {
-                          if (!value) return true; // Let required rule handle empty values
-                          
-                          const numValue = parseFloat(value);
-                          if (isNaN(numValue)) return 'Please enter a valid number';
-                          
-                          if (gwaInputFormat === 'percentage') {
-                            if (numValue < 0 || numValue > 100) {
-                              return 'Percentage must be between 0 and 100';
+                      <Controller
+                        name="generalWeightedAverage"
+                        control={control}
+                        rules={{
+                          required: 'General Weighted Average is required',
+                          validate: (value) => {
+                            if (!value) return true; // Let required rule handle empty values
+
+                            const numValue = parseFloat(value);
+                            if (isNaN(numValue)) return 'Please enter a valid number';
+
+                            if (gwaInputFormat === 'percentage') {
+                              if (numValue < 0 || numValue > 100) {
+                                return 'Percentage must be between 0 and 100';
+                              }
+                            } else {
+                              if (numValue < 1.00 || numValue > 5.00) {
+                                return 'GWA must be between 1.00 and 5.00';
+                              }
                             }
-                          } else {
-                            if (numValue < 1.00 || numValue > 5.00) {
-                              return 'GWA must be between 1.00 and 5.00';
-                            }
+
+                            return true;
                           }
-                          
-                          return true;
-                        }
-                      }}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="number"
-                          step={gwaInputFormat === 'percentage' ? '0.01' : '0.25'}
-                          min={gwaInputFormat === 'percentage' ? '0' : '1.00'}
-                          max={gwaInputFormat === 'percentage' ? '100' : '5.00'}
-                          placeholder={gwaInputFormat === 'percentage' ? 'e.g., 96' : 'e.g., 1.25'}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
+                        }}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="number"
+                            step={gwaInputFormat === 'percentage' ? '0.01' : '0.25'}
+                            min={gwaInputFormat === 'percentage' ? '0' : '1.00'}
+                            max={gwaInputFormat === 'percentage' ? '100' : '5.00'}
+                            placeholder={gwaInputFormat === 'percentage' ? 'e.g., 96' : 'e.g., 1.25'}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          />
+                        )}
+                      />
+                      {errors.generalWeightedAverage && <p className="mt-1 text-sm text-red-600">{String(errors.generalWeightedAverage.message)}</p>}
+
+                      {/* Conversion Info */}
+                      {gwaInputFormat === 'percentage' && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Will be converted to GWA scale (1.00-5.00, where 1.00 is highest)
+                        </p>
                       )}
-                    />
-                    {errors.generalWeightedAverage && <p className="mt-1 text-sm text-red-600">{String(errors.generalWeightedAverage.message)}</p>}
-                    
-                    {/* Conversion Info */}
-                    {gwaInputFormat === 'percentage' && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Will be converted to GWA scale (1.00-5.00, where 1.00 is highest)
-                      </p>
-                    )}
+                    </div>
                   </div>
-                </div>
                 )}
               </div>
             )}
@@ -3303,7 +3298,7 @@ export const NewApplicationForm: React.FC = () => {
               >
                 Previous
               </button>
-              
+
               {currentStep < 4 ? (
                 <button
                   type="button"
@@ -3327,11 +3322,10 @@ export const NewApplicationForm: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`px-6 py-2 text-white rounded-md flex items-center ${
-                    isSubmitting 
-                      ? 'bg-gray-400 cursor-not-allowed' 
+                  className={`px-6 py-2 text-white rounded-md flex items-center ${isSubmitting
+                      ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-orange-500 hover:bg-orange-600'
-                  }`}
+                    }`}
                 >
                   {isSubmitting && (
                     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -3362,19 +3356,19 @@ export const NewApplicationForm: React.FC = () => {
                 <p className="text-sm text-gray-500">
                   Your application has been saved as a draft. Please upload the required documents and submit when ready.
                 </p>
-                
+
                 {/* Document Upload Reminder */}
                 <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
                       <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
+                      </svg>
+                    </div>
+                    <div className="ml-3">
                       <h4 className="text-sm font-medium text-blue-800">📄 Important: Upload Required Documents</h4>
                       <p className="mt-1 text-sm text-blue-700">
-                        To complete your application, you need to upload the required documents through your dashboard. 
+                        To complete your application, you need to upload the required documents through your dashboard.
                         Your application will not be processed until all documents are uploaded.
                       </p>
                       <div className="mt-2 text-xs text-blue-600">
@@ -3391,7 +3385,7 @@ export const NewApplicationForm: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                      </div>
+                </div>
               </div>
               <div className="items-center px-4 py-3">
                 <button

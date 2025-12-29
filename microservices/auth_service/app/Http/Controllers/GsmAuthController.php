@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\OtpVerification;
 use App\Services\BrevoEmailService;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -40,7 +41,44 @@ class GsmAuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        $reasonCode = null;
+        $resolvedUserId = null;
+        $resolvedUserEmail = null;
+        $resolvedUserRole = null;
+
+        if (!$user) {
+            $reasonCode = 'USER_NOT_FOUND';
+        } elseif (!Hash::check($request->password, $user->password)) {
+            $reasonCode = 'INVALID_PASSWORD';
+            $resolvedUserId = $user->id;
+            $resolvedUserEmail = $user->email;
+            $resolvedUserRole = $user->role;
+        }
+
+        if ($reasonCode !== null) {
+            if (!$resolvedUserEmail) {
+                $resolvedUserEmail = $request->email;
+            }
+
+            AuditLogService::logAction(
+                'LOGIN',
+                'Failed login attempt (GSM)',
+                'User',
+                $resolvedUserId ? (string) $resolvedUserId : null,
+                null,
+                null,
+                [
+                    'stage' => 'password',
+                    'reason_code' => $reasonCode,
+                    'username' => $request->email,
+                    'channel' => 'gsm',
+                ],
+                'failed',
+                $resolvedUserId,
+                $resolvedUserEmail,
+                $resolvedUserRole ?? 'guest'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid email or password',
@@ -49,8 +87,26 @@ class GsmAuthController extends Controller
             ], 401);
         }
 
-        // Check if user is active
         if ($user->status !== 'active') {
+            AuditLogService::logAction(
+                'LOGIN',
+                'Failed login attempt (GSM)',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'password',
+                    'reason_code' => 'ACCOUNT_INACTIVE',
+                    'username' => $request->email,
+                    'channel' => 'gsm',
+                ],
+                'failed',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Account is not active. Please verify your email first.',
@@ -59,7 +115,6 @@ class GsmAuthController extends Controller
             ], 401);
         }
 
-        // No OTP required - login immediately
         $token = $user->createToken('auth-token')->plainTextToken;
 
         // Get staff details for staff users
@@ -96,6 +151,23 @@ class GsmAuthController extends Controller
             $userData['department'] = null;
             $userData['position'] = null;
         }
+
+        AuditLogService::logAction(
+            'LOGIN',
+            'Login successful (GSM)',
+            'User',
+            (string) $user->id,
+            null,
+            null,
+            [
+                'stage' => 'password',
+                'channel' => 'gsm',
+            ],
+            'success',
+            $user->id,
+            $user->email,
+            $user->role
+        );
 
         return response()->json([
             'success' => true,
@@ -167,6 +239,24 @@ class GsmAuthController extends Controller
             ->first();
 
         if (!$otp || !$otp->isValid()) {
+            AuditLogService::logAction(
+                'LOGIN',
+                'MFA verification failed (GSM)',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'mfa_verify',
+                    'reason_code' => 'OTP_INVALID_OR_EXPIRED',
+                    'channel' => 'gsm',
+                ],
+                'failed',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired OTP',
@@ -175,10 +265,27 @@ class GsmAuthController extends Controller
             ], 400);
         }
 
-        // For staff users, check if they have permissions in scholarship service
         if ($user->role === 'staff') {
             $staffData = $this->getStaffDataFromScholarshipService($user->id);
             if (!$staffData) {
+                AuditLogService::logAction(
+                    'LOGIN',
+                    'Login failed (GSM staff permission denied)',
+                    'User',
+                    (string) $user->id,
+                    null,
+                    null,
+                    [
+                        'stage' => 'authorization',
+                        'reason_code' => 'STAFF_PERMISSION_DENIED',
+                        'channel' => 'gsm',
+                    ],
+                    'failed',
+                    $user->id,
+                    $user->email,
+                    $user->role
+                );
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Access denied. You do not have staff permissions.',
@@ -188,10 +295,8 @@ class GsmAuthController extends Controller
             }
         }
 
-        // Mark OTP as used
         $otp->markAsUsed();
 
-        // Create token
         $token = $user->createToken('auth-token')->plainTextToken;
 
         // Get staff details for staff users
@@ -228,6 +333,24 @@ class GsmAuthController extends Controller
             $userData['department'] = null;
             $userData['position'] = null;
         }
+
+        AuditLogService::logAction(
+            'LOGIN',
+            'MFA verification successful (GSM)',
+            'User',
+            (string) $user->id,
+            null,
+            null,
+            [
+                'stage' => 'mfa_verify',
+                'mfa_result' => 'passed',
+                'channel' => 'gsm',
+            ],
+            'success',
+            $user->id,
+            $user->email,
+            $user->role
+        );
 
         return response()->json([
             'success' => true,
@@ -300,7 +423,6 @@ class GsmAuthController extends Controller
         return null;
     }
 }
-
 
 
 

@@ -11,6 +11,7 @@ use App\Models\AcademicRecord;
 use App\Models\PartnerSchoolRepresentative;
 use App\Models\EnrollmentVerification;
 use App\Models\InterviewSchedule;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -577,6 +578,7 @@ class ScholarshipApplicationController extends Controller
 
             $authUser = $request->get('auth_user');
             $reviewedBy = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
             $application->review(
                 $request->notes,
                 $reviewedBy
@@ -586,6 +588,19 @@ class ScholarshipApplicationController extends Controller
             // Applications with status 'approved_pending_verification' will require manual verification
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'APPLICATION_REVIEWED',
+                'Application marked as reviewed',
+                'ScholarshipApplication',
+                (string) $application->id,
+                ['status' => $previousStatus],
+                ['status' => $application->status, 'notes' => $request->notes],
+                [
+                    'application_number' => $application->application_number,
+                    'reviewed_by' => $reviewedBy,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -821,10 +836,24 @@ class ScholarshipApplicationController extends Controller
 
             $authUser = $request->get('auth_user');
             $approvedBy = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
 
             $application->approveForVerification($approvedBy, $request->notes);
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'APPLICATION_APPROVED_FOR_VERIFICATION',
+                'Application approved for enrollment verification',
+                'ScholarshipApplication',
+                (string) $application->id,
+                ['status' => $previousStatus],
+                ['status' => $application->status, 'notes' => $request->notes],
+                [
+                    'application_number' => $application->application_number,
+                    'approved_by' => $approvedBy,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -879,6 +908,7 @@ class ScholarshipApplicationController extends Controller
 
             $authUser = $request->get('auth_user');
             $verifiedBy = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
 
             // Create enrollment verification
             $verification = EnrollmentVerification::createForApplication($application);
@@ -896,6 +926,22 @@ class ScholarshipApplicationController extends Controller
             $application->confirmEnrollment($verification->id, $verifiedBy);
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'ENROLLMENT_VERIFIED',
+                'Enrollment verification completed',
+                'ScholarshipApplication',
+                (string) $application->id,
+                ['status' => $previousStatus],
+                ['status' => $application->status],
+                [
+                    'verification_id' => $verification->id,
+                    'verified_by' => $verifiedBy,
+                    'enrollment_year' => $request->enrollment_year,
+                    'enrollment_term' => $request->enrollment_term,
+                    'is_currently_enrolled' => $request->is_currently_enrolled,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -955,6 +1001,7 @@ class ScholarshipApplicationController extends Controller
 
             $authUser = $request->get('auth_user');
             $scheduledBy = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
 
             // Check for interviewer conflicts
             if ($request->staff_id) {
@@ -988,6 +1035,23 @@ class ScholarshipApplicationController extends Controller
             $application->scheduleInterviewManually($interviewData, $scheduledBy);
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'INTERVIEW_SCHEDULED_MANUAL',
+                'Interview scheduled manually',
+                'ScholarshipApplication',
+                (string) $application->id,
+                ['status' => $previousStatus],
+                ['status' => $application->status],
+                [
+                    'application_number' => $application->application_number,
+                    'scheduled_by' => $scheduledBy,
+                    'interview_date' => $interviewData['interview_date'],
+                    'interview_time' => $interviewData['interview_time'],
+                    'interview_type' => $interviewData['interview_type'],
+                    'duration' => $interviewData['duration'],
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -1027,6 +1091,7 @@ class ScholarshipApplicationController extends Controller
 
             $authUser = $request->get('auth_user');
             $scheduledBy = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
 
             // Get available slots for next 7 days
             $availableSlots = $this->getAvailableSlots(7);
@@ -1056,6 +1121,22 @@ class ScholarshipApplicationController extends Controller
             $application->scheduleInterviewAutomatically($interviewData);
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'INTERVIEW_SCHEDULED_AUTO',
+                'Interview scheduled automatically',
+                'ScholarshipApplication',
+                (string) $application->id,
+                ['status' => $previousStatus],
+                ['status' => $application->status],
+                [
+                    'application_number' => $application->application_number,
+                    'scheduled_by' => $scheduledBy,
+                    'interview_date' => $interviewData['interview_date'],
+                    'interview_time' => $interviewData['interview_time'],
+                    'interview_type' => $interviewData['interview_type'],
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -1108,6 +1189,7 @@ class ScholarshipApplicationController extends Controller
 
             $authUser = $request->get('auth_user');
             $completedBy = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
 
             $application->completeInterview(
                 $request->interview_result,
@@ -1116,6 +1198,23 @@ class ScholarshipApplicationController extends Controller
             );
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'INTERVIEW_COMPLETED',
+                'Interview completed',
+                'ScholarshipApplication',
+                (string) $application->id,
+                ['status' => $previousStatus],
+                [
+                    'status' => $application->status,
+                    'interview_result' => $request->interview_result,
+                ],
+                [
+                    'application_number' => $application->application_number,
+                    'completed_by' => $completedBy,
+                    'interview_notes' => $request->interview_notes,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -1167,10 +1266,25 @@ class ScholarshipApplicationController extends Controller
 
             $authUser = $request->get('auth_user');
             $endorsedBy = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
 
             $application->endorseToSSC($request->notes, $endorsedBy);
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'SSC_ENDORSE',
+                'Application endorsed to SSC',
+                'ScholarshipApplication',
+                (string) $application->id,
+                ['status' => $previousStatus],
+                ['status' => $application->status],
+                [
+                    'application_number' => $application->application_number,
+                    'endorsed_by' => $endorsedBy,
+                    'notes' => $request->notes,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -1253,8 +1367,25 @@ class ScholarshipApplicationController extends Controller
 
             foreach ($applications as $application) {
                 try {
+                    $previousStatus = $application->status;
                     $application->endorseToSSC($notes, $endorsedBy);
                     $endorsedCount++;
+
+                    AuditLogService::logAction(
+                        'SSC_ENDORSE',
+                        'Application endorsed to SSC (bulk)',
+                        'ScholarshipApplication',
+                        (string) $application->id,
+                        ['status' => $previousStatus],
+                        ['status' => $application->status],
+                        [
+                            'application_number' => $application->application_number,
+                            'endorsed_by' => $endorsedBy,
+                            'notes' => $notes,
+                            'bulk_operation' => true,
+                            'filter_type' => $filterType,
+                        ]
+                    );
                 } catch (\Exception $e) {
                     $failedApplications[] = [
                         'id' => $application->id,
@@ -1674,6 +1805,8 @@ class ScholarshipApplicationController extends Controller
 
             foreach ($applications as $application) {
                 try {
+                    $previousStatus = $application->status;
+
                     // Update application status
                     $application->update([
                         'status' => 'approved',
@@ -1699,6 +1832,24 @@ class ScholarshipApplicationController extends Controller
                         'changed_by' => $approvedBy,
                         'changed_at' => now(),
                     ]);
+
+                    AuditLogService::logAction(
+                        'SSC_APPROVE',
+                        'Application approved by SSC (bulk)',
+                        'ScholarshipApplication',
+                        (string) $application->id,
+                        ['status' => $previousStatus],
+                        [
+                            'status' => $application->status,
+                            'approved_amount' => $application->approved_amount,
+                        ],
+                        [
+                            'application_number' => $application->application_number,
+                            'approved_by' => $approvedBy,
+                            'notes' => $notes,
+                            'bulk_operation' => true,
+                        ]
+                    );
 
                     $approvedCount++;
                 } catch (\Exception $e) {
@@ -1780,6 +1931,8 @@ class ScholarshipApplicationController extends Controller
 
             foreach ($applications as $application) {
                 try {
+                    $previousStatus = $application->status;
+
                     // Update application status
                     $application->update([
                         'status' => 'rejected',
@@ -1803,6 +1956,23 @@ class ScholarshipApplicationController extends Controller
                         'changed_by' => $reviewedBy,
                         'changed_at' => now(),
                     ]);
+
+                    AuditLogService::logAction(
+                        'SSC_REJECT',
+                        'Application rejected by SSC (bulk)',
+                        'ScholarshipApplication',
+                        (string) $application->id,
+                        ['status' => $previousStatus],
+                        [
+                            'status' => $application->status,
+                            'rejection_reason' => $rejectionReason,
+                        ],
+                        [
+                            'application_number' => $application->application_number,
+                            'rejected_by' => $reviewedBy,
+                            'bulk_operation' => true,
+                        ]
+                    );
 
                     $rejectedCount++;
                 } catch (\Exception $e) {
@@ -2265,6 +2435,8 @@ class ScholarshipApplicationController extends Controller
         try {
             $authUser = $request->get('auth_user');
             $reviewerId = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
+            $previousStageStatus = $application->ssc_stage_status ?? null;
 
             if ($request->verified) {
                 // Use parallel workflow - approve the document verification stage
@@ -2279,6 +2451,29 @@ class ScholarshipApplicationController extends Controller
                 );
 
                 if ($success) {
+                    AuditLogService::logAction(
+                        'SSC_DOCUMENT_VERIFICATION_APPROVED',
+                        'Document verification stage approved',
+                        'ScholarshipApplication',
+                        (string) $application->id,
+                        [
+                            'status' => $previousStatus,
+                            'ssc_stage_status' => $previousStageStatus,
+                        ],
+                        [
+                            'status' => $application->status,
+                            'ssc_stage_status' => $application->ssc_stage_status,
+                        ],
+                        [
+                            'application_number' => $application->application_number,
+                            'review_stage' => 'document_verification',
+                            'reviewed_by' => $reviewerId,
+                            'notes' => $request->notes,
+                            'document_issues' => $request->document_issues ?? [],
+                            'verified' => true,
+                        ]
+                    );
+
                     return response()->json([
                         'success' => true,
                         'message' => 'Document verification stage approved successfully.',
@@ -2305,6 +2500,29 @@ class ScholarshipApplicationController extends Controller
                 $application->update([
                     'ssc_stage_status' => $stageStatus,
                 ]);
+
+                AuditLogService::logAction(
+                    'SSC_DOCUMENT_VERIFICATION_REVISION_REQUESTED',
+                    'Document verification stage marked as needing revision',
+                    'ScholarshipApplication',
+                    (string) $application->id,
+                    [
+                        'status' => $previousStatus,
+                        'ssc_stage_status' => $previousStageStatus,
+                    ],
+                    [
+                        'status' => $application->status,
+                        'ssc_stage_status' => $stageStatus,
+                    ],
+                    [
+                        'application_number' => $application->application_number,
+                        'review_stage' => 'document_verification',
+                        'reviewed_by' => $reviewerId,
+                        'notes' => $request->notes,
+                        'document_issues' => $request->document_issues ?? [],
+                        'verified' => false,
+                    ]
+                );
 
                 return response()->json([
                     'success' => true,
@@ -2366,6 +2584,7 @@ class ScholarshipApplicationController extends Controller
 
             $authUser = $request->get('auth_user');
             $reviewerId = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
             $reviewerRole = $authUser['role'] ?? 'unknown';
 
             // Create review record
@@ -2388,6 +2607,29 @@ class ScholarshipApplicationController extends Controller
                 $application->advanceToNextSscStage($reviewerId, $request->notes);
 
                 DB::commit();
+
+                AuditLogService::logAction(
+                    'SSC_FINANCIAL_REVIEW_APPROVED',
+                    'Financial review stage approved',
+                    'ScholarshipApplication',
+                    (string) $application->id,
+                    [
+                        'status' => $previousStatus,
+                    ],
+                    [
+                        'status' => $application->status,
+                        'recommended_amount' => $request->recommended_amount,
+                        'budget_period' => $request->budget_period,
+                        'financial_assessment_score' => $request->financial_assessment_score,
+                    ],
+                    [
+                        'application_number' => $application->application_number,
+                        'review_stage' => 'financial_review',
+                        'reviewed_by' => $reviewerId,
+                        'notes' => $request->notes,
+                        'feasible' => true,
+                    ]
+                );
 
                 return response()->json([
                     'success' => true,
@@ -2422,6 +2664,29 @@ class ScholarshipApplicationController extends Controller
                 ]);
 
                 DB::commit();
+
+                AuditLogService::logAction(
+                    'SSC_FINANCIAL_REVIEW_REJECTED',
+                    'Application rejected at financial review stage',
+                    'ScholarshipApplication',
+                    (string) $application->id,
+                    [
+                        'status' => $previousStatus,
+                    ],
+                    [
+                        'status' => $application->status,
+                        'recommended_amount' => $request->recommended_amount,
+                        'budget_period' => $request->budget_period,
+                        'financial_assessment_score' => $request->financial_assessment_score,
+                    ],
+                    [
+                        'application_number' => $application->application_number,
+                        'review_stage' => 'financial_review',
+                        'reviewed_by' => $reviewerId,
+                        'notes' => $request->notes,
+                        'feasible' => false,
+                    ]
+                );
 
                 return response()->json([
                     'success' => true,
@@ -2473,6 +2738,7 @@ class ScholarshipApplicationController extends Controller
         try {
             $authUser = $request->get('auth_user');
             $reviewerId = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
             
             Log::info('Academic review attempt', [
                 'application_id' => $application->id,
@@ -2493,6 +2759,26 @@ class ScholarshipApplicationController extends Controller
                 );
 
                 if ($success) {
+                    AuditLogService::logAction(
+                        'SSC_ACADEMIC_REVIEW_APPROVED',
+                        'Academic review stage approved',
+                        'ScholarshipApplication',
+                        (string) $application->id,
+                        [
+                            'status' => $previousStatus,
+                        ],
+                        [
+                            'status' => $application->status,
+                        ],
+                        [
+                            'application_number' => $application->application_number,
+                            'review_stage' => 'academic_review',
+                            'reviewed_by' => $reviewerId,
+                            'notes' => $request->notes,
+                            'approved' => true,
+                        ]
+                    );
+
                     return response()->json([
                         'success' => true,
                         'message' => 'Academic review stage approved successfully.',
@@ -2518,6 +2804,27 @@ class ScholarshipApplicationController extends Controller
                 $application->update([
                     'ssc_stage_status' => $stageStatus,
                 ]);
+
+                AuditLogService::logAction(
+                    'SSC_ACADEMIC_REVIEW_REVISION_REQUESTED',
+                    'Academic review stage marked as needing revision',
+                    'ScholarshipApplication',
+                    (string) $application->id,
+                    [
+                        'status' => $previousStatus,
+                    ],
+                    [
+                        'status' => $application->status,
+                        'ssc_stage_status' => $stageStatus,
+                    ],
+                    [
+                        'application_number' => $application->application_number,
+                        'review_stage' => 'academic_review',
+                        'reviewed_by' => $reviewerId,
+                        'notes' => $request->notes,
+                        'approved' => false,
+                    ]
+                );
 
                 return response()->json([
                     'success' => true,
@@ -2616,6 +2923,8 @@ class ScholarshipApplicationController extends Controller
                 'all_reviews_data' => $reviewsData,
             ]);
 
+            $previousStatus = $application->status;
+
             // Update application
             $application->update([
                 'status' => 'approved',
@@ -2678,6 +2987,25 @@ class ScholarshipApplicationController extends Controller
             }
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'SSC_FINAL_APPROVAL',
+                'Application finally approved by SSC Chairperson',
+                'ScholarshipApplication',
+                (string) $application->id,
+                [
+                    'status' => $previousStatus,
+                ],
+                [
+                    'status' => $application->status,
+                    'approved_amount' => $request->approved_amount,
+                ],
+                [
+                    'application_number' => $application->application_number,
+                    'approved_by' => $reviewerId,
+                    'notes' => $request->notes,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -2765,6 +3093,8 @@ class ScholarshipApplicationController extends Controller
                 'all_reviews_data' => $reviewsData,
             ]);
 
+            $previousStatus = $application->status;
+
             // Update application
             $application->update([
                 'status' => 'rejected',
@@ -2781,6 +3111,24 @@ class ScholarshipApplicationController extends Controller
             ]);
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'SSC_FINAL_REJECTION',
+                'Application finally rejected by SSC Chairperson',
+                'ScholarshipApplication',
+                (string) $application->id,
+                [
+                    'status' => $previousStatus,
+                ],
+                [
+                    'status' => $application->status,
+                ],
+                [
+                    'application_number' => $application->application_number,
+                    'rejected_by' => $reviewerId,
+                    'rejection_reason' => $request->rejection_reason,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -2825,6 +3173,7 @@ class ScholarshipApplicationController extends Controller
 
             $authUser = $request->get('auth_user');
             $reviewerId = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
 
             // Create revision request
             $review = \App\Models\SscReview::createForApplication(
@@ -2863,6 +3212,25 @@ class ScholarshipApplicationController extends Controller
             }
 
             DB::commit();
+
+            AuditLogService::logAction(
+                'SSC_REVISION_REQUESTED',
+                'Revision requested by SSC reviewer',
+                'ScholarshipApplication',
+                (string) $application->id,
+                [
+                    'status' => $previousStatus,
+                ],
+                [
+                    'status' => $application->status,
+                ],
+                [
+                    'application_number' => $application->application_number,
+                    'requested_by' => $reviewerId,
+                    'stage' => $request->stage,
+                    'notes' => $request->notes,
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -3174,6 +3542,23 @@ class ScholarshipApplicationController extends Controller
             $success = $application->approveStage($stage, $userId, $notes, $reviewData);
 
             if ($success) {
+                AuditLogService::logAction(
+                    'SSC_STAGE_APPROVED',
+                    'SSC stage approved via generic endpoint',
+                    'ScholarshipApplication',
+                    (string) $application->id,
+                    null,
+                    [
+                        'stage' => $stage,
+                        'review_data' => $reviewData,
+                    ],
+                    [
+                        'application_number' => $application->application_number,
+                        'reviewed_by' => $userId,
+                        'notes' => $notes,
+                    ]
+                );
+
                 return response()->json([
                     'success' => true,
                     'message' => "Stage {$stage} approved successfully",

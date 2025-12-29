@@ -109,7 +109,7 @@ class UserManagementController extends Controller
                     'ssc_budget_dept_count' => count($categorizedUsers['ssc_budget_dept']),
                     'ssc_education_affairs_count' => count($categorizedUsers['ssc_education_affairs'])
                 ]);
-                
+
                 return response()->json([
                     'success' => true,
                     'data' => $categorizedUsers,
@@ -122,6 +122,13 @@ class UserManagementController extends Controller
                 'body' => $response->body()
             ]);
 
+            AuditLogService::logFailedAction(
+                'GET_USERS',
+                'Failed to retrieve users from auth service',
+                $response->body(),
+                'User'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve users from auth service',
@@ -133,6 +140,14 @@ class UserManagementController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+
+            AuditLogService::logFailedAction(
+                'GET_USERS',
+                'Exception while retrieving users from auth service',
+                $e->getMessage(),
+                'User'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve users: ' . $e->getMessage()
@@ -159,12 +174,21 @@ class UserManagementController extends Controller
                 ->get("{$this->authServiceUrl}/api/users/role/{$role}");
 
             if ($response->successful()) {
+                $data = $response->json('data', []);
+
                 return response()->json([
                     'success' => true,
-                    'data' => $response->json('data', []),
+                    'data' => $data,
                     'message' => ucfirst($role) . ' users retrieved successfully'
                 ]);
             }
+
+            AuditLogService::logFailedAction(
+                'GET_USERS_BY_ROLE',
+                'Failed to retrieve users by role from auth service',
+                $response->body(),
+                'User'
+            );
 
             return response()->json([
                 'success' => false,
@@ -173,6 +197,14 @@ class UserManagementController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Error fetching users by role', ['role' => $role, 'error' => $e->getMessage()]);
+
+            AuditLogService::logFailedAction(
+                'GET_USERS_BY_ROLE',
+                'Exception while retrieving users by role from auth service',
+                $e->getMessage(),
+                'User'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve users: ' . $e->getMessage()
@@ -189,6 +221,14 @@ class UserManagementController extends Controller
             $user = $this->authService->getUserById($id);
             
             if (!$user) {
+                AuditLogService::logFailedAction(
+                    'GET_USER_BY_ID',
+                    'User not found when fetching by ID',
+                    'User not found',
+                    'User',
+                    (string) $id
+                );
+
                 return response()->json([
                     'success' => false,
                     'message' => 'User not found'
@@ -215,6 +255,15 @@ class UserManagementController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching user by ID', ['id' => $id, 'error' => $e->getMessage()]);
+
+            AuditLogService::logFailedAction(
+                'GET_USER_BY_ID',
+                'Exception while fetching user by ID',
+                $e->getMessage(),
+                'User',
+                (string) $id
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve user: ' . $e->getMessage()
@@ -263,7 +312,7 @@ class UserManagementController extends Controller
             }
 
             // Create user in auth service
-            \Log::info('Creating user in auth service', [
+            Log::info('Creating user in auth service', [
                 'url' => "{$this->authServiceUrl}/api/users",
                 'data' => $validated
             ]);
@@ -271,14 +320,24 @@ class UserManagementController extends Controller
             $response = Http::timeout(10)
                 ->post("{$this->authServiceUrl}/api/users", $validated);
 
-            \Log::info('Auth service response', [
+            Log::info('Auth service response', [
                 'status' => $response->status(),
                 'successful' => $response->successful(),
                 'body' => $response->body()
             ]);
 
             if (!$response->successful()) {
-                \Log::error('Auth service failed', [
+                $errorData = $response->json();
+                $errorMessage = $errorData['message'] ?? 'Failed to create user in auth service';
+
+                AuditLogService::logFailedAction(
+                    'CREATE_USER',
+                    $errorMessage,
+                    $response->body(),
+                    'User'
+                );
+
+                Log::error('Auth service failed', [
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
@@ -297,8 +356,7 @@ class UserManagementController extends Controller
 
             $user = $response->json('data');
 
-            // Log user creation
-            // AuditLogService::logUserCreation($user);
+            AuditLogService::logUserCreation($user);
 
             // If role is staff, create staff record
             if ($validated['role'] === 'staff' && isset($user['id'])) {
@@ -326,6 +384,14 @@ class UserManagementController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Error creating user', ['error' => $e->getMessage()]);
+
+            AuditLogService::logFailedAction(
+                'CREATE_USER',
+                'Exception while creating user',
+                $e->getMessage(),
+                'User'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create user: ' . $e->getMessage()
@@ -365,6 +431,14 @@ class UserManagementController extends Controller
                 ->put("{$this->authServiceUrl}/api/users/{$id}", $validated);
 
             if (!$response->successful()) {
+                AuditLogService::logFailedAction(
+                    'UPDATE_USER',
+                    'Failed to update user in auth service',
+                    $response->body(),
+                    'User',
+                    (string) $id
+                );
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to update user in auth service',
@@ -400,6 +474,15 @@ class UserManagementController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Error updating user', ['id' => $id, 'error' => $e->getMessage()]);
+
+            AuditLogService::logFailedAction(
+                'UPDATE_USER',
+                'Exception while updating user',
+                $e->getMessage(),
+                'User',
+                (string) $id
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update user: ' . $e->getMessage()
@@ -421,6 +504,14 @@ class UserManagementController extends Controller
                 ]);
 
             if (!$response->successful()) {
+                AuditLogService::logFailedAction(
+                    'DEACTIVATE_USER',
+                    'Failed to deactivate user in auth service',
+                    $response->body(),
+                    'User',
+                    (string) $id
+                );
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to deactivate user'
@@ -447,6 +538,15 @@ class UserManagementController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Error deleting user', ['id' => $id, 'error' => $e->getMessage()]);
+
+            AuditLogService::logFailedAction(
+                'DEACTIVATE_USER',
+                'Exception while deactivating user',
+                $e->getMessage(),
+                'User',
+                (string) $id
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to deactivate user: ' . $e->getMessage()
@@ -471,6 +571,13 @@ class UserManagementController extends Controller
                 ]);
             }
 
+            AuditLogService::logFailedAction(
+                'GET_USER_STATS',
+                'Failed to retrieve user statistics from auth service',
+                $response->body(),
+                'UserStats'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics'
@@ -478,6 +585,14 @@ class UserManagementController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Error fetching user stats', ['error' => $e->getMessage()]);
+
+            AuditLogService::logFailedAction(
+                'GET_USER_STATS',
+                'Exception while retrieving user statistics from auth service',
+                $e->getMessage(),
+                'UserStats'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics: ' . $e->getMessage()
@@ -491,7 +606,6 @@ class UserManagementController extends Controller
     private function createSSCAssignment(int $userId, string $role): void
     {
         try {
-            // Map the role to ssc_role and review_stage based on your requirements
             $roleMapping = [
                 'ssc' => ['ssc_role' => 'chairperson', 'review_stage' => 'final_approval'],
                 'ssc_city_council' => ['ssc_role' => 'city_council', 'review_stage' => 'document_verification'],
@@ -516,14 +630,22 @@ class UserManagementController extends Controller
                 return;
             }
 
-            // Create new SSC assignment
-            \App\Models\SscMemberAssignment::create([
+            $assignment = \App\Models\SscMemberAssignment::create([
                 'user_id' => $userId,
                 'ssc_role' => $mapping['ssc_role'],
                 'review_stage' => $mapping['review_stage'],
                 'is_active' => true,
                 'assigned_at' => now(),
             ]);
+
+            AuditLogService::logAction(
+                'CREATE',
+                'Created SSC member assignment',
+                'SscMemberAssignment',
+                (string) $assignment->id,
+                null,
+                $assignment->toArray()
+            );
 
             Log::info('SSC assignment created successfully', [
                 'user_id' => $userId,
@@ -538,6 +660,14 @@ class UserManagementController extends Controller
                 'role' => $role,
                 'error' => $e->getMessage()
             ]);
+
+            AuditLogService::logFailedAction(
+                'CREATE_SSC_ASSIGNMENT',
+                'Exception while creating SSC member assignment',
+                $e->getMessage(),
+                'SscMemberAssignment',
+                (string) $userId
+            );
         }
     }
 
@@ -553,6 +683,18 @@ class UserManagementController extends Controller
                 ->put("{$this->authServiceUrl}/api/users/{$id}/activate");
 
             if ($response->successful()) {
+                $user = $response->json('data', []);
+
+                AuditLogService::logAction(
+                    'UPDATE',
+                    'Activated user: ' . ($user['email'] ?? 'Unknown'),
+                    'User',
+                    isset($user['id']) ? (string) $user['id'] : (string) $id,
+                    ['status' => 'inactive'],
+                    ['status' => 'active'],
+                    ['activated_via' => 'admin_panel']
+                );
+
                 Log::info('User activated successfully', ['user_id' => $id]);
                 return response()->json([
                     'success' => true,
@@ -564,6 +706,15 @@ class UserManagementController extends Controller
                     'status' => $response->status(),
                     'response' => $response->body()
                 ]);
+
+                AuditLogService::logFailedAction(
+                    'ACTIVATE_USER',
+                    'Failed to activate user in auth service',
+                    $response->body(),
+                    'User',
+                    (string) $id
+                );
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to activate user: ' . $response->body()
@@ -574,6 +725,15 @@ class UserManagementController extends Controller
                 'user_id' => $id,
                 'error' => $e->getMessage()
             ]);
+
+            AuditLogService::logFailedAction(
+                'ACTIVATE_USER',
+                'Exception while activating user',
+                $e->getMessage(),
+                'User',
+                (string) $id
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error activating user: ' . $e->getMessage()
@@ -593,6 +753,21 @@ class UserManagementController extends Controller
                 ->delete("{$this->authServiceUrl}/api/users/{$id}/permanent");
 
             if ($response->successful()) {
+                $user = $response->json('data', []);
+
+                AuditLogService::logAction(
+                    'DELETE',
+                    'Permanently deleted user: ' . ($user['email'] ?? 'Unknown'),
+                    'User',
+                    isset($user['id']) ? (string) $user['id'] : (string) $id,
+                    $user,
+                    null,
+                    [
+                        'deleted_via' => 'admin_panel',
+                        'permanent' => true,
+                    ]
+                );
+
                 Log::info('User permanently deleted successfully', ['user_id' => $id]);
                 return response()->json([
                     'success' => true,
@@ -604,6 +779,15 @@ class UserManagementController extends Controller
                     'status' => $response->status(),
                     'response' => $response->body()
                 ]);
+
+                AuditLogService::logFailedAction(
+                    'PERMANENT_DELETE_USER',
+                    'Failed to permanently delete user in auth service',
+                    $response->body(),
+                    'User',
+                    (string) $id
+                );
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to permanently delete user: ' . $response->body()
@@ -614,6 +798,15 @@ class UserManagementController extends Controller
                 'user_id' => $id,
                 'error' => $e->getMessage()
             ]);
+
+            AuditLogService::logFailedAction(
+                'PERMANENT_DELETE_USER',
+                'Exception while permanently deleting user',
+                $e->getMessage(),
+                'User',
+                (string) $id
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error permanently deleting user: ' . $e->getMessage()
@@ -621,4 +814,3 @@ class UserManagementController extends Controller
         }
     }
 }
-

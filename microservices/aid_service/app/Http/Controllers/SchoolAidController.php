@@ -8,9 +8,11 @@ use App\Models\Student;
 use App\Models\School;
 use App\Models\ScholarshipCategory;
 use App\Models\ScholarshipSubcategory;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class SchoolAidController extends Controller
 {
@@ -81,8 +83,15 @@ class SchoolAidController extends Controller
     {
         try {
             $application = ScholarshipApplication::findOrFail($id);
+            $oldStatus = $application->status;
             $application->status = $request->input('status');
             $application->save();
+
+            AuditLogService::logApplicationStatusUpdate(
+                (string) $application->id,
+                (string) $oldStatus,
+                (string) $application->status
+            );
 
             return response()->json([
                 'success' => true,
@@ -115,6 +124,13 @@ class SchoolAidController extends Controller
             // Update status to grants_processing
             $application->status = 'grants_processing';
             $application->save();
+
+            $amount = $application->approved_amount ?? ($application->subcategory ? $application->subcategory->amount : ($application->category ? $application->category->amount : 0));
+
+            AuditLogService::logGrantProcessingStarted(
+                (string) $application->id,
+                (float) $amount
+            );
 
             // Here you can add additional logic for grant processing:
             // - Create disbursement records
@@ -215,6 +231,11 @@ class SchoolAidController extends Controller
                 $application->notes = $validated['notes'];
             }
             $application->save();
+
+            AuditLogService::logDisbursementCreated(
+                $disbursement->toArray(),
+                $application->toArray()
+            );
 
             return response()->json([
                 'success' => true,
@@ -349,6 +370,35 @@ class SchoolAidController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function viewDisbursementReceipt($id)
+    {
+        $disbursement = AidDisbursement::findOrFail($id);
+
+        if (!$disbursement->receipt_path) {
+            abort(404);
+        }
+
+        $receiptPath = $disbursement->receipt_path;
+        $prefix = '/storage/';
+
+        if (strpos($receiptPath, $prefix) === 0) {
+            $relativePath = substr($receiptPath, strlen($prefix));
+        } else {
+            $relativePath = ltrim($receiptPath, '/');
+        }
+
+        if (!Storage::disk('public')->exists($relativePath)) {
+            abort(404);
+        }
+
+        $absolutePath = Storage::disk('public')->path($relativePath);
+        $mimeType = mime_content_type($absolutePath) ?: 'application/octet-stream';
+
+        return response()->file($absolutePath, [
+            'Content-Type' => $mimeType,
+        ]);
     }
 
     public function getMetrics(): JsonResponse

@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\OtpVerification;
 use App\Services\BrevoEmailService;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -35,12 +37,47 @@ class AuthController extends Controller
             'password.required' => 'Password is required.',
         ]);
 
-        // Try to find user by citizen_id or email
         $user = User::where('citizen_id', $request->username)
                    ->orWhere('email', $request->username)
                    ->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        $reasonCode = null;
+        $resolvedUserId = null;
+        $resolvedUserEmail = null;
+        $resolvedUserRole = null;
+
+        if (!$user) {
+            $reasonCode = 'USER_NOT_FOUND';
+        } elseif (!Hash::check($request->password, $user->password)) {
+            $reasonCode = 'INVALID_PASSWORD';
+            $resolvedUserId = $user->id;
+            $resolvedUserEmail = $user->email;
+            $resolvedUserRole = $user->role;
+        }
+
+        if ($reasonCode !== null) {
+            if (!$resolvedUserEmail) {
+                $resolvedUserEmail = $request->username;
+            }
+
+            AuditLogService::logAction(
+                'LOGIN',
+                'Failed login attempt',
+                'User',
+                $resolvedUserId ? (string) $resolvedUserId : null,
+                null,
+                null,
+                [
+                    'stage' => 'password',
+                    'reason_code' => $reasonCode,
+                    'username' => $request->username,
+                ],
+                'failed',
+                $resolvedUserId,
+                $resolvedUserEmail,
+                $resolvedUserRole ?? 'guest'
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid username/email or password'
@@ -49,13 +86,30 @@ class AuthController extends Controller
 
         // Check if user is active
         if ($user->status !== 'active') {
+            AuditLogService::logAction(
+                'LOGIN',
+                'Failed login attempt',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'password',
+                    'reason_code' => 'ACCOUNT_INACTIVE',
+                    'username' => $request->username,
+                ],
+                'failed',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Account is not active. Please verify your email first.'
             ], 401);
         }
 
-        // Generate and send OTP for login verification
         try {
             $otp = OtpVerification::generateOtp($user->id, 'login');
             $userName = trim($user->first_name . ' ' . $user->last_name);
@@ -67,12 +121,49 @@ class AuthController extends Controller
                 $otp->expires_at
             );
         } catch (\Exception $e) {
-            \Log::error('Failed to send login OTP email: ' . $e->getMessage());
+            Log::error('Failed to send login OTP email: ' . $e->getMessage());
+
+            AuditLogService::logAction(
+                'LOGIN',
+                'Failed to send MFA challenge OTP',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'mfa_challenge',
+                    'reason_code' => 'OTP_SEND_FAILED',
+                    'channel' => 'email',
+                ],
+                'error',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send OTP. Please try again.'
             ], 500);
         }
+
+        AuditLogService::logAction(
+            'LOGIN',
+            'MFA challenge OTP sent',
+            'User',
+            (string) $user->id,
+            null,
+            null,
+            [
+                'stage' => 'mfa_challenge',
+                'channel' => 'email',
+                'otp_type' => 'login',
+            ],
+            'success',
+            $user->id,
+            $user->email,
+            $user->role
+        );
 
         return response()->json([
             'success' => true,
@@ -123,7 +214,7 @@ class AuthController extends Controller
                     }
                 }
             } catch (\Exception $e) {
-                \Log::warning('Failed to fetch staff details: ' . $e->getMessage());
+                Log::warning('Failed to fetch staff details: ' . $e->getMessage());
                 // Continue without staff details - frontend will handle missing system_role
             }
         }
@@ -276,9 +367,8 @@ class AuthController extends Controller
         ]);
 
         try {
-            // Exchange authorization code for access token
             $client = new \GuzzleHttp\Client([
-                'verify' => false, // Disable SSL verification for development
+                'verify' => false,
                 'timeout' => 30,
             ]);
             $response = $client->post('https://oauth2.googleapis.com/token', [
@@ -294,24 +384,19 @@ class AuthController extends Controller
             $tokenData = json_decode($response->getBody(), true);
             $accessToken = $tokenData['access_token'];
 
-            // Get user info from Google
             $userResponse = $client->get('https://www.googleapis.com/oauth2/v2/userinfo', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $accessToken,
                 ],
-                'verify' => false, // Disable SSL verification for development
+                'verify' => false,
             ]);
 
             $googleUser = json_decode($userResponse->getBody(), true);
 
-            // For development mode, we'll skip People API and let users fill forms manually
-            // In production, you can enable People API after Google verification
             $additionalInfo = [];
 
-            // Find user by email
             $user = User::where('email', $googleUser['email'])->first();
 
-            // If not registered, instruct frontend to open registration flow
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -320,7 +405,7 @@ class AuthController extends Controller
                     'email' => $googleUser['email'] ?? null,
                     'first_name' => $googleUser['given_name'] ?? null,
                     'last_name' => $googleUser['family_name'] ?? null,
-                    'additional_info' => $additionalInfo, // Include Google data for pre-filling
+                    'additional_info' => $additionalInfo,
                 ], 404);
             }
 
@@ -342,7 +427,7 @@ class AuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Google OAuth error: ' . $e->getMessage());
+            Log::error('Google OAuth error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Google authentication failed'
@@ -382,7 +467,7 @@ class AuthController extends Controller
                 $otp->expires_at
             );
         } catch (\Exception $e) {
-            \Log::error('Failed to send OTP email: ' . $e->getMessage());
+            Log::error('Failed to send OTP email: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send OTP email. Please try again later.'
@@ -509,16 +594,32 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user->is_active) {
+            AuditLogService::logAction(
+                'LOGIN',
+                'Failed login OTP request',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'mfa_challenge',
+                    'reason_code' => 'ACCOUNT_INACTIVE',
+                    'channel' => 'email',
+                ],
+                'failed',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Account is not active. Please verify your email first.'
             ], 400);
         }
 
-        // Generate OTP for login
         $otp = OtpVerification::generateOtp($user->id, 'login');
 
-        // Send OTP via Brevo
         try {
             $userName = trim($user->first_name . ' ' . $user->last_name);
             
@@ -529,12 +630,49 @@ class AuthController extends Controller
                 $otp->expires_at
             );
         } catch (\Exception $e) {
-            \Log::error('Failed to send login OTP email: ' . $e->getMessage());
+            Log::error('Failed to send login OTP email: ' . $e->getMessage());
+
+            AuditLogService::logAction(
+                'LOGIN',
+                'Failed to send MFA challenge OTP',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'mfa_challenge',
+                    'reason_code' => 'OTP_SEND_FAILED',
+                    'channel' => 'email',
+                ],
+                'error',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send OTP email. Please try again later.'
             ], 500);
         }
+
+        AuditLogService::logAction(
+            'LOGIN',
+            'MFA challenge OTP sent',
+            'User',
+            (string) $user->id,
+            null,
+            null,
+            [
+                'stage' => 'mfa_challenge',
+                'channel' => 'email',
+                'otp_type' => 'login',
+            ],
+            'success',
+            $user->id,
+            $user->email,
+            $user->role
+        );
 
         return response()->json([
             'success' => true,
@@ -562,17 +700,51 @@ class AuthController extends Controller
             ->first();
 
         if (!$otp || !$otp->isValid()) {
+            AuditLogService::logAction(
+                'LOGIN',
+                'MFA verification failed',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'mfa_verify',
+                    'reason_code' => 'OTP_INVALID_OR_EXPIRED',
+                    'channel' => 'email',
+                ],
+                'failed',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired OTP'
             ], 400);
         }
 
-        // Mark OTP as used
         $otp->markAsUsed();
 
-        // Create token
         $token = $user->createToken('auth-token')->plainTextToken;
+
+        AuditLogService::logAction(
+            'LOGIN',
+            'MFA verification successful',
+            'User',
+            (string) $user->id,
+            null,
+            null,
+            [
+                'stage' => 'mfa_verify',
+                'mfa_result' => 'passed',
+                'channel' => 'email',
+            ],
+            'success',
+            $user->id,
+            $user->email,
+            $user->role
+        );
 
         return response()->json([
             'success' => true,
@@ -613,8 +785,7 @@ class AuthController extends Controller
         ]);
 
         try {
-            // Log the incoming request for debugging
-            \Log::info('Google registration request:', [
+            Log::info('Google registration request:', [
                 'code' => $request->code,
                 'mobile' => $request->mobile,
                 'birthdate' => $request->birthdate,
@@ -624,13 +795,12 @@ class AuthController extends Controller
                 'barangay' => $request->barangay
             ]);
             
-            // Exchange authorization code for access token
             $client = new \GuzzleHttp\Client([
-                'verify' => false, // Disable SSL verification for development
+                'verify' => false,
                 'timeout' => 30,
             ]);
             
-            \Log::info('Attempting Google OAuth token exchange with code: ' . $request->code);
+            Log::info('Attempting Google OAuth token exchange with code: ' . $request->code);
             
             $response = $client->post('https://oauth2.googleapis.com/token', [
                 'form_params' => [
@@ -643,24 +813,20 @@ class AuthController extends Controller
             ]);
 
             $tokenData = json_decode($response->getBody(), true);
-            \Log::info('Google OAuth token response:', $tokenData);
+            Log::info('Google OAuth token response:', $tokenData);
             $accessToken = $tokenData['access_token'];
 
-            // Get user info from Google
             $userResponse = $client->get('https://www.googleapis.com/oauth2/v2/userinfo', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $accessToken,
                 ],
-                'verify' => false, // Disable SSL verification for development
+                'verify' => false,
             ]);
 
             $googleUser = json_decode($userResponse->getBody(), true);
 
-            // For development mode, we'll skip People API and use form data only
-            // In production, you can enable People API after Google verification
             $additionalInfo = [];
 
-            // Check if user already exists
             $existingUser = User::where('email', $googleUser['email'])->first();
             if ($existingUser) {
                 return response()->json([
@@ -669,10 +835,8 @@ class AuthController extends Controller
                 ], 400);
             }
 
-            // Generate citizen ID
             $citizenId = 'CC' . date('Y') . str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
 
-            // Create user with Google data (use Google data if available, otherwise use form data)
             $user = User::create([
                 'citizen_id' => $citizenId,
                 'first_name' => $googleUser['given_name'] ?? '',
@@ -686,14 +850,13 @@ class AuthController extends Controller
                 'house_number' => $additionalInfo['houseNumber'] ?? $request->houseNumber,
                 'street' => $additionalInfo['street'] ?? $request->street,
                 'barangay' => $additionalInfo['barangay'] ?? $request->barangay,
-                'password' => Hash::make(Str::random(32)), // Random password for Google users
+                'password' => Hash::make(Str::random(32)),
                 'role' => 'citizen',
-                'email_verified_at' => now(), // Google emails are pre-verified
-                'status' => 'active', // Auto-activate Google users
+                'email_verified_at' => now(),
+                'status' => 'active',
                 'email_verification_token' => null,
             ]);
 
-            // Create token
             $token = $user->createToken('auth-token')->plainTextToken;
 
             return response()->json([
@@ -716,10 +879,9 @@ class AuthController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            \Log::error('Google registration error: ' . $e->getMessage());
-            \Log::error('Google registration stack trace: ' . $e->getTraceAsString());
+            Log::error('Google registration error: ' . $e->getMessage());
+            Log::error('Google registration stack trace: ' . $e->getTraceAsString());
             
-            // Handle specific Google OAuth errors
             if (strpos($e->getMessage(), 'invalid_grant') !== false) {
                 return response()->json([
                     'success' => false,

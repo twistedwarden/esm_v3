@@ -15,7 +15,6 @@ import {
     RefreshCw
 } from 'lucide-react';
 import { LoadingData } from '../../ui/LoadingSpinner';
-import axios from 'axios';
 import { getScholarshipServiceUrl } from '../../../../config/api';
 
 const SCHOLARSHIP_API = getScholarshipServiceUrl('/api');
@@ -74,57 +73,106 @@ const AuditLog = () => {
     const [statistics, setStatistics] = useState(null);
 
     useEffect(() => {
-        fetchLogs();
+        fetchLogs(true);
         fetchFilterOptions();
         fetchStatistics();
     }, []);
 
     useEffect(() => {
-        fetchLogs();
+        fetchLogs(false);
     }, [filters, searchTerm, pagination.current_page]);
 
-    const fetchLogs = async () => {
-        setLoading(true);
-        
-        // Use mock data directly instead of making API calls
-        setLogs(generateMockAuditLogs());
-        setPagination({
-            current_page: 1,
-            last_page: 1,
-            per_page: 25,
-            total: 5,
-            from: 1,
-            to: 5
-        });
-        setLoading(false);
+    const buildAuthHeaders = () => {
+        const token = localStorage.getItem('auth_token');
+        return {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        };
+    };
+
+    const fetchLogs = async (resetPage = false) => {
+        try {
+            setLoading(true);
+
+            const params = new URLSearchParams();
+            if (searchTerm) params.append('search', searchTerm);
+            if (filters.action) params.append('action', filters.action);
+            if (filters.user_role) params.append('user_role', filters.user_role);
+            if (filters.resource_type) params.append('resource_type', filters.resource_type);
+            if (filters.status) params.append('status', filters.status);
+            if (filters.date_from) params.append('date_from', filters.date_from);
+            if (filters.date_to) params.append('date_to', filters.date_to);
+
+            const page = resetPage ? 1 : pagination.current_page || 1;
+            params.append('page', String(page));
+            params.append('per_page', String(pagination.per_page || 25));
+
+            const response = await fetch(`${SCHOLARSHIP_API}/audit-logs?${params.toString()}`, {
+                headers: buildAuthHeaders(),
+            });
+
+            const data = await response.json();
+
+            if (data && data.success) {
+                setLogs(Array.isArray(data.data) ? data.data : []);
+                if (data.pagination) {
+                    setPagination(prev => ({
+                        ...prev,
+                        ...data.pagination,
+                    }));
+                } else {
+                    setPagination(prev => ({
+                        ...prev,
+                        current_page: page,
+                        last_page: 1,
+                        total: Array.isArray(data.data) ? data.data.length : 0,
+                        from: 1,
+                        to: Array.isArray(data.data) ? data.data.length : 0,
+                    }));
+                }
+            } else {
+                console.error('Failed to fetch audit logs:', data);
+                setLogs([]);
+            }
+        } catch (error) {
+            console.error('Error fetching audit logs:', error);
+            setLogs([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const fetchFilterOptions = async () => {
-        // Use mock filter options directly instead of making API calls
-        setFilterOptions({
-            actions: ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'VIEW', 'EXPORT', 'IMPORT'],
-            user_roles: ['Admin', 'User', 'Moderator', 'Reviewer'],
-            resource_types: ['User', 'Application', 'Document', 'School', 'Student'],
-            statuses: ['success', 'failed', 'error', 'pending']
-        });
+        try {
+            const response = await fetch(`${SCHOLARSHIP_API}/audit-logs/filter-options`, {
+                headers: buildAuthHeaders(),
+            });
+            const data = await response.json();
+            if (data && data.success && data.data) {
+                setFilterOptions({
+                    actions: data.data.actions || [],
+                    user_roles: data.data.user_roles || [],
+                    resource_types: data.data.resource_types || [],
+                    statuses: data.data.statuses || [],
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching audit log filter options:', error);
+        }
     };
 
     const fetchStatistics = async () => {
-        // Use mock statistics directly instead of making API calls
-        setStatistics({
-            total_logs: 1247,
-            by_status: {
-                success: 1156,
-                failed: 67,
-                error: 24
-            },
-            by_user_role: {
-                'Admin': 45,
-                'User': 892,
-                'Moderator': 234,
-                'Reviewer': 76
+        try {
+            const response = await fetch(`${SCHOLARSHIP_API}/audit-logs/statistics`, {
+                headers: buildAuthHeaders(),
+            });
+            const data = await response.json();
+            if (data && data.success && data.data) {
+                setStatistics(data.data);
             }
-        });
+        } catch (error) {
+            console.error('Error fetching audit log statistics:', error);
+        }
     };
 
     const handleFilterChange = (key, value) => {
@@ -167,17 +215,38 @@ const AuditLog = () => {
     };
 
     const exportLogs = async () => {
-        // Export mock data directly instead of making API calls
-        const mockData = generateMockAuditLogs();
-        const blob = new Blob([JSON.stringify(mockData, null, 2)], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        try {
+            const params = new URLSearchParams();
+            if (searchTerm) params.append('search', searchTerm);
+            if (filters.action) params.append('action', filters.action);
+            if (filters.user_role) params.append('user_role', filters.user_role);
+            if (filters.resource_type) params.append('resource_type', filters.resource_type);
+            if (filters.status) params.append('status', filters.status);
+            if (filters.date_from) params.append('date_from', filters.date_from);
+            if (filters.date_to) params.append('date_to', filters.date_to);
+
+            const response = await fetch(`${SCHOLARSHIP_API}/audit-logs/export?${params.toString()}`, {
+                headers: buildAuthHeaders(),
+            });
+            const data = await response.json();
+            if (!data || !data.success) {
+                console.error('Failed to export audit logs:', data);
+                return;
+            }
+
+            const exportPayload = Array.isArray(data.data) ? data.data : [];
+            const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Error exporting audit logs:', error);
+        }
     };
 
     const getActionBadgeColor = (action) => {
@@ -210,6 +279,47 @@ const AuditLog = () => {
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleString();
+    };
+
+    const renderKeyValueGrid = (data) => {
+        if (!data || typeof data !== 'object') return null;
+
+        const entries = Object.entries(data).filter(([key, value]) => value !== null && value !== undefined && value !== '');
+        if (entries.length === 0) return null;
+
+        return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                {entries.map(([key, value]) => {
+                    const label = key
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, (c) => c.toUpperCase());
+
+                    let display;
+                    if (typeof value === 'boolean') {
+                        display = value ? 'Yes' : 'No';
+                    } else if (value && typeof value === 'object') {
+                        if (Array.isArray(value)) {
+                            display = `Array (${value.length})`;
+                        } else {
+                            display = 'Details available in JSON view';
+                        }
+                    } else {
+                        display = String(value);
+                    }
+
+                    return (
+                        <div key={key}>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                {label}
+                            </div>
+                            <div className="text-sm text-gray-900 dark:text-white break-words">
+                                {display}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
     };
 
     if (loading && logs.length === 0) {
@@ -574,30 +684,54 @@ const AuditLog = () => {
                                     </div>
                                 </div>
                                 
-                                {selectedLog.old_values && (
+                                {selectedLog.new_values && typeof selectedLog.new_values === 'object' && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Old Values</label>
-                                        <pre className="mt-1 text-xs text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto">
-                                            {JSON.stringify(selectedLog.old_values, null, 2)}
-                                        </pre>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            New Values
+                                        </label>
+                                        {renderKeyValueGrid(selectedLog.new_values)}
+                                        <details className="mt-2">
+                                            <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer">
+                                                View raw JSON
+                                            </summary>
+                                            <pre className="mt-1 text-xs text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto">
+                                                {JSON.stringify(selectedLog.new_values, null, 2)}
+                                            </pre>
+                                        </details>
                                     </div>
                                 )}
-                                
-                                {selectedLog.new_values && (
+
+                                {selectedLog.old_values && typeof selectedLog.old_values === 'object' && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Values</label>
-                                        <pre className="mt-1 text-xs text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto">
-                                            {JSON.stringify(selectedLog.new_values, null, 2)}
-                                        </pre>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Old Values
+                                        </label>
+                                        {renderKeyValueGrid(selectedLog.old_values)}
+                                        <details className="mt-2">
+                                            <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer">
+                                                View raw JSON
+                                            </summary>
+                                            <pre className="mt-1 text-xs text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto">
+                                                {JSON.stringify(selectedLog.old_values, null, 2)}
+                                            </pre>
+                                        </details>
                                     </div>
                                 )}
-                                
-                                {selectedLog.metadata && (
+
+                                {selectedLog.metadata && typeof selectedLog.metadata === 'object' && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Metadata</label>
-                                        <pre className="mt-1 text-xs text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto">
-                                            {JSON.stringify(selectedLog.metadata, null, 2)}
-                                        </pre>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Metadata
+                                        </label>
+                                        {renderKeyValueGrid(selectedLog.metadata)}
+                                        <details className="mt-2">
+                                            <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer">
+                                                View raw JSON
+                                            </summary>
+                                            <pre className="mt-1 text-xs text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto">
+                                                {JSON.stringify(selectedLog.metadata, null, 2)}
+                                            </pre>
+                                        </details>
                                     </div>
                                 )}
                                 
