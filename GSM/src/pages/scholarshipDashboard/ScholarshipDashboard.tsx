@@ -439,9 +439,9 @@ export const ScholarshipDashboard: React.FC = () => {
   const verifiedRequiredCount = documentsChecklist.filter(doc => doc.isRequired && doc.status === 'verified').length;
   const completionPercentage = requiredDocumentsCount > 0 ? Math.round((submittedRequiredCount / requiredDocumentsCount) * 100) : 0;
 
-  // Determine eligibility to submit: draft status AND all required documents submitted
+  // Determine eligibility to submit: (draft OR for_compliance status) AND all required documents submitted
   const canSubmitApplication = !!currentApplication
-    && currentApplication.status === 'draft'
+    && ['draft', 'for_compliance'].includes(currentApplication.status)
     && requiredDocumentsCount > 0
     && submittedRequiredCount === requiredDocumentsCount;
 
@@ -634,6 +634,7 @@ export const ScholarshipDashboard: React.FC = () => {
     financialNeedDescription: currentApplication.financial_need_description || 'Not provided',
     rejectionReason: currentApplication.rejection_reason || null,
     notes: currentApplication.notes || null,
+    complianceIssues: currentApplication.compliance_issues || [],
     marginalizedGroups: currentApplication.marginalized_groups || [],
     digitalWallets: currentApplication.digital_wallets || [],
     walletAccountNumber: currentApplication.wallet_account_number || 'Not provided',
@@ -647,7 +648,7 @@ export const ScholarshipDashboard: React.FC = () => {
       verificationNotes: doc.verification_notes,
       verifiedAt: doc.verified_at ? new Date(doc.verified_at).toLocaleDateString() : null
     })),
-    disbursements: []
+    disbursements: [] as any[]
 
   } : {
     referenceNumber: 'No Application',
@@ -726,7 +727,7 @@ export const ScholarshipDashboard: React.FC = () => {
     howDidYouKnow: [],
     isSchoolAtQC: false,
     requirements: [],
-    disbursements: []
+    disbursements: [] as any[]
   };
 
   // Helper component for collapsible section
@@ -1020,8 +1021,10 @@ export const ScholarshipDashboard: React.FC = () => {
                 )}
               </div>
 
-              {/* Edit Button for Draft Status */}
-              {currentApplication && scholarshipData.rawStatus === 'draft' && (
+
+
+              {/* Edit Button for Draft or For Compliance Status */}
+              {currentApplication && ['draft', 'for_compliance'].includes(scholarshipData.rawStatus) && (
                 <button
                   onClick={() => navigate('/new-application')}
                   className="flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:from-orange-600 hover:to-orange-700 transition-all shadow-md hover:shadow-lg"
@@ -1070,6 +1073,36 @@ export const ScholarshipDashboard: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Compliance Issues Alert */}
+        {(scholarshipData.rawStatus === 'for_compliance' || scholarshipData.complianceIssues.length > 0) && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-start space-x-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-yellow-800 mb-1">
+                  Action Required: Compliance Review
+                </h3>
+                <p className="text-sm text-yellow-700 mb-2">
+                  Your application has been flagged for compliance issues. Please address the following items:
+                </p>
+                {scholarshipData.complianceIssues && scholarshipData.complianceIssues.length > 0 ? (
+                  <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1 ml-1">
+                    {scholarshipData.complianceIssues.map((issue: any, index: number) => (
+                      <li key={index}>
+                        <span className="font-medium">{issue.title || 'Issue'}:</span> {issue.description || issue.message || JSON.stringify(issue)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-yellow-700 italic">
+                    Please review your application details and documents.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Application Status Card */}
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 mb-6 text-white">
@@ -1530,7 +1563,7 @@ export const ScholarshipDashboard: React.FC = () => {
                                       setIsUploading(false);
                                       setUploadError(error);
                                     }}
-                                    showRemoveButton={item.isSubmitted && currentApplication.status === 'draft'}
+                                    showRemoveButton={item.isSubmitted && ['draft', 'for_compliance'].includes(currentApplication.status)}
                                     onRemove={() => handleRemoveDocument(item.document)}
                                     maxSizeMB={10}
                                     acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
@@ -1655,19 +1688,19 @@ export const ScholarshipDashboard: React.FC = () => {
               />
             )}
 
-            {/* Action Card - Only for Draft Applications */}
-            {currentApplication && scholarshipData.rawStatus === 'draft' && (
+            {/* Action Card - For Draft and For Compliance Applications */}
+            {currentApplication && ['draft', 'for_compliance'].includes(scholarshipData.rawStatus) && (
               <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
+                <div className={`p-4 ${scholarshipData.rawStatus === 'for_compliance' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}>
                   <h2 className="text-lg font-semibold text-white flex items-center space-x-2">
                     <Send className="h-5 w-5" />
-                    <span>Submit Application</span>
+                    <span>{scholarshipData.rawStatus === 'for_compliance' ? 'Resubmit Application' : 'Submit Application'}</span>
                   </h2>
                 </div>
                 <div className="p-4">
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-gray-600">Ready to Submit?</span>
+                      <span className="text-gray-600">{scholarshipData.rawStatus === 'for_compliance' ? 'Ready to Resubmit?' : 'Ready to Submit?'}</span>
                       <span className={`font-bold ${canSubmitApplication ? 'text-green-600' : 'text-orange-600'}`}>
                         {completionPercentage}%
                       </span>
@@ -1685,26 +1718,28 @@ export const ScholarshipDashboard: React.FC = () => {
                     disabled={!canSubmitApplication || isSubmittingApp}
                     className={`w-full inline-flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${!canSubmitApplication || isSubmittingApp
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-md hover:shadow-lg'
+                      : scholarshipData.rawStatus === 'for_compliance'
+                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white hover:from-yellow-600 hover:to-yellow-700 shadow-md hover:shadow-lg'
+                        : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-md hover:shadow-lg'
                       }`}
-                    title={!canSubmitApplication ? 'Upload all required documents first' : 'Submit your application'}
+                    title={!canSubmitApplication ? 'Upload all required documents first' : scholarshipData.rawStatus === 'for_compliance' ? 'Resubmit your application' : 'Submit your application'}
                   >
                     {isSubmittingApp ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Submitting...
+                        {scholarshipData.rawStatus === 'for_compliance' ? 'Resubmitting...' : 'Submitting...'}
                       </>
                     ) : (
                       <>
                         <Send className="h-4 w-4 mr-2" />
-                        Submit Application
+                        {scholarshipData.rawStatus === 'for_compliance' ? 'Resubmit Application' : 'Submit Application'}
                       </>
                     )}
                   </button>
 
                   {!canSubmitApplication && (
                     <p className="mt-2 text-xs text-gray-500 text-center">
-                      Complete all {requiredDocumentsCount} required documents to submit
+                      Complete all {requiredDocumentsCount} required documents to {scholarshipData.rawStatus === 'for_compliance' ? 'resubmit' : 'submit'}
                     </p>
                   )}
 

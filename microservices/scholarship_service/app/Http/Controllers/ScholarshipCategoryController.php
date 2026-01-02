@@ -5,41 +5,53 @@ namespace App\Http\Controllers;
 use App\Models\ScholarshipCategory;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 class ScholarshipCategoryController extends Controller
 {
     /**
+     * Cache TTL in seconds (1 hour)
+     */
+    private const CACHE_TTL = 3600;
+
+    /**
      * Display a listing of scholarship categories
+     * Results are cached for performance
      */
     public function index(Request $request): JsonResponse
     {
-        $query = ScholarshipCategory::with('subcategories');
+        // Generate cache key based on request parameters
+        $cacheKey = 'categories:list:' . md5(json_encode($request->all()));
 
-        // Apply filters
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($request) {
+            $query = ScholarshipCategory::with('subcategories');
 
-        if ($request->has('type')) {
-            $query->where('type', $request->type);
-        }
+            // Apply filters
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
 
-        if ($request->has('is_active')) {
-            $query->where('is_active', $request->boolean('is_active'));
-        }
+            if ($request->has('type')) {
+                $query->where('type', $request->type);
+            }
 
-        $categories = $query->orderBy('name', 'asc')
-                           ->paginate($request->get('per_page', 15));
+            if ($request->has('is_active')) {
+                $query->where('is_active', $request->boolean('is_active'));
+            }
 
-        return response()->json([
-            'success' => true,
-            'data' => $categories
-        ]);
+            $categories = $query->orderBy('name', 'asc')
+                ->paginate($request->get('per_page', 15));
+
+            return response()->json([
+                'success' => true,
+                'data' => $categories
+            ]);
+        });
     }
 
     /**
@@ -64,6 +76,9 @@ class ScholarshipCategoryController extends Controller
 
         try {
             $category = ScholarshipCategory::create($request->all());
+
+            // Invalidate categories cache
+            $this->clearCategoriesCache();
 
             return response()->json([
                 'success' => true,
@@ -116,6 +131,9 @@ class ScholarshipCategoryController extends Controller
         try {
             $category->update($request->all());
 
+            // Invalidate categories cache
+            $this->clearCategoriesCache();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Scholarship category updated successfully',
@@ -139,6 +157,9 @@ class ScholarshipCategoryController extends Controller
         try {
             $category->delete();
 
+            // Invalidate categories cache
+            $this->clearCategoriesCache();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Scholarship category deleted successfully'
@@ -152,4 +173,13 @@ class ScholarshipCategoryController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Clear all categories-related cache entries
+     */
+    private function clearCategoriesCache(): void
+    {
+        Cache::flush();
+    }
 }
+

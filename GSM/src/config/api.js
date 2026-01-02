@@ -15,19 +15,19 @@ export const API_CONFIG = {
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health',
-            
+
             // Public endpoints
             PUBLIC_SCHOOLS: '/api/public/schools',
             PUBLIC_SCHOLARSHIP_CATEGORIES: '/api/public/scholarship-categories',
             PUBLIC_DOCUMENT_TYPES: '/api/public/document-types',
             PUBLIC_REQUIRED_DOCUMENTS: '/api/public/required-documents',
-            
+
             // Student management
             STUDENTS: '/api/students',
             STUDENT: (id) => `/api/students/${id}`,
             STUDENT_RESTORE: (id) => `/api/students/${id}/restore`,
             STUDENT_FORCE_DELETE: (id) => `/api/students/${id}/force-delete`,
-            
+
             // Scholarship applications
             APPLICATIONS: '/api/applications',
             APPLICATION: (id) => `/api/applications/${id}`,
@@ -36,7 +36,7 @@ export const API_CONFIG = {
             APPLICATION_REJECT: (id) => `/api/applications/${id}/reject`,
             APPLICATION_REVIEW: (id) => `/api/applications/${id}/review`,
             APPLICATION_COMPLIANCE: (id) => `/api/applications/${id}/compliance`,
-            
+
             // Document management
             DOCUMENTS: '/api/documents',
             DOCUMENT: (id) => `/api/documents/${id}`,
@@ -44,29 +44,34 @@ export const API_CONFIG = {
             DOCUMENT_DOWNLOAD: (id) => `/api/documents/${id}/download`,
             DOCUMENT_VERIFY: (id) => `/api/documents/${id}/verify`,
             DOCUMENT_REJECT: (id) => `/api/documents/${id}/reject`,
-            
+
             // School management
             SCHOOLS: '/api/schools',
             SCHOOL: (id) => `/api/schools/${id}`,
-            
+
             // Scholarship categories
             SCHOLARSHIP_CATEGORIES: '/api/scholarship-categories',
             SCHOLARSHIP_CATEGORY: (id) => `/api/scholarship-categories/${id}`,
-            
+
+            // Scholarship subcategories
+            SCHOLARSHIP_SUBCATEGORIES: '/api/scholarship-subcategories',
+            SCHOLARSHIP_SUBCATEGORY: (id) => `/api/scholarship-subcategories/${id}`,
+
             // Form integration
             FORM_NEW_APPLICATION: '/api/forms/new-application',
             FORM_RENEWAL_APPLICATION: '/api/forms/renewal-application',
             FORM_UPLOAD_DOCUMENT: '/api/forms/upload-document',
             FORM_APPLICATION_DATA: (id) => `/api/forms/application/${id}/data`,
             FORM_STUDENT_DATA: (id) => `/api/forms/student/${id}/data`,
-            
+
             // Statistics
             STATS_OVERVIEW: '/api/stats/overview',
             STATS_APPLICATIONS_BY_STATUS: '/api/stats/applications/by-status',
             STATS_APPLICATIONS_BY_TYPE: '/api/stats/applications/by-type',
-            
+            STATS_APPLICATIONS_BY_SUBCATEGORY: '/api/stats/applications/by-subcategory',
+
             // Enrollment Verification - Removed (automatic verification disabled)
-            
+
             // Interview Schedules
             INTERVIEW_SCHEDULES: '/api/interview-schedules',
             INTERVIEW_SCHEDULE: (id) => `/api/interview-schedules/${id}`,
@@ -76,7 +81,7 @@ export const API_CONFIG = {
             INTERVIEW_SCHEDULE_NO_SHOW: (id) => `/api/interview-schedules/${id}/no-show`,
             INTERVIEW_AVAILABLE_SLOTS: '/api/interview-schedules/available-slots',
             INTERVIEW_CALENDAR: '/api/interview-schedules/calendar',
-            
+
             // Application Workflow Extensions
             APPLICATION_APPROVE_VERIFICATION: (id) => `/api/applications/${id}/approve-for-verification`,
             APPLICATION_VERIFY_ENROLLMENT: (id) => `/api/applications/${id}/verify-enrollment`,
@@ -90,22 +95,22 @@ export const API_CONFIG = {
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health',
-            
+
             // School Aid applications
             APPLICATIONS: '/api/school-aid/applications',
             APPLICATION_STATUS: (id) => `/api/school-aid/applications/${id}/status`,
             APPLICATION_PROCESS_GRANT: (id) => `/api/school-aid/applications/${id}/process-grant`,
             APPLICATIONS_BATCH_UPDATE: '/api/school-aid/applications/batch-update',
-            
+
             // Payments
             PAYMENTS: '/api/school-aid/payments',
             PAYMENT_PROCESS: '/api/school-aid/payments/process',
             PAYMENT_RETRY: (id) => `/api/school-aid/payments/${id}/retry`,
-            
+
             // Metrics and Analytics
             METRICS: '/api/school-aid/metrics',
             ANALYTICS: (type) => `/api/school-aid/analytics/${type}`,
-            
+
             // Settings
             SETTINGS: '/api/school-aid/settings',
             SETTINGS_TEST: (type) => `/api/school-aid/settings/test/${type}`

@@ -5,50 +5,62 @@ namespace App\Http\Controllers;
 use App\Models\School;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 class SchoolController extends Controller
 {
     /**
+     * Cache TTL in seconds (1 hour)
+     */
+    private const CACHE_TTL = 3600;
+
+    /**
      * Display a listing of schools
+     * Results are cached for performance
      */
     public function index(Request $request): JsonResponse
     {
-        $query = School::query();
+        // Generate cache key based on request parameters
+        $cacheKey = 'schools:list:' . md5(json_encode($request->all()));
 
-        // Apply filters
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('campus', 'like', "%{$search}%")
-                  ->orWhere('city', 'like', "%{$search}%");
-            });
-        }
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($request) {
+            $query = School::query();
 
-        if ($request->has('classification')) {
-            $query->where('classification', $request->classification);
-        }
+            // Apply filters
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('campus', 'like', "%{$search}%")
+                      ->orWhere('city', 'like', "%{$search}%");
+                });
+            }
 
-        if ($request->has('is_partner_school')) {
-            $query->where('is_partner_school', $request->boolean('is_partner_school'));
-        }
+            if ($request->has('classification')) {
+                $query->where('classification', $request->classification);
+            }
 
-        if ($request->has('is_public')) {
-            $query->where('is_public', $request->boolean('is_public'));
-        }
+            if ($request->has('is_partner_school')) {
+                $query->where('is_partner_school', $request->boolean('is_partner_school'));
+            }
 
-        if ($request->has('is_active')) {
-            $query->where('is_active', $request->boolean('is_active'));
-        }
+            if ($request->has('is_public')) {
+                $query->where('is_public', $request->boolean('is_public'));
+            }
 
-        $schools = $query->orderBy('name', 'asc')
-                        ->paginate($request->get('per_page', 15));
+            if ($request->has('is_active')) {
+                $query->where('is_active', $request->boolean('is_active'));
+            }
 
-        return response()->json([
-            'success' => true,
-            'data' => $schools
-        ]);
+            $schools = $query->orderBy('name', 'asc')
+                            ->paginate($request->get('per_page', 15));
+
+            return response()->json([
+                'success' => true,
+                'data' => $schools
+            ]);
+        });
     }
 
     /**
@@ -83,6 +95,9 @@ class SchoolController extends Controller
 
         try {
             $school = School::create($request->all());
+
+            // Invalidate schools cache
+            $this->clearSchoolsCache();
 
             return response()->json([
                 'success' => true,
@@ -145,6 +160,9 @@ class SchoolController extends Controller
         try {
             $school->update($request->all());
 
+            // Invalidate schools cache
+            $this->clearSchoolsCache();
+
             return response()->json([
                 'success' => true,
                 'message' => 'School updated successfully',
@@ -168,6 +186,9 @@ class SchoolController extends Controller
         try {
             $school->delete();
 
+            // Invalidate schools cache
+            $this->clearSchoolsCache();
+
             return response()->json([
                 'success' => true,
                 'message' => 'School deleted successfully'
@@ -181,4 +202,17 @@ class SchoolController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Clear all schools-related cache entries
+     */
+    private function clearSchoolsCache(): void
+    {
+        // Clear all cache keys starting with 'schools:'
+        // Note: This uses pattern matching which works with Redis
+        // For database cache, you may need to track keys differently
+        Cache::flush(); // Simple approach - clears all cache
+        // Alternative with Redis: Cache::getRedis()->keys('schools:*') and delete each
+    }
 }
+

@@ -107,3 +107,8 @@ html, body { font-family: theme('fontFamily.sans'); }
   );
   background-size: 1000px 100%;
 }
+
+@media print {
+  .print\:hidden { display: none !important; }
+  .print\:shadow-none { box-shadow: none !important; }
+}

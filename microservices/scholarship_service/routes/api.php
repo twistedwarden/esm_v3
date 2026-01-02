@@ -76,7 +76,7 @@ Route::prefix('public')->group(function () {
     Route::get('/scholarship-categories', [ScholarshipCategoryController::class, 'index']);
     Route::get('/document-types', [DocumentController::class, 'getDocumentTypes']);
     Route::get('/required-documents', [DocumentController::class, 'getRequiredDocuments']);
-    
+
     // Staff verification endpoint for auth service
     Route::get('/staff/verify/{userId}', [StaffController::class, 'verifyStaff']);
 });
@@ -91,20 +91,20 @@ Route::get('/students/scholarship-status/{status}', [StudentController::class, '
 
 // Public application routes for notifications
 Route::get('/applications/counts', [ScholarshipApplicationController::class, 'getApplicationCounts']);
-Route::get('/students/debug', function() {
+Route::get('/students/debug', function () {
     $count = \App\Models\Student::count();
     $students = \App\Models\Student::select('id', 'first_name', 'last_name', 'user_id', 'created_at')->take(5)->get();
     $paginated = \App\Models\Student::orderBy('created_at', 'desc')->paginate(15);
-    
+
     // Test the exact same query as the index method
     $query = \App\Models\Student::query();
     $indexQuery = $query->orderBy('created_at', 'desc')->paginate(15);
-    
+
     // Test the index method directly
     $controller = new \App\Http\Controllers\StudentController();
     $request = new \Illuminate\Http\Request();
     $indexResult = $controller->index($request);
-    
+
     return response()->json([
         'count' => $count,
         'students' => $students,
@@ -121,12 +121,12 @@ Route::prefix('students')->middleware(['auth.auth_service'])->group(function () 
     Route::get('/{student}', [StudentController::class, 'show']);
     Route::put('/{student}', [StudentController::class, 'update']);
     Route::delete('/{student}', [StudentController::class, 'destroy']);
-    
+
     // Auto-registration from SSC approval
     Route::post('/register-from-scholarship', [StudentController::class, 'registerFromScholarship']);
     Route::get('/check-by-application/{applicationId}', [StudentController::class, 'checkByApplication']);
     Route::get('/by-application/{applicationId}', [StudentController::class, 'getByApplication']);
-    
+
 });
 
 // Scholarship Application routes (protected by authentication)
@@ -136,14 +136,14 @@ Route::prefix('applications')->middleware(['auth.auth_service'])->group(function
     Route::get('/{application}', [ScholarshipApplicationController::class, 'show']);
     Route::put('/{application}', [ScholarshipApplicationController::class, 'update']);
     Route::delete('/{application}', [ScholarshipApplicationController::class, 'destroy']);
-    
+
     // Application actions
     Route::post('/{application}/submit', [ScholarshipApplicationController::class, 'submit']);
     Route::post('/{application}/review', [ScholarshipApplicationController::class, 'review']);
     Route::post('/{application}/compliance', [ScholarshipApplicationController::class, 'flagForCompliance']);
     Route::post('/{application}/approve', [ScholarshipApplicationController::class, 'approve']);
     Route::post('/{application}/reject', [ScholarshipApplicationController::class, 'reject']);
-    
+
     // New workflow actions
     Route::post('/{application}/approve-for-verification', [ScholarshipApplicationController::class, 'approveForVerification']);
     Route::post('/{application}/verify-enrollment', [ScholarshipApplicationController::class, 'verifyEnrollment']);
@@ -151,10 +151,10 @@ Route::prefix('applications')->middleware(['auth.auth_service'])->group(function
     Route::post('/{application}/schedule-interview-auto', [ScholarshipApplicationController::class, 'scheduleInterviewAuto']);
     Route::post('/{application}/complete-interview', [ScholarshipApplicationController::class, 'completeInterview']);
     Route::post('/{application}/endorse-to-ssc', [ScholarshipApplicationController::class, 'endorseToSSC']);
-    
+
     // Bulk operations
     Route::post('/bulk-endorse-to-ssc', [ScholarshipApplicationController::class, 'bulkEndorseToSSC']);
-    
+
     // SSC operations (legacy)
     Route::get('/ssc/pending', [ScholarshipApplicationController::class, 'getSscPendingApplications']);
     Route::get('/ssc/statistics', [ScholarshipApplicationController::class, 'getSscStatistics']);
@@ -164,30 +164,30 @@ Route::prefix('applications')->middleware(['auth.auth_service'])->group(function
     Route::post('/{application}/ssc-reject', [ScholarshipApplicationController::class, 'sscReject']);
     Route::post('/ssc/bulk-approve', [ScholarshipApplicationController::class, 'sscBulkApprove']);
     Route::post('/ssc/bulk-reject', [ScholarshipApplicationController::class, 'sscBulkReject']);
-    
+
     // SSC Multi-Stage Workflow (new)
     Route::get('/ssc/stage/{stage}', [ScholarshipApplicationController::class, 'getSscApplicationsByStage']);
     Route::get('/ssc/my-applications', [ScholarshipApplicationController::class, 'getMySscApplications']);
-    
+
     // Stage-specific reviews
     Route::post('/{application}/ssc/document-verification', [ScholarshipApplicationController::class, 'sscSubmitDocumentVerification']);
     Route::post('/{application}/ssc/financial-review', [ScholarshipApplicationController::class, 'sscSubmitFinancialReview']);
     Route::post('/{application}/ssc/academic-review', [ScholarshipApplicationController::class, 'sscSubmitAcademicReview']);
     Route::post('/{application}/ssc/final-approval', [ScholarshipApplicationController::class, 'sscFinalApproval']);
     Route::post('/{application}/ssc/final-rejection', [ScholarshipApplicationController::class, 'sscFinalRejection']);
-    
+
     // Request revision
     Route::post('/{application}/ssc/request-revision', [ScholarshipApplicationController::class, 'sscRequestRevision']);
-    
+
     // Get review history
     Route::get('/{application}/ssc/review-history', [ScholarshipApplicationController::class, 'getSscReviewHistory']);
-    
+
     // Get current user's SSC roles
     Route::get('/ssc/my-roles', [ScholarshipApplicationController::class, 'getUserSscRoles']);
-    
+
     // Parallel stage approval
     Route::post('/{application}/approve-stage', [ScholarshipApplicationController::class, 'approveStage']);
-    
+
     // Get SSC member assignments
     Route::get('/ssc/member-assignments', [ScholarshipApplicationController::class, 'getSscMemberAssignments']);
 });
@@ -209,12 +209,12 @@ Route::prefix('documents')->middleware(['auth.auth_service'])->group(function ()
     Route::get('/{document}/download', [DocumentController::class, 'download']);
     Route::post('/{document}/verify', [DocumentController::class, 'verify']);
     Route::post('/{document}/reject', [DocumentController::class, 'reject']);
-    
+
     // Document utilities
     Route::get('/types/list', [DocumentController::class, 'getDocumentTypes']);
     Route::get('/required', [DocumentController::class, 'getRequiredDocuments']);
     Route::get('/checklist', [DocumentController::class, 'getDocumentsChecklist']);
-    
+
     // Document security endpoints
     Route::get('/{document}/scan-status', [DocumentController::class, 'getScanStatus']);
 });
@@ -353,7 +353,7 @@ Route::get('/test/users', function () {
         $authServiceUrl = config('services.auth_service.url', 'http://localhost:8001');
         $response = \Illuminate\Support\Facades\Http::timeout(10)
             ->get("{$authServiceUrl}/api/users");
-        
+
         return response()->json([
             'success' => true,
             'auth_service_url' => $authServiceUrl,
@@ -378,60 +378,60 @@ Route::prefix('forms')->middleware(['auth.auth_service'])->group(function () {
     Route::post('/new-application', function (Request $request) {
         $studentController = new StudentController();
         $applicationController = new ScholarshipApplicationController();
-        
+
         // First create the student
         $studentResponse = $studentController->store($request);
         $studentData = json_decode($studentResponse->getContent(), true);
-        
+
         if (!$studentData['success']) {
             return $studentResponse;
         }
-        
+
         // Then create the application
         $request->merge(['student_id' => $studentData['data']['id']]);
         $applicationResponse = $applicationController->store($request);
         $applicationData = json_decode($applicationResponse->getContent(), true);
-        
+
         if (!$applicationData['success']) {
             return $applicationResponse;
         }
-        
+
         // Do not auto-submit; leave status as draft so user can finish later
-        
+
         return $applicationResponse;
     });
-    
+
     // Renewal Application Form
     Route::post('/renewal-application', function (Request $request) {
         $applicationController = new ScholarshipApplicationController();
-        
+
         // Set type to renewal
         $request->merge(['type' => 'renewal']);
-        
+
         $applicationResponse = $applicationController->store($request);
         $applicationData = json_decode($applicationResponse->getContent(), true);
-        
+
         if (!$applicationData['success']) {
             return $applicationResponse;
         }
-        
+
         // Automatically submit the application
         $application = \App\Models\ScholarshipApplication::find($applicationData['data']['id']);
         if ($application) {
             $application->submit();
         }
-        
+
         return $applicationResponse;
     });
-    
+
     // Document Upload - Fixed route
     Route::post('/upload-document', [DocumentController::class, 'store']);
-    
+
     // Test route
     Route::get('/test-forms', function () {
         return response()->json(['message' => 'Forms group is working']);
     });
-    
+
     // Get form data for editing
     Route::get('/application/{application}/data', [ScholarshipApplicationController::class, 'show']);
     Route::get('/student/{student}/data', [StudentController::class, 'show']);
@@ -448,32 +448,45 @@ Route::prefix('stats')->group(function () {
             'total_documents' => \App\Models\Document::count(),
             'verified_documents' => \App\Models\Document::where('status', 'verified')->count(),
         ];
-        
+
         return response()->json([
             'success' => true,
             'data' => $stats
         ]);
     });
-    
+
     Route::get('/applications/by-status', function () {
         $statusCounts = \App\Models\ScholarshipApplication::selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status');
-            
+
         return response()->json([
             'success' => true,
             'data' => $statusCounts
         ]);
     });
-    
+
     Route::get('/applications/by-type', function () {
         $typeCounts = \App\Models\ScholarshipApplication::selectRaw('type, COUNT(*) as count')
             ->groupBy('type')
             ->pluck('count', 'type');
-            
+
         return response()->json([
             'success' => true,
             'data' => $typeCounts
+        ]);
+    });
+
+    Route::get('/applications/by-subcategory', function () {
+        $counts = \App\Models\ScholarshipApplication::selectRaw('subcategory_id, COUNT(*) as count')
+            ->whereIn('status', ['approved', 'grants_processing', 'grants_disbursed', 'interview_completed', 'endorsed_to_ssc'])
+            ->whereNotNull('subcategory_id')
+            ->groupBy('subcategory_id')
+            ->pluck('count', 'subcategory_id');
+
+        return response()->json([
+            'success' => true,
+            'data' => $counts
         ]);
     });
 });

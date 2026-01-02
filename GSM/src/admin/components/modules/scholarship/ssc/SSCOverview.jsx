@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  FileText, 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
+import {
+  Users,
+  FileText,
+  CheckCircle,
+  Clock,
+  XCircle,
   AlertTriangle,
   TrendingUp,
   MessageSquare,
@@ -16,6 +16,8 @@ import {
   Settings
 } from 'lucide-react';
 import { sscRoleService } from '../../../../../services/sscRoleService';
+
+import AdminApplicationChecklist from './AdminApplicationChecklist';
 
 function SSCOverview() {
   const [stats, setStats] = useState({
@@ -36,17 +38,34 @@ function SSCOverview() {
   const [error, setError] = useState('');
   const [userRoles, setUserRoles] = useState(null);
   const [myQueueCount, setMyQueueCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError('');
-        
+
+        // Check for admin role
+        try {
+          const userDataStr = localStorage.getItem('user_data');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            console.log('SSCOverview - User Data:', userData);
+            // Check if role is strictly 'admin' or 'super_admin'
+            // Adjust this condition based on your exact role strings
+            if (userData.role === 'admin' || userData.role === 'super_admin' || userData.is_admin) {
+              setIsAdmin(true);
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+        }
+
         // Fetch user's SSC roles
         const roles = await sscRoleService.fetchUserRoles();
         setUserRoles(roles);
-        
+
         // Fetch real data from API
         const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
         const response = await scholarshipApiService.getSscStatistics();
@@ -61,7 +80,7 @@ function SSCOverview() {
             console.error('Error fetching my queue count:', err);
           }
         }
-        
+
         // Fetch stage-specific counts
         const [docVerification, financialReview, academicReview, finalApproval] = await Promise.all([
           scholarshipApiService.getSscApplicationsByStage('document_verification', { per_page: 1 }),
@@ -69,7 +88,7 @@ function SSCOverview() {
           scholarshipApiService.getSscApplicationsByStage('academic_review', { per_page: 1 }),
           scholarshipApiService.getSscApplicationsByStage('final_approval', { per_page: 1 })
         ]);
-        
+
         setStats({
           totalApplications: statsData.totalApplications || 0,
           pendingReview: statsData.pendingReview || 0,
@@ -95,7 +114,7 @@ function SSCOverview() {
             sort_by: 'decided_at',
             sort_order: 'desc'
           });
-          
+
           const activities = (historyData.data || []).map((decision, index) => ({
             id: index + 1,
             type: decision.decision === 'approved' ? 'approval' : 'rejection',
@@ -105,7 +124,7 @@ function SSCOverview() {
             timestamp: decision.decided_at,
             status: decision.decision
           }));
-          
+
           setRecentActivities(activities);
         } catch (err) {
           console.error('Error loading recent activities:', err);
@@ -182,8 +201,8 @@ function SSCOverview() {
       }
     }
 
-    // Chairperson sees all stats
-    if (userRoles && userRoles.is_chairperson) {
+    // Chairperson OR Admin sees all stats
+    if ((userRoles && userRoles.is_chairperson) || isAdmin) {
       return [
         {
           title: 'Total Applications',
@@ -325,6 +344,13 @@ function SSCOverview() {
         })}
       </div>
 
+      {/* ADMIN-ONLY CHECKLIST */}
+      {isAdmin && (
+        <div className="mb-8">
+          <AdminApplicationChecklist />
+        </div>
+      )}
+
       {/* Stage Pipeline Visualization */}
       <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-4 sm:p-6 mb-6 sm:mb-8">
         <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -340,11 +366,11 @@ function SSCOverview() {
             <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Document</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Verification</div>
           </div>
-          
+
           <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-2 sm:mx-4 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-yellow-500 rounded-full"></div>
           </div>
-          
+
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mb-2">
               <span className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
@@ -354,11 +380,11 @@ function SSCOverview() {
             <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Financial</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Review</div>
           </div>
-          
+
           <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-2 sm:mx-4 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-purple-500 rounded-full"></div>
           </div>
-          
+
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-2">
               <span className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
@@ -368,11 +394,11 @@ function SSCOverview() {
             <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Academic</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Review</div>
           </div>
-          
+
           <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 mx-2 sm:mx-4 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-green-500 rounded-full"></div>
           </div>
-          
+
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-2">
               <span className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">
@@ -462,5 +488,6 @@ function SSCOverview() {
     </div>
   );
 }
+
 
 export default SSCOverview;

@@ -403,48 +403,48 @@ export const NewApplicationForm: React.FC = () => {
 
         // Check if user has any pending or active applications
         // Check if user has any active applications that would prevent creating a new one
-        // Draft applications can be edited, so they don't block access to this page
-        // Only non-draft active statuses block new applications
-        const blockingStatuses = ['submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'for_compliance', 'compliance_documents_submitted'];
+        // Draft and for_compliance applications can be edited, so they don't block access to this page
+        // Only non-draft, non-compliance active statuses block new applications
+        const blockingStatuses = ['submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'compliance_documents_submitted'];
         const hasBlockingApplication = applications.some(app => blockingStatuses.includes(app.status?.toLowerCase()));
 
-        // Check if user has a draft application that they might want to edit
-        const draftApplication = applications.find(app => app.status?.toLowerCase() === 'draft');
-        const hasDraftApplication = !!draftApplication;
+        // Check if user has a draft or for_compliance application that they might want to edit
+        const editableApplication = applications.find(app => ['draft', 'for_compliance'].includes(app.status?.toLowerCase()));
+        const hasEditableApplication = !!editableApplication;
 
         // Allow access if:
         // 1. No blocking applications exist, OR
-        // 2. User has only draft applications (which can be edited)
+        // 2. User has only draft or for_compliance applications (which can be edited)
         const shouldAllowAccess = !hasBlockingApplication;
 
         setAccessDenied(!shouldAllowAccess);
 
-        // Set edit mode if user has a draft application
-        if (draftApplication && shouldAllowAccess) {
+        // Set edit mode if user has an editable application (draft or for_compliance)
+        if (editableApplication && shouldAllowAccess) {
           setIsEditMode(true);
           // Fetch full application data with all relationships
-          if (draftApplication.id && typeof draftApplication.id === 'number') {
+          if (editableApplication.id && typeof editableApplication.id === 'number') {
             try {
-              const fullApplication = await scholarshipApiService.getApplication(draftApplication.id);
+              const fullApplication = await scholarshipApiService.getApplication(editableApplication.id);
               setExistingApplication(fullApplication);
               console.log('Edit mode detected. Loading full application data:', fullApplication);
             } catch (error) {
               console.error('Failed to fetch full application data:', error);
               // Fallback to the basic application data
-              setExistingApplication(draftApplication);
-              console.log('Edit mode detected. Using basic application data:', draftApplication);
+              setExistingApplication(editableApplication);
+              console.log('Edit mode detected. Using basic application data:', editableApplication);
             }
           } else {
-            setExistingApplication(draftApplication);
-            console.log('Edit mode detected. Using basic application data (no ID):', draftApplication);
+            setExistingApplication(editableApplication);
+            console.log('Edit mode detected. Using basic application data (no ID):', editableApplication);
           }
         }
 
         console.log('User applications:', applications);
         console.log('Has blocking application:', hasBlockingApplication);
-        console.log('Has draft application:', hasDraftApplication);
+        console.log('Has editable application:', hasEditableApplication);
         console.log('Should allow access:', shouldAllowAccess);
-        console.log('Is edit mode:', !!draftApplication && shouldAllowAccess);
+        console.log('Is edit mode:', !!editableApplication && shouldAllowAccess);
       } catch (error) {
         console.error('Error checking existing applications:', error);
         // If there's an error, allow access (fail open)

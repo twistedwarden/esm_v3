@@ -119,7 +119,7 @@ export interface School {
 
 export interface AcademicRecord {
   id?: number;
-  
+
   student_id?: number;
   school_id: number;
   educational_level: 'ELEMENTARY' | 'HIGH SCHOOL' | 'SENIOR HIGH SCHOOL' | 'TERTIARY/COLLEGE' | 'GRADUATE SCHOOL';
@@ -266,10 +266,10 @@ class ScholarshipApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = getScholarshipServiceUrl(endpoint);
-    
+
     // Get auth token from localStorage
     const token = localStorage.getItem('auth_token');
-    
+
     const defaultHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -278,7 +278,7 @@ class ScholarshipApiService {
     // Add authorization header if token exists
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
-      
+
       // Add user information headers for SSC role detection
       try {
         const userData = localStorage.getItem('user_data');
@@ -316,7 +316,7 @@ class ScholarshipApiService {
           statusText: response.statusText,
           data: data
         });
-        
+
         // For validation errors, include the detailed errors
         if (response.status === 422 && data.errors) {
           const errorMessages = Object.entries(data.errors)
@@ -324,13 +324,13 @@ class ScholarshipApiService {
             .join('; ');
           throw new Error(`Validation failed: ${errorMessages}`);
         }
-        
+
         // For server errors, include more details
         if (response.status >= 500) {
           const errorDetails = data.error || data.message || 'Internal server error';
           throw new Error(`Server error (${response.status}): ${errorDetails}`);
         }
-        
+
         throw new Error(data.message || `HTTP error! status: ${response.status}`);
       }
 
@@ -374,6 +374,68 @@ class ScholarshipApiService {
     }
   }
 
+  async createScholarshipCategory(categoryData: Partial<ScholarshipCategory>): Promise<ScholarshipCategory> {
+    const response = await this.makeRequest<{ data: ScholarshipCategory }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_CATEGORIES,
+      {
+        method: 'POST',
+        body: JSON.stringify(categoryData),
+      }
+    );
+    return response.data!.data! || response.data!;
+  }
+
+  async updateScholarshipCategory(id: number, categoryData: Partial<ScholarshipCategory>): Promise<ScholarshipCategory> {
+    const response = await this.makeRequest<{ data: ScholarshipCategory }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_CATEGORY(id),
+      {
+        method: 'PUT',
+        body: JSON.stringify(categoryData),
+      }
+    );
+    return response.data!.data! || response.data!;
+  }
+
+  async deleteScholarshipCategory(id: number): Promise<void> {
+    await this.makeRequest(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_CATEGORY(id),
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
+  async createScholarshipSubcategory(subcategoryData: Partial<ScholarshipSubcategory>): Promise<ScholarshipSubcategory> {
+    const response = await this.makeRequest<{ data: ScholarshipSubcategory }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_SUBCATEGORIES,
+      {
+        method: 'POST',
+        body: JSON.stringify(subcategoryData),
+      }
+    );
+    return response.data!.data! || response.data!;
+  }
+
+  async updateScholarshipSubcategory(id: number, subcategoryData: Partial<ScholarshipSubcategory>): Promise<ScholarshipSubcategory> {
+    const response = await this.makeRequest<{ data: ScholarshipSubcategory }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_SUBCATEGORY(id),
+      {
+        method: 'PUT',
+        body: JSON.stringify(subcategoryData),
+      }
+    );
+    return response.data!.data! || response.data!;
+  }
+
+  async deleteScholarshipSubcategory(id: number): Promise<void> {
+    await this.makeRequest(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_SUBCATEGORY(id),
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
   async getDocumentTypes(): Promise<DocumentType[]> {
     const response = await this.makeRequest<{ data: DocumentType[] }>(
       API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.PUBLIC_DOCUMENT_TYPES
@@ -391,10 +453,10 @@ class ScholarshipApiService {
   // Student management
   async getStudents(params?: any): Promise<{ data: Student[]; meta?: any }> {
     const queryParams = new URLSearchParams(params).toString();
-    const endpoint = queryParams 
+    const endpoint = queryParams
       ? `${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.STUDENTS}?${queryParams}`
       : API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.STUDENTS;
-    
+
     const response = await this.makeRequest<{ data: Student[]; meta?: any }>(endpoint);
     return response.data!;
   }
@@ -440,10 +502,10 @@ class ScholarshipApiService {
   // Scholarship applications
   async getApplications(params?: any): Promise<{ data: ScholarshipApplication[]; meta?: any }> {
     const queryParams = new URLSearchParams(params).toString();
-    const endpoint = queryParams 
+    const endpoint = queryParams
       ? `${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.APPLICATIONS}?${queryParams}`
       : API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.APPLICATIONS;
-    
+
     const response = await this.makeRequest<{ data: any; meta?: any }>(endpoint);
     // Normalize Laravel paginator shape to a consistent `{ data, meta }`
     const payload = response.data as any;
@@ -478,7 +540,7 @@ class ScholarshipApiService {
     console.log('getApplication response:', response);
     console.log('getApplication response.data:', response.data);
     console.log('getApplication response.data.data:', response.data?.data);
-    
+
     // Handle different response structures
     if (response.data?.data) {
       return response.data.data;
@@ -568,10 +630,10 @@ class ScholarshipApiService {
       `/api/applications/bulk-endorse-to-ssc`,
       {
         method: 'POST',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           application_ids: applicationIds,
           filter_type: filterType,
-          notes 
+          notes
         }),
       }
     );
@@ -594,7 +656,7 @@ class ScholarshipApiService {
       API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.APPLICATION_COMPLIANCE(id),
       {
         method: 'POST',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           reason: reason
         }),
       }
@@ -628,14 +690,14 @@ class ScholarshipApiService {
   async uploadDocument(documentData: FormData): Promise<Document> {
     // Get authentication token from localStorage
     const token = localStorage.getItem('auth_token');
-    
+
     // Debug logging
     console.log('Upload token check:', token ? 'Token found' : 'No token found');
-    
+
     if (!token) {
       throw new Error('No authentication token found. Please log in again.');
     }
-    
+
     const response = await fetch(
       getScholarshipServiceUrl(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENTS),
       {
@@ -652,7 +714,7 @@ class ScholarshipApiService {
       try {
         const errorData = await response.json();
         console.error('Upload error response:', errorData);
-        
+
         if (errorData.errors) {
           // Handle validation errors
           const validationErrors = Object.entries(errorData.errors)
@@ -679,10 +741,10 @@ class ScholarshipApiService {
   // Document management
   async getDocuments(params?: any): Promise<{ data: Document[]; meta?: any }> {
     const queryParams = new URLSearchParams(params).toString();
-    const endpoint = queryParams 
+    const endpoint = queryParams
       ? `${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENTS}?${queryParams}`
       : API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENTS;
-    
+
     const response = await this.makeRequest<{ data: Document[]; meta?: any }>(endpoint);
     return response.data!;
   }
@@ -849,16 +911,16 @@ class ScholarshipApiService {
   }
 
   async rescheduleInterview(id: number, newDate: string, newTime: string, reason?: string, duration?: number): Promise<InterviewSchedule> {
-    const body: any = { 
-      interview_date: newDate, 
-      interview_time: newTime, 
-      reschedule_reason: reason 
+    const body: any = {
+      interview_date: newDate,
+      interview_time: newTime,
+      reschedule_reason: reason
     };
-    
+
     if (duration !== undefined) {
       body.duration = duration;
     }
-    
+
     const response = await this.makeRequest<{ data: InterviewSchedule }>(
       `/api/interview-schedules/${id}/reschedule`,
       {
@@ -870,9 +932,9 @@ class ScholarshipApiService {
   }
 
   async completeInterview(id: number, result: 'passed' | 'failed' | 'needs_followup', notes?: string, evaluationData?: any): Promise<InterviewSchedule> {
-    const requestBody: any = { 
-      interview_result: result, 
-      interview_notes: notes 
+    const requestBody: any = {
+      interview_result: result,
+      interview_notes: notes
     };
 
     // Add detailed evaluation data if provided
@@ -905,7 +967,7 @@ class ScholarshipApiService {
     const params = new URLSearchParams();
     if (date) params.append('date', date);
     if (interviewType) params.append('type', interviewType);
-    
+
     const response = await this.makeRequest<{ data: any[] }>(
       `/api/interview-schedules/available-slots?${params.toString()}`
     );
@@ -976,7 +1038,7 @@ class ScholarshipApiService {
         }
       });
     }
-    
+
     const response = await this.makeRequest<{ data: any }>(
       `/api/applications/ssc/pending?${params.toString()}`
     );
@@ -998,8 +1060,8 @@ class ScholarshipApiService {
   }
 
   async sscApproveApplication(
-    applicationId: number, 
-    approvedAmount: number, 
+    applicationId: number,
+    approvedAmount: number,
     notes?: string
   ): Promise<any> {
     const response = await this.makeRequest<{ data: any }>(
@@ -1016,7 +1078,7 @@ class ScholarshipApiService {
   }
 
   async sscRejectApplication(
-    applicationId: number, 
+    applicationId: number,
     rejectionReason: string
   ): Promise<any> {
     const response = await this.makeRequest<{ data: any }>(
@@ -1032,7 +1094,7 @@ class ScholarshipApiService {
   }
 
   async sscBulkApprove(
-    applicationIds: number[], 
+    applicationIds: number[],
     notes?: string
   ): Promise<{
     approved_count: number;
@@ -1053,7 +1115,7 @@ class ScholarshipApiService {
   }
 
   async sscBulkReject(
-    applicationIds: number[], 
+    applicationIds: number[],
     rejectionReason: string
   ): Promise<{
     rejected_count: number;
@@ -1091,7 +1153,7 @@ class ScholarshipApiService {
         }
       });
     }
-    
+
     const response = await this.makeRequest<{ data: any }>(
       `/api/applications/ssc/decision-history?${params.toString()}`
     );
@@ -1118,7 +1180,7 @@ class ScholarshipApiService {
         }
       });
     }
-    
+
     const response = await this.makeRequest<{ data: any }>(
       `/api/applications/ssc/all-decisions?${params.toString()}`
     );
@@ -1147,7 +1209,7 @@ class ScholarshipApiService {
         }
       });
     }
-    
+
     const response = await this.makeRequest<{ data: any }>(
       `/api/applications/ssc/stage/${stage}?${params.toString()}`
     );
@@ -1174,7 +1236,7 @@ class ScholarshipApiService {
         }
       });
     }
-    
+
     const response = await this.makeRequest<{ data: any }>(
       `/api/applications/ssc/my-applications?${params.toString()}`
     );
@@ -1332,7 +1394,7 @@ class ScholarshipApiService {
         }
       });
     }
-    
+
     const response = await this.makeRequest<{ data: any }>(
       `/api/interviewer/my-interviews?${params.toString()}`
     );
@@ -1376,6 +1438,13 @@ class ScholarshipApiService {
       }
     );
     return response.data!;
+  }
+
+  async getAppStatsBySubcategory(): Promise<Record<string, number>> {
+    const response = await this.makeRequest<{ data: Record<string, number> }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.STATS_APPLICATIONS_BY_SUBCATEGORY
+    );
+    return response.data || {};
   }
 }
 
