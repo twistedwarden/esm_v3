@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  CheckCircle, 
-  Clock, 
-  FileText, 
+import {
+  Users,
+  CheckCircle,
+  Clock,
+  FileText,
   Calendar,
   TrendingUp,
   Award,
   School,
   BarChart3,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Download
 } from 'lucide-react';
 import { LoadingApplications } from '../../../ui/LoadingSpinner';
 import StandardLoading from '../../../ui/StandardLoading';
 import AnimatedContainer, { AnimatedGrid, AnimatedSection } from '../../../ui/AnimatedContainer';
 import AnimatedCard, { StatsCard } from '../../../ui/AnimatedCard';
+import scholarshipApiService from '../../../../../services/scholarshipApiService';
+import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function ApplicationOverview() {
+  const { showSuccess, showError } = useToastContext();
   const [stats, setStats] = useState({
     totalApplications: 0,
     pendingReview: 0,
@@ -31,6 +35,7 @@ function ApplicationOverview() {
 
   const [loading, setLoading] = useState(true);
   const [recentActivities, setRecentActivities] = useState([]);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchOverviewData();
@@ -39,55 +44,99 @@ function ApplicationOverview() {
   const fetchOverviewData = async () => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data
+      const data = await scholarshipApiService.getDashboardOverview();
+
       setStats({
-        totalApplications: 156,
-        pendingReview: 23,
-        underReview: 18,
-        approved: 89,
-        rejected: 26,
-        verifiedStudents: 67,
-        scheduledInterviews: 12,
-        endorsedToSSC: 45
+        totalApplications: data.stats.totalApplications || 0,
+        pendingReview: data.stats.pendingReview || 0,
+        underReview: data.stats.underReview || 0,
+        approved: data.stats.approved || 0,
+        rejected: data.stats.rejected || 0,
+        verifiedStudents: data.stats.verifiedStudents || 0,
+        scheduledInterviews: data.stats.scheduledInterviews || 0,
+        endorsedToSSC: data.stats.endorsedToSSC || 0
       });
 
-      setRecentActivities([
-        {
-          id: 1,
-          type: 'application',
-          message: 'New application submitted by Juan Dela Cruz',
-          time: '2 hours ago',
-          status: 'pending'
-        },
-        {
-          id: 2,
-          type: 'approval',
-          message: 'Application approved for Maria Santos',
-          time: '4 hours ago',
-          status: 'approved'
-        },
-        {
-          id: 3,
-          type: 'interview',
-          message: 'Interview scheduled for Pedro Reyes',
-          time: '1 day ago',
-          status: 'scheduled'
-        },
-        {
-          id: 4,
-          type: 'endorsement',
-          message: 'Application endorsed to SSC for Ana Garcia',
-          time: '2 days ago',
-          status: 'endorsed'
-        }
-      ]);
+      setRecentActivities(data.recentActivities || []);
     } catch (error) {
       console.error('Failed to fetch overview data:', error);
+      showError('Failed to load dashboard data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+
+      // Fetch report data
+      const data = await scholarshipApiService.getApplicationsReportData();
+
+      if (!data || data.length === 0) {
+        showError('No applications found to export');
+        return;
+      }
+
+      // Import jspdf dynamically
+      const { jsPDF } = await import('jspdf');
+      const autoTable = (await import('jspdf-autotable')).default;
+
+      const doc = new jsPDF('landscape');
+      const timestamp = new Date().toLocaleString();
+
+      // Header
+      doc.setFontSize(18);
+      doc.setTextColor(40);
+      doc.text("Scholarship Applications Report", 14, 20);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${timestamp}`, 14, 28);
+      doc.text(`Total Records: ${data.length}`, 14, 33);
+
+      doc.setLineWidth(0.5);
+      doc.line(14, 38, 283, 38);
+
+      const tableRows = data.map(app => [
+        app.application_number || 'N/A',
+        app.student ? `${app.student.first_name} ${app.student.last_name}` : 'N/A',
+        app.school ? app.school.name : 'N/A',
+        app.category ? app.category.name : 'N/A',
+        app.subcategory ? app.subcategory.name : 'N/A',
+        app.status.replace(/_/g, ' ').toUpperCase(),
+        new Date(app.created_at).toLocaleDateString()
+      ]);
+
+      autoTable(doc, {
+        startY: 45,
+        head: [['App #', 'Student Name', 'School', 'Category', 'Subcategory', 'Status', 'Date Applied']],
+        body: tableRows,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] }, // blue-600
+        styles: { fontSize: 8 },
+        columnStyles: {
+          1: { cellWidth: 'auto' }, // Student Name
+          2: { cellWidth: 'auto' }  // School
+        }
+      });
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, 14, 200);
+        doc.text("Confidential - Scholarship Management System", 283, 200, { align: 'right' });
+      }
+
+      doc.save(`scholarship_report_${new Date().toISOString().split('T')[0]}.pdf`);
+      showSuccess('PDF report generated successfully');
+    } catch (error) {
+      console.error('Failed to export report:', error);
+      showError('Failed to generate PDF report');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -101,6 +150,8 @@ function ApplicationOverview() {
         return <Calendar className="w-4 h-4 text-purple-500" />;
       case 'endorsement':
         return <Award className="w-4 h-4 text-orange-500" />;
+      case 'rejection':
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
       default:
         return <FileText className="w-4 h-4 text-gray-500" />;
     }
@@ -109,13 +160,18 @@ function ApplicationOverview() {
   const getActivityColor = (status) => {
     switch (status) {
       case 'pending':
+      case 'draft':
+      case 'submitted':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
       case 'approved':
         return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'scheduled':
+      case 'interview_scheduled':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'endorsed':
+      case 'endorsed_to_ssc':
+      case 'ssc_final_approval':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
     }
@@ -138,12 +194,20 @@ function ApplicationOverview() {
           </p>
         </div>
         <div className="flex items-center space-x-3 mt-4 lg:mt-0">
-          <button 
+          <button
             onClick={fetchOverviewData}
             className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="bg-blue-600 text-white border border-transparent px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? 'Exporting...' : 'Export Report'}
           </button>
         </div>
       </div>
@@ -212,29 +276,32 @@ function ApplicationOverview() {
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activities</h3>
-          <button className="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium">
-            View All
-          </button>
         </div>
-        
-        <div className="space-y-4">
-          {recentActivities.map((activity) => (
-            <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-              <div className="flex-shrink-0 mt-1">
-                {getActivityIcon(activity.type)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-900 dark:text-white">{activity.message}</p>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getActivityColor(activity.status)}`}>
-                    {activity.status}
-                  </span>
+
+        {recentActivities.length > 0 ? (
+          <div className="space-y-4">
+            {recentActivities.map((activity) => (
+              <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                <div className="flex-shrink-0 mt-1">
+                  {getActivityIcon(activity.type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-900 dark:text-white">{activity.message}</p>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getActivityColor(activity.status)}`}>
+                      {activity.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            No recent activities found
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}

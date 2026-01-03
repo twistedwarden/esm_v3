@@ -1441,10 +1441,56 @@ class ScholarshipApiService {
   }
 
   async getAppStatsBySubcategory(): Promise<Record<string, number>> {
-    const response = await this.makeRequest<{ data: Record<string, number> }>(
+    const response = await this.makeRequest<Record<string, number>>(
       API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.STATS_APPLICATIONS_BY_SUBCATEGORY
     );
     return response.data || {};
+  }
+
+  // Dashboard and Reporting
+  async getDashboardOverview(): Promise<{ stats: any; recentActivities: any[] }> {
+    const response = await this.makeRequest<{ stats: any; recentActivities: any[] }>(
+      '/api/stats/dashboard-overview'
+    );
+    return response.data!;
+  }
+
+  async getApplicationsReportData(params?: any): Promise<any[]> {
+    const queryParams = new URLSearchParams(params).toString();
+    const endpoint = queryParams
+      ? `/api/reports/applications/get-report-data?${queryParams}`
+      : `/api/reports/applications/get-report-data`;
+
+    const response = await this.makeRequest<any[]>(endpoint);
+    return response.data!;
+  }
+
+  async exportApplications(params?: any): Promise<void> {
+    const queryParams = new URLSearchParams(params).toString();
+    const endpoint = queryParams
+      ? `/api/reports/applications/export?${queryParams}`
+      : `/api/reports/applications/export`;
+
+    const token = localStorage.getItem('auth_token');
+
+    // Use native fetch for blob response since makeRequest expects JSON
+    const response = await fetch(getScholarshipServiceUrl(endpoint), {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+
+    if (!response.ok) throw new Error('Export failed');
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scholarship_applications_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   }
 }
 

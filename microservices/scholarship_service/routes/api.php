@@ -544,6 +544,13 @@ Route::prefix('stats')->group(function () {
             ]
         ]);
     });
+    Route::get('/dashboard-overview', [ScholarshipApplicationController::class, 'getDashboardOverview']);
+});
+
+// Reports routes (protected by authentication)
+Route::prefix('reports')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/applications/export', [ScholarshipApplicationController::class, 'exportApplications']);
+    Route::get('/applications/get-report-data', [ScholarshipApplicationController::class, 'getApplicationsReportData']);
 });
 
 // CORS middleware for frontend integration

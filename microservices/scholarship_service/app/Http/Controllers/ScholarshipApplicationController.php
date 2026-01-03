@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Models\ApplicationStatusHistory;
 
 class ScholarshipApplicationController extends Controller
 {
@@ -46,11 +47,11 @@ class ScholarshipApplicationController extends Controller
             if (isset($authUser['citizen_id'])) {
                 // Look up which school this partner rep represents
                 $partnerRep = PartnerSchoolRepresentative::findByCitizenId($authUser['citizen_id']);
-                
+
                 if ($partnerRep) {
                     // Filter applications to only show students from their school
                     $query->where('school_id', $partnerRep->school_id);
-                    
+
                     Log::info('Partner school rep filtering applications', [
                         'citizen_id' => $authUser['citizen_id'],
                         'school_id' => $partnerRep->school_id,
@@ -76,7 +77,7 @@ class ScholarshipApplicationController extends Controller
         $scopeMine = $request->boolean('mine') || $request->get('scope') === 'student';
         if ($scopeMine && $authUser && isset($authUser['id'])) {
             $userId = $authUser['id'];
-            $query->whereHas('student', function($q) use ($userId) {
+            $query->whereHas('student', function ($q) use ($userId) {
                 $q->where('user_id', $userId);
             });
         }
@@ -96,15 +97,15 @@ class ScholarshipApplicationController extends Controller
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->whereHas('student', function($q) use ($search) {
+            $query->whereHas('student', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('student_id_number', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('student_id_number', 'like', "%{$search}%");
             });
         }
 
         $applications = $query->orderBy('created_at', 'desc')
-                            ->paginate($request->get('per_page', 15));
+            ->paginate($request->get('per_page', 15));
 
         return response()->json([
             'success' => true,
@@ -132,7 +133,7 @@ class ScholarshipApplicationController extends Controller
             'wallet_account_number' => 'nullable|string|max:255',
             'how_did_you_know' => 'nullable|array',
             'is_school_at_caloocan' => 'boolean',
-            
+
             // Academic record data
             'academic_record' => 'required|array',
             'academic_record.educational_level' => 'required|string',
@@ -164,18 +165,27 @@ class ScholarshipApplicationController extends Controller
 
             // Generate application number
             $applicationNumber = 'APP-' . date('Y') . '-' . str_pad(
-                ScholarshipApplication::count() + 1, 
-                6, 
-                '0', 
+                ScholarshipApplication::count() + 1,
+                6,
+                '0',
                 STR_PAD_LEFT
             );
 
             // Create application
             $applicationData = $request->only([
-                'student_id', 'category_id', 'subcategory_id', 'school_id',
-                'type', 'parent_application_id', 'reason_for_renewal',
-                'financial_need_description', 'requested_amount', 'marginalized_groups',
-                'digital_wallets', 'wallet_account_number', 'how_did_you_know',
+                'student_id',
+                'category_id',
+                'subcategory_id',
+                'school_id',
+                'type',
+                'parent_application_id',
+                'reason_for_renewal',
+                'financial_need_description',
+                'requested_amount',
+                'marginalized_groups',
+                'digital_wallets',
+                'wallet_account_number',
+                'how_did_you_know',
                 'is_school_at_caloocan'
             ]);
 
@@ -184,7 +194,7 @@ class ScholarshipApplicationController extends Controller
             if ($subcategory && $subcategory->amount) {
                 // Always use the subcategory amount to ensure consistency
                 $applicationData['requested_amount'] = $subcategory->amount;
-                
+
                 Log::info('Setting requested amount from subcategory', [
                     'subcategory_id' => $subcategory->id,
                     'subcategory_name' => $subcategory->name,
@@ -213,8 +223,8 @@ class ScholarshipApplicationController extends Controller
 
                     // Mark previous records as not current
                     AcademicRecord::where('student_id', $request->student_id)
-                                 ->where('is_current', true)
-                                 ->update(['is_current' => false]);
+                        ->where('is_current', true)
+                        ->update(['is_current' => false]);
 
                     $academicRecord = AcademicRecord::create($academicData);
                     Log::info('Academic record created successfully', [
@@ -308,7 +318,7 @@ class ScholarshipApplicationController extends Controller
             'how_did_you_know' => 'nullable|array',
             'is_school_at_caloocan' => 'boolean',
             'notes' => 'nullable|string',
-            
+
             // Academic record validation
             'academic_record' => 'nullable|array',
             'academic_record.educational_level' => 'required_with:academic_record|string',
@@ -338,15 +348,21 @@ class ScholarshipApplicationController extends Controller
 
         try {
             $updateData = $request->only([
-                'reason_for_renewal', 'financial_need_description', 'requested_amount',
-                'marginalized_groups', 'digital_wallets', 'wallet_account_number',
-                'how_did_you_know', 'is_school_at_qc', 'notes'
+                'reason_for_renewal',
+                'financial_need_description',
+                'requested_amount',
+                'marginalized_groups',
+                'digital_wallets',
+                'wallet_account_number',
+                'how_did_you_know',
+                'is_school_at_qc',
+                'notes'
             ]);
 
             // Ensure requested amount matches subcategory amount
             if ($application->subcategory && $application->subcategory->amount) {
                 $updateData['requested_amount'] = $application->subcategory->amount;
-                
+
                 Log::info('Updating requested amount to match subcategory', [
                     'application_id' => $application->id,
                     'subcategory_id' => $application->subcategory->id,
@@ -373,8 +389,8 @@ class ScholarshipApplicationController extends Controller
 
                     // Find the current academic record for this student
                     $academicRecord = AcademicRecord::where('student_id', $application->student_id)
-                                                   ->where('is_current', true)
-                                                   ->first();
+                        ->where('is_current', true)
+                        ->first();
 
                     if ($academicRecord) {
                         $academicRecord->update($academicData);
@@ -772,7 +788,7 @@ class ScholarshipApplicationController extends Controller
 
                 $authUser = $request->get('auth_user');
                 $flaggedBy = $authUser['id'] ?? null;
-                
+
                 $application->flagForCompliance(
                     $request->reason,
                     $flaggedBy
@@ -1022,9 +1038,15 @@ class ScholarshipApplicationController extends Controller
             }
 
             $interviewData = $request->only([
-                'interview_date', 'interview_time', 'interview_location',
-                'interview_type', 'meeting_link', 'interviewer_id',
-                'staff_id', 'interviewer_name', 'notes'
+                'interview_date',
+                'interview_time',
+                'interview_location',
+                'interview_type',
+                'meeting_link',
+                'interviewer_id',
+                'staff_id',
+                'interviewer_name',
+                'notes'
             ]);
             $interviewData['scheduling_type'] = 'manual';
             $interviewData['scheduled_by'] = $scheduledBy;
@@ -1095,7 +1117,7 @@ class ScholarshipApplicationController extends Controller
 
             // Get available slots for next 7 days
             $availableSlots = $this->getAvailableSlots(7);
-            
+
             if (empty($availableSlots)) {
                 return response()->json([
                     'success' => false,
@@ -1105,7 +1127,7 @@ class ScholarshipApplicationController extends Controller
 
             // Select first available slot
             $slot = $availableSlots[0];
-            
+
             $interviewData = [
                 'interview_date' => $slot['date'],
                 'interview_time' => $slot['time'],
@@ -1444,17 +1466,18 @@ class ScholarshipApplicationController extends Controller
         $bookedSlots = InterviewSchedule::whereBetween('interview_date', [$startDate, $endDate])
             ->whereIn('status', ['scheduled', 'rescheduled'])
             ->get()
-            ->groupBy(function($schedule) {
+            ->groupBy(function ($schedule) {
                 return $schedule->interview_date . ' ' . $schedule->interview_time;
             });
 
         // Generate available slots
         for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
-            if ($date->isWeekend()) continue; // Skip weekends
+            if ($date->isWeekend())
+                continue; // Skip weekends
 
             foreach ($timeSlots as $time) {
                 $slotKey = $date->format('Y-m-d') . ' ' . $time;
-                
+
                 if (!isset($bookedSlots[$slotKey])) {
                     $slots[] = [
                         'date' => $date->format('Y-m-d'),
@@ -1553,10 +1576,10 @@ class ScholarshipApplicationController extends Controller
 
             if ($request->has('search')) {
                 $search = $request->search;
-                $query->whereHas('student', function($q) use ($search) {
+                $query->whereHas('student', function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('student_id_number', 'like', "%{$search}%");
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('student_id_number', 'like', "%{$search}%");
                 });
             }
 
@@ -2133,18 +2156,18 @@ class ScholarshipApplicationController extends Controller
             }
 
             if ($request->has('date_from')) {
-                $query->where(function($q) use ($request) {
+                $query->where(function ($q) use ($request) {
                     $q->where('approved_at', '>=', $request->date_from)
-                      ->orWhere('reviewed_at', '>=', $request->date_from)
-                      ->orWhere('created_at', '>=', $request->date_from);
+                        ->orWhere('reviewed_at', '>=', $request->date_from)
+                        ->orWhere('created_at', '>=', $request->date_from);
                 });
             }
 
             if ($request->has('date_to')) {
-                $query->where(function($q) use ($request) {
+                $query->where(function ($q) use ($request) {
                     $q->where('approved_at', '<=', $request->date_to)
-                      ->orWhere('reviewed_at', '<=', $request->date_to)
-                      ->orWhere('created_at', '<=', $request->date_to);
+                        ->orWhere('reviewed_at', '<=', $request->date_to)
+                        ->orWhere('created_at', '<=', $request->date_to);
                 });
             }
 
@@ -2213,7 +2236,7 @@ class ScholarshipApplicationController extends Controller
                     'school',
                     'documents.documentType',
                     'interviewSchedule.evaluation',
-                    'sscReviews' => function($q) {
+                    'sscReviews' => function ($q) {
                         $q->orderBy('created_at', 'desc');
                     },
                     'latestSscDecision'
@@ -2223,9 +2246,9 @@ class ScholarshipApplicationController extends Controller
             if ($userId) {
                 $userRoles = \App\Models\SscMemberAssignment::getUserRoles($userId)
                     ->pluck('ssc_role')->toArray();
-                
+
                 $allowedRoles = \App\Models\SscMemberAssignment::STAGE_ROLE_MAPPING[$stage] ?? [];
-                
+
                 // If user doesn't have appropriate role, return empty results
                 if (!array_intersect($userRoles, $allowedRoles)) {
                     return response()->json([
@@ -2251,10 +2274,10 @@ class ScholarshipApplicationController extends Controller
 
             if ($request->has('search')) {
                 $search = $request->search;
-                $query->whereHas('student', function($q) use ($search) {
+                $query->whereHas('student', function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('student_id_number', 'like', "%{$search}%");
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('student_id_number', 'like', "%{$search}%");
                 });
             }
 
@@ -2311,7 +2334,7 @@ class ScholarshipApplicationController extends Controller
 
             // Get user's assigned roles and stages
             $userAssignments = \App\Models\SscMemberAssignment::getUserRoles($userId);
-            
+
             if ($userAssignments->isEmpty()) {
                 return response()->json([
                     'success' => true,
@@ -2326,7 +2349,7 @@ class ScholarshipApplicationController extends Controller
 
             // Get stages user can review
             $userStages = $userAssignments->pluck('review_stage')->unique()->toArray();
-            
+
             // Map stages to statuses
             $stageStatusMapping = [
                 'document_verification' => 'ssc_document_verification',
@@ -2346,7 +2369,7 @@ class ScholarshipApplicationController extends Controller
                 'school',
                 'documents.documentType',
                 'interviewSchedule.evaluation',
-                'sscReviews' => function($q) {
+                'sscReviews' => function ($q) {
                     $q->orderBy('created_at', 'desc');
                 },
                 'latestSscDecision'
@@ -2363,10 +2386,10 @@ class ScholarshipApplicationController extends Controller
 
             if ($request->has('search')) {
                 $search = $request->search;
-                $query->whereHas('student', function($q) use ($search) {
+                $query->whereHas('student', function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('student_id_number', 'like', "%{$search}%");
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('student_id_number', 'like', "%{$search}%");
                 });
             }
 
@@ -2496,7 +2519,7 @@ class ScholarshipApplicationController extends Controller
                     'notes' => $request->notes,
                     'document_issues' => $request->document_issues ?? [],
                 ];
-                
+
                 $application->update([
                     'ssc_stage_status' => $stageStatus,
                 ]);
@@ -2739,7 +2762,7 @@ class ScholarshipApplicationController extends Controller
             $authUser = $request->get('auth_user');
             $reviewerId = $authUser['id'] ?? null;
             $previousStatus = $application->status;
-            
+
             Log::info('Academic review attempt', [
                 'application_id' => $application->id,
                 'auth_user' => $authUser,
@@ -2800,7 +2823,7 @@ class ScholarshipApplicationController extends Controller
                     'reviewed_at' => now(),
                     'notes' => $request->notes,
                 ];
-                
+
                 $application->update([
                     'ssc_stage_status' => $stageStatus,
                 ]);
@@ -2887,7 +2910,7 @@ class ScholarshipApplicationController extends Controller
 
             // Get all previous reviews for summary
             $allReviews = $application->sscReviews()->with('application')->get();
-            $reviewsData = $allReviews->map(function($review) {
+            $reviewsData = $allReviews->map(function ($review) {
                 return [
                     'stage' => $review->review_stage,
                     'reviewer_role' => $review->reviewer_role,
@@ -2965,7 +2988,7 @@ class ScholarshipApplicationController extends Controller
 
                 $studentResponse = $studentController->registerFromScholarship($studentRequest);
                 $studentResult = json_decode($studentResponse->getContent(), true);
-                
+
                 if ($studentResult['success']) {
                     Log::info('Student auto-registered successfully', [
                         'application_id' => $application->id,
@@ -3059,7 +3082,7 @@ class ScholarshipApplicationController extends Controller
 
             // Get all previous reviews for summary
             $allReviews = $application->sscReviews()->with('application')->get();
-            $reviewsData = $allReviews->map(function($review) {
+            $reviewsData = $allReviews->map(function ($review) {
                 return [
                     'stage' => $review->review_stage,
                     'reviewer_role' => $review->reviewer_role,
@@ -3200,7 +3223,7 @@ class ScholarshipApplicationController extends Controller
                     'financial_review' => 'ssc_document_verification',
                     'academic_review' => 'ssc_financial_review',
                 ];
-                
+
                 $newStatus = $stageMapping[$request->stage] ?? 'for_compliance';
                 $application->update(['status' => $newStatus]);
                 $application->statusHistory()->create([
@@ -3287,7 +3310,7 @@ class ScholarshipApplicationController extends Controller
     {
         try {
             $authUser = $request->get('auth_user');
-            
+
             if (!$authUser || !isset($authUser['id'])) {
                 return response()->json([
                     'success' => false,
@@ -3503,7 +3526,7 @@ class ScholarshipApplicationController extends Controller
     {
         try {
             $authUser = $request->get('auth_user');
-            
+
             if (!$authUser || !isset($authUser['id'])) {
                 return response()->json([
                     'success' => false,
@@ -3593,7 +3616,7 @@ class ScholarshipApplicationController extends Controller
     {
         $student = $application->student;
         $school = $application->school;
-        
+
         return [
             'first_name' => $student->first_name,
             'middle_name' => $student->middle_name,
@@ -3634,6 +3657,237 @@ class ScholarshipApplicationController extends Controller
                 'message' => 'Failed to fetch application counts',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Get dashboard overview statistics and recent activities
+     */
+    public function getDashboardOverview(Request $request): JsonResponse
+    {
+        try {
+            // Calculate statistics
+            $stats = [
+                'totalApplications' => ScholarshipApplication::count(),
+                'pendingReview' => ScholarshipApplication::where('status', 'submitted')->count(),
+                // Grouping several statuses under "underReview"
+                'underReview' => ScholarshipApplication::whereIn('status', [
+                    'documents_reviewed',
+                    'for_compliance',
+                    'compliance_documents_submitted',
+                    'approved_pending_verification'
+                ])->count(),
+                'approved' => ScholarshipApplication::where('status', 'approved')->count(),
+                'rejected' => ScholarshipApplication::where('status', 'rejected')->count(),
+                'verifiedStudents' => ScholarshipApplication::where('status', 'enrollment_verified')->count(),
+                'scheduledInterviews' => ScholarshipApplication::where('status', 'interview_scheduled')->count(),
+                'endorsedToSSC' => ScholarshipApplication::whereIn('status', [
+                    'endorsed_to_ssc',
+                    'ssc_document_verification',
+                    'ssc_financial_review',
+                    'ssc_academic_review',
+                    'ssc_final_approval'
+                ])->count(),
+            ];
+
+            // Get recent activities
+            $recentActivities = ApplicationStatusHistory::with(['application.student'])
+                ->orderBy('changed_at', 'desc')
+                ->take(10)
+                ->get()
+                ->map(function ($history) {
+                    $studentName = $history->application && $history->application->student
+                        ? $history->application->student->first_name . ' ' . $history->application->student->last_name
+                        : 'Unknown Student';
+
+                    return [
+                        'id' => $history->id,
+                        'type' => $this->mapStatusToActivityType($history->status),
+                        'message' => $this->formatActivityMessage($history->status, $studentName, $history->notes),
+                        'time' => Carbon::parse($history->changed_at)->diffForHumans(),
+                        'status' => $history->status,
+                        'raw_time' => $history->changed_at
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'stats' => $stats,
+                    'recentActivities' => $recentActivities
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get dashboard overview: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve dashboard data',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get applications data for reports (JSON)
+     */
+    public function getApplicationsReportData(Request $request): JsonResponse
+    {
+        try {
+            $query = ScholarshipApplication::with(['student', 'school', 'category', 'subcategory']);
+
+            $authUser = $request->get('auth_user');
+
+            // Filter for partner school representatives
+            if ($authUser && isset($authUser['role']) && $authUser['role'] === 'ps_rep') {
+                if (isset($authUser['citizen_id'])) {
+                    $partnerRep = \App\Models\PartnerSchoolRepresentative::findByCitizenId($authUser['citizen_id']);
+
+                    if ($partnerRep) {
+                        $query->where('school_id', $partnerRep->school_id);
+                    } else {
+                        $query->whereRaw('1 = 0');
+                    }
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+
+            // Apply filters
+            if ($request->has('status') && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+            if ($request->has('start_date') && $request->has('end_date')) {
+                $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
+            }
+
+            $applications = $query->orderBy('created_at', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $applications
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Report data fetch failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch report data',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export applications to CSV
+     */
+    public function exportApplications(Request $request)
+    {
+        try {
+            $filename = 'scholarship_applications_' . date('Y-m-d_His') . '.csv';
+
+            $headers = [
+                "Content-type" => "text/csv",
+                "Content-Disposition" => "attachment; filename=$filename",
+                "Pragma" => "no-cache",
+                "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+                "Expires" => "0"
+            ];
+
+            $callback = function () use ($request) {
+                $file = fopen('php://output', 'w');
+
+                // CSV Header
+                fputcsv($file, [
+                    'Application Number',
+                    'Student Name',
+                    'Email',
+                    'School',
+                    'Category',
+                    'Subcategory',
+                    'Status',
+                    'Applied Date',
+                    'Last Updated'
+                ]);
+
+                // Query with filters (reusing logic from index if needed, but simplified here)
+                $query = ScholarshipApplication::with(['student', 'school', 'category', 'subcategory']);
+
+                // Apply rudimentary filters
+                if ($request->has('status')) {
+                    $query->where('status', $request->status);
+                }
+                if ($request->has('start_date') && $request->has('end_date')) {
+                    $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
+                }
+
+                $query->chunk(100, function ($applications) use ($file) {
+                    foreach ($applications as $app) {
+                        fputcsv($file, [
+                            $app->application_number,
+                            $app->student ? $app->student->first_name . ' ' . $app->student->last_name : 'N/A',
+                            $app->student ? $app->student->email : 'N/A',
+                            $app->school ? $app->school->name : 'N/A',
+                            $app->category ? $app->category->name : 'N/A',
+                            $app->subcategory ? $app->subcategory->name : 'N/A',
+                            ucwords(str_replace('_', ' ', $app->status)),
+                            $app->created_at->format('Y-m-d H:i:s'),
+                            $app->updated_at->format('Y-m-d H:i:s')
+                        ]);
+                    }
+                });
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+
+        } catch (\Exception $e) {
+            Log::error('Export failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Export failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function mapStatusToActivityType($status)
+    {
+        if (str_contains($status, 'approved'))
+            return 'approval';
+        if (str_contains($status, 'rejected'))
+            return 'rejection';
+        if (str_contains($status, 'interview'))
+            return 'interview';
+        if (str_contains($status, 'endorsed') || str_contains($status, 'ssc'))
+            return 'endorsement';
+        if ($status === 'submitted')
+            return 'application';
+        return 'update';
+    }
+
+    private function formatActivityMessage($status, $studentName, $notes)
+    {
+        switch ($status) {
+            case 'submitted':
+                return "New application submitted by $studentName";
+            case 'approved':
+                return "Application approved for $studentName";
+            case 'rejected':
+                return "Application rejected for $studentName";
+            case 'documents_reviewed':
+                return "Documents reviewed for $studentName";
+            case 'interview_scheduled':
+                return "Interview scheduled for $studentName";
+            case 'interview_completed':
+                return "Interview completed for $studentName";
+            case 'endorsed_to_ssc':
+                return "Endorsed to SSC: $studentName";
+            case 'grants_disbursed':
+                return "Grant disbursed to $studentName";
+            default:
+                return "Status updated to " . str_replace('_', ' ', $status) . " for $studentName";
         }
     }
 }
