@@ -23,30 +23,43 @@ class AuthServiceClient
     public function getUserById(int $userId): ?array
     {
         $cacheKey = "auth_user_{$userId}";
-        
-        return Cache::remember($cacheKey, 300, function () use ($userId) {
-            try {
-                $response = Http::timeout($this->timeout)
-                    ->get("{$this->baseUrl}/api/users/{$userId}");
 
-                if ($response->successful()) {
-                    return $response->json('data');
-                }
+        try {
+            return Cache::remember($cacheKey, 300, function () use ($userId) {
+                return $this->fetchUserFromApi($userId);
+            });
+        } catch (\Exception $e) {
+            Log::warning("Cache failure in getUserById, falling back to direct API", ['error' => $e->getMessage()]);
+            return $this->fetchUserFromApi($userId);
+        }
+    }
 
-                Log::warning("Failed to fetch user {$userId} from auth service", [
-                    'status' => $response->status(),
-                    'response' => $response->body()
-                ]);
+    /**
+     * Helper to fetch user directly from API
+     */
+    private function fetchUserFromApi(int $userId): ?array
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->get("{$this->baseUrl}/api/users/{$userId}");
 
-                return null;
-            } catch (\Exception $e) {
-                Log::error("Error fetching user {$userId} from auth service", [
-                    'error' => $e->getMessage()
-                ]);
-
-                return null;
+            if ($response->successful()) {
+                return $response->json('data');
             }
-        });
+
+            Log::warning("Failed to fetch user {$userId} from auth service", [
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Error fetching user {$userId} from auth service", [
+                'error' => $e->getMessage()
+            ]);
+
+            return null;
+        }
     }
 
     /**
@@ -58,15 +71,20 @@ class AuthServiceClient
         $uncachedIds = [];
 
         // Check cache first
-        foreach ($userIds as $userId) {
-            $cacheKey = "auth_user_{$userId}";
-            $cachedUser = Cache::get($cacheKey);
-            
-            if ($cachedUser) {
-                $users[$userId] = $cachedUser;
-            } else {
-                $uncachedIds[] = $userId;
+        try {
+            foreach ($userIds as $userId) {
+                $cacheKey = "auth_user_{$userId}";
+                $cachedUser = Cache::get($cacheKey);
+
+                if ($cachedUser) {
+                    $users[$userId] = $cachedUser;
+                } else {
+                    $uncachedIds[] = $userId;
+                }
             }
+        } catch (\Exception $e) {
+            Log::warning("Cache failure in getUsersByIds (get), falling back to full batch fetch", ['error' => $e->getMessage()]);
+            $uncachedIds = $userIds;
         }
 
         // Fetch uncached users
@@ -79,11 +97,15 @@ class AuthServiceClient
 
                 if ($response->successful()) {
                     $fetchedUsers = $response->json('data', []);
-                    
+
                     foreach ($fetchedUsers as $user) {
                         $users[$user['id']] = $user;
                         // Cache for 5 minutes
-                        Cache::put("auth_user_{$user['id']}", $user, 300);
+                        try {
+                            Cache::put("auth_user_{$user['id']}", $user, 300);
+                        } catch (\Exception $ce) {
+                            // Ignore cache put failures
+                        }
                     }
                 }
             } catch (\Exception $e) {
@@ -103,30 +125,43 @@ class AuthServiceClient
     public function getStaffUsers(): array
     {
         $cacheKey = 'auth_staff_users';
-        
-        return Cache::remember($cacheKey, 300, function () {
-            try {
-                $response = Http::timeout($this->timeout)
-                    ->get("{$this->baseUrl}/api/users/staff");
 
-                if ($response->successful()) {
-                    return $response->json('data', []);
-                }
+        try {
+            return Cache::remember($cacheKey, 300, function () {
+                return $this->fetchStaffUsersFromApi();
+            });
+        } catch (\Exception $e) {
+            Log::warning("Cache failure in getStaffUsers, falling back to direct API", ['error' => $e->getMessage()]);
+            return $this->fetchStaffUsersFromApi();
+        }
+    }
 
-                Log::warning("Failed to fetch staff users from auth service", [
-                    'status' => $response->status(),
-                    'response' => $response->body()
-                ]);
+    /**
+     * Helper to fetch staff users directly from API
+     */
+    private function fetchStaffUsersFromApi(): array
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->get("{$this->baseUrl}/api/users/staff");
 
-                return [];
-            } catch (\Exception $e) {
-                Log::error("Error fetching staff users from auth service", [
-                    'error' => $e->getMessage()
-                ]);
-
-                return [];
+            if ($response->successful()) {
+                return $response->json('data', []);
             }
-        });
+
+            Log::warning("Failed to fetch staff users from auth service", [
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+
+            return [];
+        } catch (\Exception $e) {
+            Log::error("Error fetching staff users from auth service", [
+                'error' => $e->getMessage()
+            ]);
+
+            return [];
+        }
     }
 
     /**
@@ -142,7 +177,11 @@ class AuthServiceClient
                 $user = $response->json('data');
                 if ($user) {
                     // Cache the user
-                    Cache::put("auth_user_{$user['id']}", $user, 300);
+                    try {
+                        Cache::put("auth_user_{$user['id']}", $user, 300);
+                    } catch (\Exception $ce) {
+                        // Ignore cache put failures
+                    }
                 }
                 return $user;
             }
@@ -163,7 +202,11 @@ class AuthServiceClient
      */
     public function clearUserCache(int $userId): void
     {
-        Cache::forget("auth_user_{$userId}");
+        try {
+            Cache::forget("auth_user_{$userId}");
+        } catch (\Exception $e) {
+            // Ignore cache clear failures
+        }
     }
 
     /**
@@ -171,6 +214,10 @@ class AuthServiceClient
      */
     public function clearStaffCache(): void
     {
-        Cache::forget('auth_staff_users');
+        try {
+            Cache::forget('auth_staff_users');
+        } catch (\Exception $e) {
+            // Ignore cache clear failures
+        }
     }
 }

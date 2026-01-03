@@ -22,6 +22,7 @@ function getBreadcrumb(itemId: string, userRole?: string, userSystemRole?: strin
 function App() {
 	const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
 	const [activeItem, setActiveItem] = React.useState<string>('dashboard')
+	const [activeTab, setActiveTab] = React.useState<string | undefined>(undefined)
 	const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 	const { currentUser } = useAuthStore()
 
@@ -40,8 +41,9 @@ function App() {
 		}
 	}
 
-	const handlePageChange = (itemId: string) => {
+	const handlePageChange = (itemId: string, tabId?: string) => {
 		setActiveItem(itemId)
+		setActiveTab(tabId)
 		if (window.innerWidth < 768) {
 			setMobileMenuOpen(false)
 		}
@@ -75,8 +77,9 @@ function App() {
 								breadcrumb={getBreadcrumb(activeItem, currentUser?.role, currentUser?.system_role)}
 							/>
 							<div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
-								<ContentRenderer 
-									activeItem={activeItem} 
+								<ContentRenderer
+									activeItem={activeItem}
+									activeTab={activeTab}
 									onPageChange={handlePageChange}
 									userRole={currentUser?.role}
 									userSystemRole={currentUser?.system_role}

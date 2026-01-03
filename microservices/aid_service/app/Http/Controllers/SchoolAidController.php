@@ -41,10 +41,10 @@ class SchoolAidController extends Controller
 
             $search = $request->get('search');
             if ($search) {
-                $query->whereHas('student', function($q) use ($search) {
+                $query->whereHas('student', function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
                 })->orWhere('application_number', 'like', "%{$search}%");
             }
 
@@ -112,7 +112,7 @@ class SchoolAidController extends Controller
     {
         try {
             $application = ScholarshipApplication::findOrFail($id);
-            
+
             // Check if application is approved
             if ($application->status !== 'approved') {
                 return response()->json([
@@ -181,7 +181,7 @@ class SchoolAidController extends Controller
     {
         try {
             $application = ScholarshipApplication::findOrFail($id);
-            
+
             // 1. Validate status
             if (!in_array($application->status, ['pending_disbursement', 'grants_processing'])) {
                 return response()->json([
@@ -201,7 +201,7 @@ class SchoolAidController extends Controller
 
             // 3. Prevent duplicate reference number check (optional but good practice)
             // This would require a separate PaymentRecord table check ideally
-            
+
             // 4. Handle File Upload
             $file = $request->file('receiptFile');
             $filename = $validated['referenceNumber'] . '.' . $file->getClientOriginalExtension();
@@ -259,7 +259,7 @@ class SchoolAidController extends Controller
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-             return response()->json(['error' => 'Validation failed', 'details' => $e->errors()], 422);
+            return response()->json(['error' => 'Validation failed', 'details' => $e->errors()], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to process disbursement',
@@ -404,36 +404,33 @@ class SchoolAidController extends Controller
     public function getMetrics(): JsonResponse
     {
         try {
-            $totalApplications = ScholarshipApplication::where('status', 'approved')->count();
-            $approvedApplications = ScholarshipApplication::where('status', 'approved')->count();
-            $processingApplications = ScholarshipApplication::where('status', 'grants_processing')->count();
-            $disbursedApplications = ScholarshipApplication::where('status', 'grants_disbursed')->count();
-            $failedApplications = ScholarshipApplication::where('status', 'payment_failed')->count();
+            // Accounts needing processing (approved but not yet processing)
+            $needProcessing = ScholarshipApplication::where('status', 'approved')->count();
 
-            // Calculate total amount for approved applications
-            $totalAmount = ScholarshipApplication::where('status', 'approved')
+            // Accounts needing disbursing (currently in grants_processing)
+            $needDisbursing = ScholarshipApplication::where('status', 'grants_processing')->count();
+
+            // Total disbursed applications
+            $disbursedCount = ScholarshipApplication::where('status', 'grants_disbursed')->count();
+
+            // Total amount disbursed
+            $totalDisbursedAmount = AidDisbursement::sum('amount');
+
+            // Total budget (sum of all approved/processing/disbursed)
+            $totalBudget = ScholarshipApplication::whereIn('status', ['approved', 'grants_processing', 'grants_disbursed'])
                 ->get()
                 ->sum(function ($app) {
-                    return $app->approved_amount ?? ($app->subcategory ? $app->subcategory->amount : ($app->category ? $app->category->amount : 0));
-                });
-
-            $disbursedAmount = ScholarshipApplication::where('status', 'grants_disbursed')
-                ->get()
-                ->sum(function ($app) {
-                    return $app->approved_amount ?? ($app->subcategory ? $app->subcategory->amount : ($app->category ? $app->category->amount : 0));
+                    return $app->approved_amount ?: $app->requested_amount ?: 0;
                 });
 
             return response()->json([
-                'totalApplications' => $totalApplications,
-                'approvedApplications' => $approvedApplications,
-                'processingApplications' => $processingApplications,
-                'disbursedApplications' => $disbursedApplications,
-                'failedApplications' => $failedApplications,
-                'totalAmount' => $totalAmount,
-                'disbursedAmount' => $disbursedAmount,
-                'pendingAmount' => $totalAmount - $disbursedAmount,
-                'averageProcessingTime' => 0.0, // Calculate based on actual data
-                'successRate' => $totalApplications > 0 ? ($disbursedApplications / $totalApplications) * 100 : 0
+                'need_processing' => $needProcessing,
+                'need_disbursing' => $needDisbursing,
+                'disbursed_count' => $disbursedCount,
+                'total_disbursed' => $totalDisbursedAmount,
+                'total_budget' => $totalBudget ?: 20000,
+                'remaining_budget' => max(0, $totalBudget - $totalDisbursedAmount),
+                'utilization_rate' => $totalBudget > 0 ? round(($totalDisbursedAmount / $totalBudget) * 100, 1) : 0,
             ]);
 
         } catch (\Exception $e) {
@@ -449,7 +446,7 @@ class SchoolAidController extends Controller
         // Determine priority based on application data
         // This is a placeholder - adjust based on actual business logic
         $amount = $application->approved_amount ?? ($application->subcategory ? $application->subcategory->amount : ($application->category ? $application->category->amount : 0));
-        
+
         if ($amount >= 20000) {
             return 'high';
         } elseif ($amount >= 15000) {

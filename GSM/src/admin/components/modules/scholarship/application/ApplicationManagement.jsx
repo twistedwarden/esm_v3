@@ -7,8 +7,15 @@ import ScholarshipApplications from './ScholarshipApplications';
 import InterviewSchedules from './InterviewSchedules';
 import EndorseToSSC from './EndorseToSSC';
 
-function ApplicationManagement() {
-  const [activeTab, setActiveTab] = useState('overview');
+function ApplicationManagement({ initialTab }) {
+  const [activeTab, setActiveTab] = useState(initialTab || 'overview');
+
+  // Sync with initialTab if it changes from parent
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const tabs = [
     { id: 'overview', label: 'Overview', component: ApplicationOverview },

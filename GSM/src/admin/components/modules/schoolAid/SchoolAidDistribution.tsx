@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import {
   FileText,
-  DollarSign
+  DollarSign,
+  LayoutDashboard
 } from 'lucide-react';
 import { TabConfig, ScholarshipApplication } from './types';
+import SADOverview from './SADOverview';
 import ApplicationsTab from './tabs/ApplicationsTab';
 import PaymentsTab from './tabs/PaymentsTab';
 import ManualDisbursementModal from './components/disbursement/ManualDisbursementModal';
+import ApplicationViewModal from './components/ApplicationViewModal';
 import { schoolAidService } from './services/schoolAidService';
 import { useAuthStore, getFullName } from '../../../../store/v1authStore';
 
 const SchoolAidDistribution = () => {
   const { currentUser } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('applications');
+  const [activeTab, setActiveTab] = useState('overview');
   const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
   const [modalState, setModalState] = useState({
     isOpen: false,
@@ -22,6 +25,13 @@ const SchoolAidDistribution = () => {
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
 
   const tabs: TabConfig[] = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      icon: LayoutDashboard,
+      component: SADOverview,
+      submodules: []
+    },
     {
       id: 'applications',
       label: 'Processing Grants',
@@ -251,9 +261,16 @@ const SchoolAidDistribution = () => {
         </div>
       </div>
 
-      {/* Manual Disbursement Modal */}
+      {/* View-Only Modal for Processing Grants Tab */}
+      <ApplicationViewModal
+        isOpen={modalState.isOpen && modalState.mode === 'view'}
+        onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))}
+        application={modalState.application}
+      />
+
+      {/* Manual Disbursement Modal for Disbursement Tab */}
       <ManualDisbursementModal
-        isOpen={modalState.isOpen}
+        isOpen={modalState.isOpen && modalState.mode === 'process'}
         onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))}
         application={modalState.application}
         onSubmit={async (data) => {

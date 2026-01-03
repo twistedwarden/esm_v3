@@ -25,9 +25,9 @@ import MyInterviews from './modules/interviewer/MyInterviews'
 import DocumentSecurityDashboard from './modules/security/DocumentSecurityDashboard'
 import ArchivedOverview from './modules/archived/ArchivedOverview'
 
-type Props = { activeItem: string; onPageChange?: (id: string) => void; userRole?: string; userSystemRole?: string }
+type Props = { activeItem: string; activeTab?: string; onPageChange?: (id: string, tabId?: string) => void; userRole?: string; userSystemRole?: string }
 
-function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }: Props) {
+function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSystemRole }: Props) {
 	// Handle access denied case
 	if (activeItem === 'access-denied') {
 		return (
@@ -42,7 +42,7 @@ function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }:
 					<p className="text-sm text-gray-500 mb-4">
 						You don't have the necessary permissions to access this system. Please contact your administrator.
 					</p>
-					<button 
+					<button
 						onClick={() => window.location.href = '/'}
 						className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
 					>
@@ -67,7 +67,7 @@ function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }:
 					<p className="text-sm text-gray-500 mb-4">
 						You need to be registered as staff in the scholarship system to access this dashboard. Please contact your administrator.
 					</p>
-					<button 
+					<button
 						onClick={() => window.location.href = '/'}
 						className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
 					>
@@ -84,19 +84,19 @@ function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }:
 			if (userRole === 'staff' && userSystemRole === 'interviewer') {
 				return <div><InterviewerDashboard /></div>
 			}
-			return <div><Dashboard /></div>
+			return <div><Dashboard onPageChange={onPageChange} /></div>
 		case 'Settings':
 			return <div><SettingsOverview /></div>
 		case 'scholarship-applications':
-			return <div><ApplicationManagement /></div>
+			return <div><ApplicationManagement initialTab={activeTab} /></div>
 		case 'scholarship-programs':
 			return <div><ScholarshipPrograms /></div>
 		case 'scholarship-ssc':
 			return <div><SSCManagement /></div>
-	case 'sad-overview':
-		return <div><SchoolAidDistribution /></div>
-	case 'sad-disbursement-history':
-		return <div><DisbursementHistory /></div>
+		case 'sad-overview':
+			return <div><SchoolAidDistribution /></div>
+		case 'sad-disbursement-history':
+			return <div><DisbursementHistory /></div>
 		case 'studentRegistry-overview':
 			return <div><StudentRegistryOverview /></div>
 		case 'studentRegistry-active-students':
@@ -131,23 +131,23 @@ function ContentRenderer({ activeItem, onPageChange, userRole, userSystemRole }:
 			return <div><StudentProgressReport /></div>
 		case 'emr-analytics':
 			return <div><AnalyticsCharts /></div>
-            case 'user-management':
-                return <div><UserManagement /></div>
-            case 'audit-logs':
-                return <div><AuditLog /></div>
-            // Security module routes
-            case 'security-dashboard':
-                return <div><DocumentSecurityDashboard activeItem="security-dashboard" /></div>
-            case 'security-threats':
-                return <div><DocumentSecurityDashboard activeItem="security-threats" /></div>
-            case 'security-quarantine':
-                return <div><DocumentSecurityDashboard activeItem="security-quarantine" /></div>
-            case 'security-settings':
-                return <div><DocumentSecurityDashboard activeItem="security-settings" /></div>
-            case 'settings':
-                return <div><SettingsOverview /></div>
-            case 'archived':
-                return <div><ArchivedOverview /></div>
+		case 'user-management':
+			return <div><UserManagement /></div>
+		case 'audit-logs':
+			return <div><AuditLog /></div>
+		// Security module routes
+		case 'security-dashboard':
+			return <div><DocumentSecurityDashboard activeItem="security-dashboard" /></div>
+		case 'security-threats':
+			return <div><DocumentSecurityDashboard activeItem="security-threats" /></div>
+		case 'security-quarantine':
+			return <div><DocumentSecurityDashboard activeItem="security-quarantine" /></div>
+		case 'security-settings':
+			return <div><DocumentSecurityDashboard activeItem="security-settings" /></div>
+		case 'settings':
+			return <div><SettingsOverview /></div>
+		case 'archived':
+			return <div><ArchivedOverview /></div>
 		// Interviewer routes
 		case 'interviews-pending':
 			return <div><MyInterviews filter="pending" /></div>

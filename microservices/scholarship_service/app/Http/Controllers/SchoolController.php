@@ -21,19 +21,16 @@ class SchoolController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // Generate cache key based on request parameters
-        $cacheKey = 'schools:list:' . md5(json_encode($request->all()));
-
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($request) {
+        try {
             $query = School::query();
 
             // Apply filters
             if ($request->has('search')) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('campus', 'like', "%{$search}%")
-                      ->orWhere('city', 'like', "%{$search}%");
+                        ->orWhere('campus', 'like', "%{$search}%")
+                        ->orWhere('city', 'like', "%{$search}%");
                 });
             }
 
@@ -54,13 +51,19 @@ class SchoolController extends Controller
             }
 
             $schools = $query->orderBy('name', 'asc')
-                            ->paginate($request->get('per_page', 15));
+                ->paginate($request->get('per_page', 15));
 
             return response()->json([
                 'success' => true,
                 'data' => $schools
             ]);
-        });
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch schools',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
