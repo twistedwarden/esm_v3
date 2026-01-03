@@ -22,7 +22,7 @@ class SscMembersSeeder extends Seeder
                 'last_name' => 'Malapitan',
                 'middle_name' => 'C.',
                 'extension_name' => 'Hon.',
-                'email' => 'mayor@caloocan.gov.ph',
+                'email' => 'twistedwarden626@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'ssc',
                 'mobile' => '+63-2-8888-8888',
@@ -44,7 +44,7 @@ class SscMembersSeeder extends Seeder
                 'last_name' => 'Santos',
                 'middle_name' => 'C.',
                 'extension_name' => 'Hon.',
-                'email' => 'council.education@caloocan.gov.ph',
+                'email' => 'kishaia1871@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'ssc',
                 'mobile' => '+63-2-8888-8889',
@@ -106,7 +106,7 @@ class SscMembersSeeder extends Seeder
                 'last_name' => 'Mendoza',
                 'middle_name' => 'P.',
                 'extension_name' => 'Engr.',
-                'email' => 'budget@caloocan.gov.ph',
+                'email' => 'jheyjheypogi30@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'ssc',
                 'mobile' => '+63-2-8888-8892',
@@ -168,7 +168,7 @@ class SscMembersSeeder extends Seeder
                 'last_name' => 'Dela Cruz',
                 'middle_name' => 'A.',
                 'extension_name' => 'Dr.',
-                'email' => 'education.affairs@caloocan.gov.ph',
+                'email' => 'yvonnebarotilla16@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'ssc',
                 'mobile' => '+63-2-8888-8895',
@@ -332,7 +332,7 @@ class SscMembersSeeder extends Seeder
             if (!isset($member['citizen_id'])) {
                 $member['citizen_id'] = 'SSC' . str_pad($member['id'], 3, '0', STR_PAD_LEFT);
             }
-            
+
             DB::table('users')->updateOrInsert(
                 ['id' => $member['id']],
                 $member
@@ -343,7 +343,7 @@ class SscMembersSeeder extends Seeder
         $this->command->info('Total SSC members created: ' . count($sscMembers));
         $this->command->info('Active members: ' . collect($sscMembers)->where('is_active', true)->count());
         $this->command->info('Inactive/backup members: ' . collect($sscMembers)->where('is_active', false)->count());
-        
+
         $this->command->table(
             ['ID', 'Name', 'Email', 'Role', 'Status'],
             collect($sscMembers)->map(function ($member) {

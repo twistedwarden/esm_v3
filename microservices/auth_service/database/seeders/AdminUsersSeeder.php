@@ -21,7 +21,7 @@ class AdminUsersSeeder extends Seeder
                 'last_name' => 'Administrator',
                 'middle_name' => null,
                 'extension_name' => null,
-                'email' => 'admin@caloocan.gov.ph',
+                'email' => 'cursorai626@gmail.com',
                 'password' => Hash::make('admin123'),
                 'role' => 'admin',
                 'mobile' => '+63-2-8888-0001',
@@ -89,7 +89,7 @@ class AdminUsersSeeder extends Seeder
 
         $this->command->info('Admin users seeded successfully!');
         $this->command->info('Total admin users created: ' . count($adminUsers));
-        
+
         $this->command->table(
             ['ID', 'Name', 'Email', 'Role', 'Status'],
             collect($adminUsers)->map(function ($user) {

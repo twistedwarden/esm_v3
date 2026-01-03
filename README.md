@@ -1,136 +1,126 @@
-# GoServePH ESM v2 – Setup Guide
+# GoServePH ESM v3 – Setup Guide
 
-This repository contains:
-- `GSM/` React (Vite) frontend using Tailwind, React Router, and Zustand
-- `microservices/auth_service/` Laravel API for authentication (ported from PHP login)
+This repository contains the GoServePH Education Support Management (ESM) System v3, featuring a high-performance microservices architecture.
 
-The login UI matches `gsm_login-main/Login/index.html` while keeping the color palette. Frontend consumes the Laravel auth endpoints.
+## Architecture
+- **GSM (Frontend)**: React (Vite) application using Tailwind CSS, React Router, and Zustand.
+- **Auth Service**: Laravel API for central authentication, user roles, and security.
+- **Scholarship Service**: Laravel API managing scholarship categories, subcategories, and applications.
+- **Aid Service**: Laravel API handling school aid distribution, processing, and disbursements.
+- **Monitoring Service**: Laravel API for system logs, audit trails, and health monitoring.
 
 ## Prerequisites
-- Node.js 18+ and npm 9+
-- PHP 8.2+
-- Composer 2+
-- SQLite (bundled) or MySQL/PostgreSQL (optional)
-- Git
+- **Node.js**: 18.0.0 or higher
+- **PHP**: 8.2.0 or higher
+- **Composer**: 2.0 or higher
+- **MySQL**: 8.0 or higher (Recommended)
+- **Redis**: 6.0 or higher (Required for caching, sessions, and queues)
+- **Environment**: Bash (Linux/macOS) or PowerShell (Windows)
 
-On Windows, use PowerShell and ensure PHP and Composer are on PATH.
+## Installation & Setup
 
-## Quick Start (Development)
-
-### 1) Clone
+### 1) Clone and Install Global Dependencies
 ```bash
-git clone <your-repo-url> esmv2
-cd esmv2
+git clone <repository-url> esm-v3
+cd esm-v3
+npm run install:all
+```
+*Tip: `npm run install:all` handles `npm install` for the root and frontend, and `composer install` for all 4 microservices.*
+
+### 2) Environment Configuration
+Each service in the `microservices/` directory needs a `.env` file. You can initialize them using the provided `.env.example` files.
+
+For **each** service (`auth_service`, `scholarship_service`, `aid_service`, `monitoring_service`):
+```bash
+cd microservices/<service_name>
+cp .env.example .env
+php artisan key:generate
 ```
 
-### 2) Frontend (GSM)
-```bash
-cd GSM
-npm install
-npm run dev
-```
-Dev server default: `http://localhost:5173`
+### 3) Database & Redis Setup
+Prior to running migrations, ensure you have created the following databases in your MySQL server:
+- `auth_service`
+- `scholarship_service`
+- `aid_service`
+- `monitoring_service`
 
-### 3) Backend (Laravel auth_service)
-Open a new terminal:
+Ensure your Redis server is running and the connection details in each service's `.env` match your environment.
+
+### 4) Run Migrations & Seeding
+Execute the following for each service:
+
+**Auth Service (8000):**
 ```bash
 cd microservices/auth_service
-copy .env.example .env  # Windows (or: cp .env.example .env)
-
-composer install
-php artisan key:generate
-
-# SQLite quick start
-# .env: DB_CONNECTION=sqlite
-if not exist database mkdir database
-cd database & type NUL > database.sqlite & cd ..
-
-php artisan migrate --force
-# php artisan db:seed --class=Database\Seeders\DatabaseSeeder --force  # optional
-
-php artisan serve --host=127.0.0.1 --port=8000
-```
-API base: `http://127.0.0.1:8000/api`
-
-### 4) Frontend API config
-Frontend uses `http://localhost:8000/api` by default in `GSM/src/store/v1authStore.ts`.
-If you prefer an env file, create `GSM/.env`:
-```
-VITE_API_BASE_URL=http://127.0.0.1:8000/api
-```
-and read `import.meta.env.VITE_API_BASE_URL` in the store.
-
-## Environment Configuration
-
-### Laravel `microservices/auth_service/.env`
-SQLite example:
-```
-APP_NAME=GoServePH
-APP_ENV=local
-APP_KEY=base64:GENERATED_BY_KEY_GENERATE
-APP_DEBUG=true
-APP_URL=http://127.0.0.1:8000
-
-LOG_CHANNEL=stack
-LOG_LEVEL=debug
-
-DB_CONNECTION=sqlite
-
-SESSION_DRIVER=file
-SESSION_LIFETIME=120
-```
-MySQL example:
-```
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=goserveph
-DB_USERNAME=root
-DB_PASSWORD=yourpassword
+php artisan migrate --seed
 ```
 
-## Scripts
+**Scholarship Service (8001):**
+```bash
+cd ../scholarship_service
+php artisan migrate --seed
+```
 
-### Frontend (from `GSM/`)
-- `npm run dev` – start Vite dev server
-- `npm run build` – production build
-- `npm run preview` – preview built app
+**Aid Service (8002):**
+```bash
+cd ../aid_service
+php artisan migrate --seed
+```
 
-### Backend (from `microservices/auth_service/`)
-- `php artisan serve` – run API server
-- `php artisan migrate` – run DB migrations
+**Monitoring Service (8003):**
+```bash
+cd ../monitoring_service
+php artisan migrate --seed
+```
 
-## Auth Endpoints
-- `POST /api/gsm/check-email` – check if email exists/active
-- `POST /api/gsm/login` – authenticate and return user + token
+## Seeded Accounts (Development)
 
-Ensure CORS allows the frontend origin (`http://localhost:5173`).
+Use these credentials to test different system roles:
+
+| Role | ID | Email | Password |
+|------|----|-------|----------|
+| **System Administrator** | 100 | `cursorai626@gmail.com` | `admin123` |
+| **SSC Chairperson (Final Approval)** | 1 | `twistedwarden626@gmail.com` | `password123` |
+| **Document Verification** | 2 | `kishaia1871@gmail.com` | `password123` |
+| **Financial Review** | 5 | `jheyjheypogi30@gmail.com` | `password123` |
+| **Academic Review** | 8 | `yvonnebarotilla16@gmail.com` | `password123` |
+
+## Running the Application
+
+Start all services concurrently from the root directory:
+
+```bash
+npm run dev:all
+```
+
+### Direct Access
+- **Frontend (GSM)**: [http://localhost:5173](http://localhost:5173)
+- **Auth API**: `http://localhost:8000`
+- **Scholarship API**: `http://localhost:8001`
+- **Aid API**: `http://localhost:8002`
+- **Monitoring API**: `http://localhost:8003`
 
 ## Project Structure
 ```
-GSM/
-  src/pages/GatewayLogin.tsx        # GSM UI + two-step login + modals
-  src/pages/Portal.tsx              # CTA sizing adjustments
-  src/index.css                     # Brand gradient + utilities
-  public/GSM_logo.png
-  public/GSPH.svg
-microservices/
-  auth_service/
-    app/Http/Controllers/GsmAuthController.php
-    routes/api.php
-    database/
-      migrations/
+esm-v3/
+├── GSM/                       # React Frontend (Vite)
+│   ├── src/admin/             # Admin Module Components
+│   ├── src/services/          # API Services & Stores
+│   └── public/                # Assets & Icons
+├── microservices/
+│   ├── auth_service/          # Auth & User Management
+│   ├── scholarship_service/   # Programs & Applications
+│   ├── aid_service/           # Financial Aid & Disbursements
+│   └── monitoring_service/    # Logs & Audit Trails
+├── package.json               # Global scripts & orchestration
+└── README.md                  # This guide
 ```
 
 ## Troubleshooting
-- Frontend cannot reach API: verify Laravel runs on `127.0.0.1:8000` and CORS includes `http://localhost:5173`.
-- PHP extension errors: enable `pdo_sqlite`/`pdo_mysql` in `php.ini` as needed.
-- Migrations fail: confirm DB connection and file permissions; for SQLite ensure `database/database.sqlite` exists and is writable.
-- Port conflicts: change Vite port (`--port 5174`) or Laravel `--port`.
-
-## Production Notes
-- Build frontend (`npm run build`) and host behind a static server or reverse proxy.
-- Host Laravel with HTTPS; set `APP_ENV=production`, `APP_DEBUG=false`, and secure CORS.
+- **Redis Connection Failures**: Check that the `REDIS_HOST` and `REDIS_PORT` in your `.env` files are correct. Use `predis` as the client.
+- **MySQL Connection**: Ensure the database names match the `.env` settings and the user has sufficient permissions.
+- **CORS Issues**: Ensure `.env` files have `CORS_ALLOWED_ORIGINS=http://localhost:5173`.
+- **Node Modules**: If you encounter Vite errors, try deleting `GSM/node_modules` and running `npm install` inside the `GSM/` directory.
 
 ## License
-Proprietary – Internal use for GoServePH.
+Proprietary – GoServePH Internal Development.
