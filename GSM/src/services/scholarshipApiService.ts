@@ -986,21 +986,21 @@ class ScholarshipApiService {
     const response = await this.makeRequest<{ success: boolean; data: any[]; message: string }>(
       '/api/staff/interviewers'
     );
-    return response;
+    return response.data!;
   }
 
   async getAllStaff(): Promise<{ success: boolean; data: any[]; message: string }> {
     const response = await this.makeRequest<{ success: boolean; data: any[]; message: string }>(
       '/api/staff'
     );
-    return response;
+    return response.data!;
   }
 
   async getStaffById(id: number): Promise<{ success: boolean; data: any; message: string }> {
     const response = await this.makeRequest<{ success: boolean; data: any; message: string }>(
       `/api/staff/${id}`
     );
-    return response;
+    return response.data!;
   }
 
   // Interview Evaluation Methods
@@ -1039,7 +1039,7 @@ class ScholarshipApiService {
       });
     }
 
-    const response = await this.makeRequest<{ data: any }>(
+    const response = await this.makeRequest<{ data: any[]; total: number; per_page: number; current_page: number }>(
       `/api/applications/ssc/pending?${params.toString()}`
     );
     return response.data!;
@@ -1053,7 +1053,14 @@ class ScholarshipApiService {
     thisMonthDecisions: number;
     averageProcessingTime: number;
   }> {
-    const response = await this.makeRequest<{ data: any }>(
+    const response = await this.makeRequest<{
+      totalApplications: number;
+      pendingReview: number;
+      approved: number;
+      rejected: number;
+      thisMonthDecisions: number;
+      averageProcessingTime: number;
+    }>(
       '/api/applications/ssc/statistics'
     );
     return response.data!;
@@ -1154,7 +1161,7 @@ class ScholarshipApiService {
       });
     }
 
-    const response = await this.makeRequest<{ data: any }>(
+    const response = await this.makeRequest<{ data: any[]; total: number; per_page: number; current_page: number }>(
       `/api/applications/ssc/decision-history?${params.toString()}`
     );
     return response.data!;
@@ -1181,7 +1188,7 @@ class ScholarshipApiService {
       });
     }
 
-    const response = await this.makeRequest<{ data: any }>(
+    const response = await this.makeRequest<{ data: any[]; total: number; per_page: number; current_page: number }>(
       `/api/applications/ssc/all-decisions?${params.toString()}`
     );
     return response.data!;
@@ -1210,7 +1217,7 @@ class ScholarshipApiService {
       });
     }
 
-    const response = await this.makeRequest<{ data: any }>(
+    const response = await this.makeRequest<{ data: any[]; total: number; per_page: number; current_page: number }>(
       `/api/applications/ssc/stage/${stage}?${params.toString()}`
     );
     return response.data!;
@@ -1237,7 +1244,7 @@ class ScholarshipApiService {
       });
     }
 
-    const response = await this.makeRequest<{ data: any }>(
+    const response = await this.makeRequest<{ data: any[]; total: number; per_page: number; current_page: number }>(
       `/api/applications/ssc/my-applications?${params.toString()}`
     );
     return response.data!;
@@ -1334,7 +1341,7 @@ class ScholarshipApiService {
 
   // Get review history
   async getSscReviewHistory(applicationId: number): Promise<any[]> {
-    const response = await this.makeRequest<{ data: any[] }>(
+    const response = await this.makeRequest<any[]>(
       `/api/applications/${applicationId}/ssc/review-history`
     );
     return response.data!;
@@ -1367,7 +1374,7 @@ class ScholarshipApiService {
 
   // Get SSC member assignments
   async getSscMemberAssignments(): Promise<any[]> {
-    const response = await this.makeRequest<{ data: any[] }>(
+    const response = await this.makeRequest<any[]>(
       `/api/applications/ssc/member-assignments`
     );
     return response.data!;
@@ -1395,7 +1402,7 @@ class ScholarshipApiService {
       });
     }
 
-    const response = await this.makeRequest<{ data: any }>(
+    const response = await this.makeRequest<{ data: any[]; total: number; per_page: number; current_page: number }>(
       `/api/interviewer/my-interviews?${params.toString()}`
     );
     return response.data!;
@@ -1415,7 +1422,19 @@ class ScholarshipApiService {
     };
     upcoming_interviews: any[];
   }> {
-    const response = await this.makeRequest<{ data: any }>(
+    const response = await this.makeRequest<{
+      total_interviews: number;
+      pending_interviews: number;
+      completed_this_week: number;
+      completed_this_month: number;
+      average_scores: {
+        academic_motivation: number;
+        leadership_involvement: number;
+        financial_need: number;
+        character_values: number;
+      };
+      upcoming_interviews: any[];
+    }>(
       '/api/interviewer/statistics'
     );
     return response.data!;
