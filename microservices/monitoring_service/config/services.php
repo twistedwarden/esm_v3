@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'auth_service' => [
+        'url' => env('AUTH_SERVICE_URL', 'http://localhost:8000'),
+    ],
+
+    'scholarship_service' => [
+        'url' => env('SCHOLARSHIP_SERVICE_URL', 'http://localhost:8001'),
+    ],
+
+    'aid_service' => [
+        'url' => env('AID_SERVICE_URL', 'http://localhost:8002'),
+    ],
+
 ];

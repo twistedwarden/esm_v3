@@ -143,6 +143,7 @@ Route::prefix('applications')->middleware(['auth.auth_service'])->group(function
     Route::post('/{application}/compliance', [ScholarshipApplicationController::class, 'flagForCompliance']);
     Route::post('/{application}/approve', [ScholarshipApplicationController::class, 'approve']);
     Route::post('/{application}/reject', [ScholarshipApplicationController::class, 'reject']);
+    Route::post('/{application}/archive', [ScholarshipApplicationController::class, 'archive']);
     
     // New workflow actions
     Route::post('/{application}/approve-for-verification', [ScholarshipApplicationController::class, 'approveForVerification']);

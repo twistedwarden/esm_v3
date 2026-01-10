@@ -78,76 +78,22 @@ const ArchivedOverview = () => {
       }
     } catch (error) {
       console.error('Error fetching archived data:', error);
-      
-      // Fallback to mock data if API fails
-      const mockData = {
-        users: [
-          {
-            id: 1,
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-            role: 'citizen',
-            deletedAt: '2024-01-15T10:30:00Z',
-            deletedBy: 'Admin User',
-            reason: 'Account closure request'
-          },
-          {
-            id: 2,
-            name: 'Jane Smith',
-            email: 'jane.smith@example.com',
-            role: 'staff',
-            deletedAt: '2024-01-14T14:20:00Z',
-            deletedBy: 'System Admin',
-            reason: 'Inactive account cleanup'
-          }
-        ],
-        applications: [
-          {
-            id: 1,
-            applicantName: 'Alice Johnson',
-            scholarshipType: 'Merit Scholarship',
-            status: 'rejected',
-            deletedAt: '2024-01-13T09:15:00Z',
-            deletedBy: 'Admin User',
-            reason: 'Duplicate application'
-          }
-        ],
-        documents: [
-          {
-            id: 1,
-            name: 'Transcript_2023.pdf',
-            type: 'transcript',
-            size: '2.5 MB',
-            deletedAt: '2024-01-12T16:45:00Z',
-            deletedBy: 'System Admin',
-            reason: 'File corruption'
-          }
-        ],
-        logs: [
-          {
-            id: 1,
-            action: 'User Login',
-            user: 'test@example.com',
-            deletedAt: '2024-01-11T11:30:00Z',
-            deletedBy: 'System Admin',
-            reason: 'Data retention policy'
-          }
-        ]
-      };
 
-      setArchivedData(mockData);
-      
-      // Update category counts
-      setCategories(prevCategories => 
+      setArchivedData({
+        users: [],
+        applications: [],
+        documents: [],
+        logs: []
+      });
+
+      setCategories(prevCategories =>
         prevCategories.map(category => ({
           ...category,
-          count: category.id === 'all' 
-            ? Object.values(mockData).flat().length
-            : mockData[category.id]?.length || 0
+          count: 0
         }))
       );
-      
-      showError('Using offline data - API connection failed');
+
+      showError('Failed to load archived data. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -174,11 +120,16 @@ const ArchivedOverview = () => {
     setFilteredData(data);
   };
 
+  const getItemCategory = (item) => {
+    if (item.email) return 'users';
+    if (item.applicantName) return 'applications';
+    if (item.action) return 'logs';
+    return 'documents';
+  };
+
   const handleRestore = async (item) => {
     try {
-      const category = selectedCategory === 'all' ? 
-        Object.keys(archivedData).find(key => archivedData[key].includes(item)) : 
-        selectedCategory;
+      const category = selectedCategory === 'all' ? getItemCategory(item) : selectedCategory;
       
       const response = await archivedDataService.restoreItem(category, item.id);
       
@@ -206,9 +157,7 @@ const ArchivedOverview = () => {
 
   const handlePermanentDelete = async (item) => {
     try {
-      const category = selectedCategory === 'all' ? 
-        Object.keys(archivedData).find(key => archivedData[key].includes(item)) : 
-        selectedCategory;
+      const category = selectedCategory === 'all' ? getItemCategory(item) : selectedCategory;
       
       const response = await archivedDataService.permanentDeleteItem(category, item.id);
       

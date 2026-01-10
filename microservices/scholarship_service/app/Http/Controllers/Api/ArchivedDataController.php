@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ScholarshipApplication;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -274,75 +275,37 @@ class ArchivedDataController extends Controller
 
     private function getArchivedUsers(): array
     {
-        // This would typically query a soft-deleted users table
-        // For now, return mock data
-        return [
-            [
-                'id' => 1,
-                'name' => 'John Doe',
-                'email' => 'john.doe@example.com',
-                'role' => 'citizen',
-                'deleted_at' => '2024-01-15T10:30:00Z',
-                'deleted_by' => 'Admin User',
-                'reason' => 'Account closure request'
-            ],
-            [
-                'id' => 2,
-                'name' => 'Jane Smith',
-                'email' => 'jane.smith@example.com',
-                'role' => 'staff',
-                'deleted_at' => '2024-01-14T14:20:00Z',
-                'deleted_by' => 'System Admin',
-                'reason' => 'Inactive account cleanup'
-            ]
-        ];
+        return [];
     }
 
     private function getArchivedApplications(): array
     {
-        // This would typically query soft-deleted applications
-        return [
-            [
-                'id' => 1,
-                'applicant_name' => 'Alice Johnson',
-                'scholarship_type' => 'Merit Scholarship',
-                'status' => 'rejected',
-                'deleted_at' => '2024-01-13T09:15:00Z',
-                'deleted_by' => 'Admin User',
-                'reason' => 'Duplicate application'
-            ]
-        ];
+        $applications = ScholarshipApplication::with(['student', 'category'])
+            ->where('status', 'archived')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return $applications->map(function ($application) {
+            return [
+                'id' => $application->id,
+                'applicantName' => $application->student ? trim(($application->student->first_name ?? '') . ' ' . ($application->student->last_name ?? '')) : 'Unknown',
+                'scholarshipType' => $application->category->name ?? 'Scholarship',
+                'status' => $application->status,
+                'deletedAt' => $application->updated_at ? $application->updated_at->toIso8601String() : null,
+                'deletedBy' => null,
+                'reason' => $application->rejection_reason ?? 'Archived application',
+            ];
+        })->toArray();
     }
 
     private function getArchivedDocuments(): array
     {
-        // This would typically query soft-deleted documents
-        return [
-            [
-                'id' => 1,
-                'name' => 'Transcript_2023.pdf',
-                'type' => 'transcript',
-                'size' => '2.5 MB',
-                'deleted_at' => '2024-01-12T16:45:00Z',
-                'deleted_by' => 'System Admin',
-                'reason' => 'File corruption'
-            ]
-        ];
+        return [];
     }
 
     private function getArchivedLogs(): array
     {
-        // This would typically query soft-deleted logs
-        return [
-            [
-                'id' => 1,
-                'action' => 'User Login',
-                'user' => 'test@example.com',
-                'deleted_at' => '2024-01-11T11:30:00Z',
-                'deleted_by' => 'System Admin',
-                'reason' => 'Data retention policy'
-            ]
-        ];
+        return [];
     }
 
     private function getArchivedUsersCount(): int
@@ -352,7 +315,7 @@ class ArchivedDataController extends Controller
 
     private function getArchivedApplicationsCount(): int
     {
-        return count($this->getArchivedApplications());
+        return ScholarshipApplication::where('status', 'archived')->count();
     }
 
     private function getArchivedDocumentsCount(): int
@@ -376,11 +339,30 @@ class ArchivedDataController extends Controller
 
     private function searchArchivedApplications(string $query): array
     {
-        $applications = $this->getArchivedApplications();
-        return array_filter($applications, function($app) use ($query) {
-            return stripos($app['applicant_name'], $query) !== false || 
-                   stripos($app['scholarship_type'], $query) !== false;
-        });
+        $applications = ScholarshipApplication::with(['student', 'category'])
+            ->where('status', 'archived')
+            ->where(function ($q) use ($query) {
+                $q->whereHas('student', function ($studentQuery) use ($query) {
+                    $studentQuery->where('first_name', 'like', "%{$query}%")
+                        ->orWhere('last_name', 'like', "%{$query}%");
+                })->orWhereHas('category', function ($categoryQuery) use ($query) {
+                    $categoryQuery->where('name', 'like', "%{$query}%");
+                })->orWhere('application_number', 'like', "%{$query}%");
+            })
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return $applications->map(function ($application) {
+            return [
+                'id' => $application->id,
+                'applicantName' => $application->student ? trim(($application->student->first_name ?? '') . ' ' . ($application->student->last_name ?? '')) : 'Unknown',
+                'scholarshipType' => $application->category->name ?? 'Scholarship',
+                'status' => $application->status,
+                'deletedAt' => $application->updated_at ? $application->updated_at->toIso8601String() : null,
+                'deletedBy' => null,
+                'reason' => $application->rejection_reason ?? 'Archived application',
+            ];
+        })->toArray();
     }
 
     private function searchArchivedDocuments(string $query): array
@@ -409,7 +391,25 @@ class ArchivedDataController extends Controller
 
     private function restoreApplication(int $applicationId): bool
     {
-        // Implementation would restore the application
+        $application = ScholarshipApplication::where('id', $applicationId)
+            ->where('status', 'archived')
+            ->first();
+
+        if (!$application) {
+            return false;
+        }
+
+        $application->update([
+            'status' => 'submitted',
+        ]);
+
+        $application->statusHistory()->create([
+            'status' => 'submitted',
+            'notes' => 'Application restored from archive',
+            'changed_by' => auth()->id(),
+            'changed_at' => now(),
+        ]);
+
         return true;
     }
 

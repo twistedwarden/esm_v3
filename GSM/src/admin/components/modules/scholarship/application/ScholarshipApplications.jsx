@@ -47,7 +47,8 @@ import {
   Flag,
   Edit3,
   Send,
-  DollarSign
+  DollarSign,
+  Archive
 } from 'lucide-react';
 import { LoadingApplications } from '../../../ui/LoadingSpinner';
 
@@ -265,6 +266,8 @@ function ScholarshipApplications() {
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       case 'compliance_documents_submitted':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'archived':
+        return 'bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
       case 'unknown':
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
       default:
@@ -306,6 +309,8 @@ function ScholarshipApplications() {
         return 'For Compliance';
       case 'compliance_documents_submitted':
         return 'Compliance Documents Submitted';
+      case 'archived':
+        return 'Archived';
       case 'unknown':
         return 'Unknown Status';
       default:
@@ -329,6 +334,8 @@ function ScholarshipApplications() {
       case 'grants_processing':
       case 'grants_disbursed':
         return <CheckCircle className="w-4 h-4" />;
+      case 'archived':
+        return <Archive className="w-4 h-4" />;
       case 'unknown':
         return <FileText className="w-4 h-4" />;
       default:
@@ -461,6 +468,25 @@ function ScholarshipApplications() {
       console.error('Mark as reviewed failed', e);
       const errorMessage = e.message || 'Failed to mark as reviewed. Please try again.';
       showError('Review Failed', errorMessage);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleArchiveApplication = async (application) => {
+    if (!application) return;
+
+    const confirmed = confirm(`Archive application ${application.applicationNumber || application.id}?`);
+    if (!confirmed) return;
+
+    setReviewLoading(true);
+    try {
+      await scholarshipApiService.archiveApplication(application.id, 'Archived from scholarship applications module');
+      await fetchApplications();
+      showSuccess('Application Archived', 'Application has been moved to the archive.');
+    } catch (e) {
+      console.error('Archive application failed', e);
+      showError('Archive Failed', 'Failed to archive application. Please try again.');
     } finally {
       setReviewLoading(false);
     }
@@ -940,6 +966,15 @@ function ScholarshipApplications() {
                   title="Reject"
                 >
                   <XCircle className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                </button>
+              )}
+              {application.status !== 'archived' && (
+                <button
+                  onClick={() => handleArchiveApplication(application)}
+                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 rounded-lg transition-colors shadow-sm hover:shadow-md`}
+                  title="Archive"
+                >
+                  <Archive className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
                 </button>
               )}
             </div>

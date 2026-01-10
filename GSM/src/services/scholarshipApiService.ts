@@ -171,7 +171,7 @@ export interface ScholarshipApplication {
   school_id: number;
   type: 'new' | 'renewal';
   parent_application_id?: string;
-  status: 'draft' | 'submitted' | 'documents_reviewed' | 'interview_scheduled' | 'interview_completed' | 'endorsed_to_ssc' | 'approved' | 'grants_processing' | 'grants_disbursed' | 'rejected' | 'on_hold' | 'cancelled' | 'for_compliance' | 'compliance_documents_submitted';
+  status: 'draft' | 'submitted' | 'documents_reviewed' | 'interview_scheduled' | 'interview_completed' | 'endorsed_to_ssc' | 'approved' | 'grants_processing' | 'grants_disbursed' | 'rejected' | 'on_hold' | 'cancelled' | 'for_compliance' | 'compliance_documents_submitted' | 'archived';
   reason_for_renewal?: string;
   financial_need_description: string;
   requested_amount?: number;
@@ -454,6 +454,17 @@ class ScholarshipApiService {
     }
     // Already normalized array
     return { data: (payload as ScholarshipApplication[]) || [], meta: undefined };
+  }
+
+  async archiveApplication(id: number, reason?: string): Promise<ScholarshipApplication> {
+    const response = await this.makeRequest<{ data: ScholarshipApplication }>(
+      API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.APPLICATION_ARCHIVE(id),
+      {
+        method: 'POST',
+        body: JSON.stringify(reason ? { reason } : {}),
+      }
+    );
+    return response.data!.data!;
   }
 
   // Get current user's applications

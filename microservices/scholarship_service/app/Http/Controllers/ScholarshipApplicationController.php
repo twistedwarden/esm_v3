@@ -80,9 +80,16 @@ class ScholarshipApplicationController extends Controller
             });
         }
 
+        // Exclude archived applications by default unless explicitly requested
+        $statusFilter = $request->get('status');
+        $includeArchived = $request->boolean('include_archived', false);
+        if (!$includeArchived && $statusFilter !== 'archived') {
+            $query->where('status', '!=', 'archived');
+        }
+
         // Apply filters
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        if ($statusFilter) {
+            $query->where('status', $statusFilter);
         }
 
         if ($request->has('type')) {
@@ -108,6 +115,37 @@ class ScholarshipApplicationController extends Controller
         return response()->json([
             'success' => true,
             'data' => $applications
+        ]);
+    }
+
+    public function archive(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        if ($application->status === 'archived') {
+            return response()->json([
+                'success' => true,
+                'data' => $application,
+                'message' => 'Application is already archived',
+            ]);
+        }
+
+        $reason = $request->get('reason', 'Application archived');
+
+        $application->update([
+            'status' => 'archived',
+            'notes' => $reason,
+        ]);
+
+        $application->statusHistory()->create([
+            'status' => 'archived',
+            'notes' => $reason,
+            'changed_by' => auth()->id(),
+            'changed_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $application,
+            'message' => 'Application archived successfully',
         ]);
     }
 
