@@ -13,7 +13,11 @@ import ApplicationViewModal from './components/ApplicationViewModal';
 import { schoolAidService } from './services/schoolAidService';
 import { useAuthStore, getFullName } from '../../../../store/v1authStore';
 
-const SchoolAidDistribution = () => {
+interface SchoolAidDistributionProps {
+  onPageChange?: (id: string, tabId?: string) => void;
+}
+
+const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}) => {
   const { currentUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
@@ -184,6 +188,7 @@ const SchoolAidDistribution = () => {
         onApproveApplication={handleApproveApplication}
         onRejectApplication={handleRejectApplication}
         lastUpdated={lastUpdated}
+        onPageChange={onPageChange || (() => {})}
       />
     );
   };

@@ -8,6 +8,7 @@ use App\Models\Student;
 use App\Models\School;
 use App\Models\ScholarshipCategory;
 use App\Models\ScholarshipSubcategory;
+use App\Models\BudgetAllocation;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -232,6 +233,11 @@ class SchoolAidController extends Controller
             }
             $application->save();
 
+            // Update budget allocation - decrement the appropriate budget
+            // Get school year from application or use current school year
+            $schoolYear = $this->getSchoolYearFromApplication($application);
+            $this->updateBudgetOnDisbursement($application, $amount, $schoolYear);
+
             AuditLogService::logDisbursementCreated(
                 $disbursement->toArray(),
                 $application->toArray()
@@ -401,9 +407,17 @@ class SchoolAidController extends Controller
         ]);
     }
 
-    public function getMetrics(): JsonResponse
+    public function getMetrics(Request $request): JsonResponse
     {
         try {
+            // Get school year from request or use current school year
+            $schoolYear = $request->get('school_year');
+            if (!$schoolYear) {
+                $currentYear = date('Y');
+                $nextYear = date('Y') + 1;
+                $schoolYear = "{$currentYear}-{$nextYear}";
+            }
+
             // Accounts needing processing (approved but not yet processing)
             $needProcessing = ScholarshipApplication::where('status', 'approved')->count();
 
@@ -416,21 +430,76 @@ class SchoolAidController extends Controller
             // Total amount disbursed
             $totalDisbursedAmount = AidDisbursement::sum('amount');
 
-            // Total budget (sum of all approved/processing/disbursed)
-            $totalBudget = ScholarshipApplication::whereIn('status', ['approved', 'grants_processing', 'grants_disbursed'])
-                ->get()
-                ->sum(function ($app) {
-                    return $app->approved_amount ?: $app->requested_amount ?: 0;
-                });
+            // Get budget allocations from database (handle case where table doesn't exist yet)
+            $financialSupportBudget = null;
+            $scholarshipBenefitsBudget = null;
+            
+            try {
+                if (DB::getSchemaBuilder()->hasTable('budget_allocations')) {
+                    $financialSupportBudget = BudgetAllocation::where('budget_type', 'financial_support')
+                        ->where('school_year', $schoolYear)
+                        ->where('is_active', true)
+                        ->first();
+                    $scholarshipBenefitsBudget = BudgetAllocation::where('budget_type', 'scholarship_benefits')
+                        ->where('school_year', $schoolYear)
+                        ->where('is_active', true)
+                        ->first();
+                }
+            } catch (\Exception $e) {
+                // Table doesn't exist or other error - use calculated values
+                \Log::warning('Budget allocations table not available: ' . $e->getMessage());
+            }
+
+            // Calculate budgets for each type based on applications (fallback if not set in DB)
+            $financialSupportTotal = $this->calculateBudgetByType('financial_support');
+            $scholarshipBenefitsTotal = $this->calculateBudgetByType('scholarship_benefits');
+
+            // Get disbursed amounts by type (use database value if available, otherwise calculate)
+            $financialSupportDisbursed = $financialSupportBudget && $financialSupportBudget->disbursed_budget > 0 
+                ? $financialSupportBudget->disbursed_budget 
+                : $this->calculateDisbursedByType('financial_support');
+            $scholarshipBenefitsDisbursed = $scholarshipBenefitsBudget && $scholarshipBenefitsBudget->disbursed_budget > 0
+                ? $scholarshipBenefitsBudget->disbursed_budget
+                : $this->calculateDisbursedByType('scholarship_benefits');
+
+            // Use database budget allocations if set (> 0), otherwise use calculated values
+            $financialSupportBudgetTotal = ($financialSupportBudget && $financialSupportBudget->total_budget > 0) 
+                ? $financialSupportBudget->total_budget 
+                : $financialSupportTotal;
+            $scholarshipBenefitsBudgetTotal = ($scholarshipBenefitsBudget && $scholarshipBenefitsBudget->total_budget > 0)
+                ? $scholarshipBenefitsBudget->total_budget
+                : $scholarshipBenefitsTotal;
+
+            // Calculate remaining budgets
+            $financialSupportRemaining = max(0, $financialSupportBudgetTotal - $financialSupportDisbursed);
+            $scholarshipBenefitsRemaining = max(0, $scholarshipBenefitsBudgetTotal - $scholarshipBenefitsDisbursed);
+
+            // Total budget (sum of both types)
+            $totalBudget = $financialSupportBudgetTotal + $scholarshipBenefitsBudgetTotal;
+            $totalRemaining = $financialSupportRemaining + $scholarshipBenefitsRemaining;
 
             return response()->json([
                 'need_processing' => $needProcessing,
                 'need_disbursing' => $needDisbursing,
                 'disbursed_count' => $disbursedCount,
                 'total_disbursed' => $totalDisbursedAmount,
-                'total_budget' => $totalBudget ?: 20000,
-                'remaining_budget' => max(0, $totalBudget - $totalDisbursedAmount),
+                'total_budget' => $totalBudget,
+                'remaining_budget' => $totalRemaining,
                 'utilization_rate' => $totalBudget > 0 ? round(($totalDisbursedAmount / $totalBudget) * 100, 1) : 0,
+                'budgets' => [
+                    'financial_support' => [
+                        'total_budget' => $financialSupportBudgetTotal,
+                        'disbursed' => $financialSupportDisbursed,
+                        'remaining' => $financialSupportRemaining,
+                        'utilization_rate' => $financialSupportBudgetTotal > 0 ? round(($financialSupportDisbursed / $financialSupportBudgetTotal) * 100, 1) : 0,
+                    ],
+                    'scholarship_benefits' => [
+                        'total_budget' => $scholarshipBenefitsBudgetTotal,
+                        'disbursed' => $scholarshipBenefitsDisbursed,
+                        'remaining' => $scholarshipBenefitsRemaining,
+                        'utilization_rate' => $scholarshipBenefitsBudgetTotal > 0 ? round(($scholarshipBenefitsDisbursed / $scholarshipBenefitsBudgetTotal) * 100, 1) : 0,
+                    ],
+                ],
             ]);
 
         } catch (\Exception $e) {
@@ -453,6 +522,134 @@ class SchoolAidController extends Controller
             return 'normal';
         } else {
             return 'low';
+        }
+    }
+
+    /**
+     * Determine budget type based on application's category/subcategory type
+     */
+    private function getBudgetType($application): string
+    {
+        // Check subcategory type first, then category type
+        $type = null;
+        
+        if ($application->subcategory_id) {
+            $subcategory = ScholarshipSubcategory::find($application->subcategory_id);
+            if ($subcategory) {
+                // Access type directly from database
+                $type = DB::connection('scholarship_service')
+                    ->table('scholarship_subcategories')
+                    ->where('id', $application->subcategory_id)
+                    ->value('type');
+            }
+        }
+        
+        if (!$type && $application->category_id) {
+            $type = DB::connection('scholarship_service')
+                ->table('scholarship_categories')
+                ->where('id', $application->category_id)
+                ->value('type');
+        }
+
+        // Financial support = need_based, Scholarship benefits = merit/special/renewal
+        return ($type === 'need_based') ? 'financial_support' : 'scholarship_benefits';
+    }
+
+    /**
+     * Calculate total budget for a specific type based on approved applications
+     */
+    private function calculateBudgetByType(string $budgetType): float
+    {
+        $applications = ScholarshipApplication::whereIn('status', ['approved', 'grants_processing', 'grants_disbursed'])
+            ->with(['subcategory', 'category'])
+            ->get();
+
+        $total = 0;
+        foreach ($applications as $app) {
+            $appBudgetType = $this->getBudgetType($app);
+            if ($appBudgetType === $budgetType) {
+                $amount = $app->approved_amount ?? ($app->subcategory ? $app->subcategory->amount : ($app->category ? $app->category->amount : 0));
+                $total += $amount;
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Calculate disbursed amount for a specific budget type
+     */
+    private function calculateDisbursedByType(string $budgetType): float
+    {
+        $disbursements = AidDisbursement::all();
+
+        $total = 0;
+        foreach ($disbursements as $disbursement) {
+            $application = ScholarshipApplication::find($disbursement->application_id);
+            if ($application) {
+                $appBudgetType = $this->getBudgetType($application);
+                if ($appBudgetType === $budgetType) {
+                    $total += $disbursement->amount;
+                }
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Get school year from application or return current school year
+     */
+    private function getSchoolYearFromApplication($application): string
+    {
+        // Try to get school year from application's academic record
+        try {
+            if ($application->student_id) {
+                $academicRecord = DB::connection('scholarship_service')
+                    ->table('academic_records')
+                    ->where('student_id', $application->student_id)
+                    ->where('is_current', true)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                
+                if ($academicRecord && isset($academicRecord->school_year)) {
+                    return $academicRecord->school_year;
+                }
+            }
+        } catch (\Exception $e) {
+            // Fall through to default
+        }
+        
+        // Default to current school year
+        $currentYear = date('Y');
+        $nextYear = date('Y') + 1;
+        return "{$currentYear}-{$nextYear}";
+    }
+
+    /**
+     * Update budget allocation when disbursement is processed
+     */
+    private function updateBudgetOnDisbursement($application, float $amount, string $schoolYear): void
+    {
+        try {
+            if (!DB::getSchemaBuilder()->hasTable('budget_allocations')) {
+                // Table doesn't exist yet - skip budget update
+                return;
+            }
+            
+            $budgetType = $this->getBudgetType($application);
+            
+            $budgetAllocation = BudgetAllocation::where('budget_type', $budgetType)
+                ->where('school_year', $schoolYear)
+                ->where('is_active', true)
+                ->first();
+            
+            if ($budgetAllocation) {
+                $budgetAllocation->incrementDisbursed($amount);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the disbursement
+            \Log::warning('Failed to update budget allocation: ' . $e->getMessage());
         }
     }
 }

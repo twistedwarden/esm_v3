@@ -91,6 +91,13 @@ export interface TimelineEvent {
   userName?: string;
 }
 
+export interface BudgetInfo {
+  total_budget: number;
+  disbursed: number;
+  remaining: number;
+  utilization_rate: number;
+}
+
 export interface ProcessingMetrics {
   totalApplications: number;
   approvedApplications: number;
@@ -102,6 +109,11 @@ export interface ProcessingMetrics {
   pendingAmount: number;
   averageProcessingTime: number;
   successRate: number;
+  school_year?: string;
+  budgets?: {
+    financial_support: BudgetInfo;
+    scholarship_benefits: BudgetInfo;
+  };
 }
 
 export interface TabConfig {

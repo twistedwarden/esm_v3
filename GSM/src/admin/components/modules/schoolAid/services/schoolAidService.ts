@@ -220,8 +220,14 @@ class SchoolAidService {
   }
 
   // Analytics
-  async getMetrics(): Promise<ProcessingMetrics> {
-    const response = await fetch(`${API_BASE_URL}/school-aid/metrics`, {
+  async getMetrics(filters?: { school_year?: string }): Promise<ProcessingMetrics> {
+    const params = new URLSearchParams();
+    if (filters?.school_year) {
+      params.append('school_year', filters.school_year);
+    }
+    
+    const url = `${API_BASE_URL}/school-aid/metrics${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await fetch(url, {
       headers: this.buildAuthHeaders(),
     });
     if (!response.ok) {
