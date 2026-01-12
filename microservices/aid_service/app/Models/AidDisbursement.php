@@ -25,6 +25,12 @@ class AidDisbursement extends Model
     ];
 
     protected $casts = [
+        'amount' => 'decimal:2',
         'disbursed_at' => 'datetime',
     ];
+
+    public function application()
+    {
+        return $this->belongsTo(ScholarshipApplication::class, 'application_id');
+    }
 }
