@@ -85,6 +85,7 @@ Route::prefix('public')->group(function () {
 Route::get('/staff/user/{userId}', [StaffController::class, 'getStaffByUserId']);
 
 // Public student routes (must be before protected students group to avoid conflicts)
+Route::get('/students/filter-options', [StudentController::class, 'getFilterOptions']);
 Route::get('/students/statistics', [StudentController::class, 'getStatistics']);
 Route::get('/students', [StudentController::class, 'index']);
 Route::get('/students/scholarship-status/{status}', [StudentController::class, 'getByScholarshipStatus']);
@@ -122,10 +123,25 @@ Route::prefix('students')->middleware(['auth.auth_service'])->group(function () 
     Route::put('/{student}', [StudentController::class, 'update']);
     Route::delete('/{student}', [StudentController::class, 'destroy']);
 
+    // Detailed info routes
+    Route::get('/{student}/academic-records', [StudentController::class, 'getAcademicRecords']);
+    Route::get('/{student}/financial-aid', [StudentController::class, 'getFinancialHistory']);
+    Route::get('/{student}/notes', [StudentController::class, 'getNotes']);
+    Route::get('/{student}/documents', [StudentController::class, 'getDocuments']);
+
     // Auto-registration from SSC approval
     Route::post('/register-from-scholarship', [StudentController::class, 'registerFromScholarship']);
     Route::get('/check-by-application/{applicationId}', [StudentController::class, 'checkByApplication']);
     Route::get('/by-application/{applicationId}', [StudentController::class, 'getByApplication']);
+
+    // Bulk operations & Additional actions
+    Route::post('/bulk-update', [StudentController::class, 'bulkUpdate']);
+    Route::post('/notifications', [StudentController::class, 'sendNotification']);
+    Route::post('/{student}/archive', [StudentController::class, 'archive']);
+    Route::post('/{student}/restore', [StudentController::class, 'restore']);
+    Route::post('/{student}/notes', [StudentController::class, 'addNote']);
+    Route::post('/{student}/documents', [StudentController::class, 'uploadDocument']);
+
 
 });
 

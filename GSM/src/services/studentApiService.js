@@ -7,6 +7,17 @@ class StudentApiService {
   }
 
   /**
+   * Get authorization headers
+   * @returns {Object} - Headers object
+   */
+  getHeaders(contentType = 'application/json') {
+    return {
+      'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+      'Content-Type': contentType,
+    };
+  }
+
+  /**
    * Get students with filters and pagination
    * @param {Object} filters - Filter options
    * @returns {Promise<Object>} - Students data with pagination
@@ -23,10 +34,7 @@ class StudentApiService {
       });
 
       const response = await axios.get(`${this.baseURL}/students?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -44,10 +52,7 @@ class StudentApiService {
   async getStudentByUUID(uuid) {
     try {
       const response = await axios.get(`${this.baseURL}/students/${uuid}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -65,10 +70,7 @@ class StudentApiService {
   async createStudent(data) {
     try {
       const response = await axios.post(`${this.baseURL}/students`, data, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -87,10 +89,7 @@ class StudentApiService {
   async updateStudent(uuid, data) {
     try {
       const response = await axios.put(`${this.baseURL}/students/${uuid}`, data, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -108,15 +107,50 @@ class StudentApiService {
   async deleteStudent(uuid) {
     try {
       const response = await axios.delete(`${this.baseURL}/students/${uuid}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
     } catch (error) {
       console.error('Error deleting student:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Permanently delete student
+   * @param {string} uuid - Student UUID
+   * @returns {Promise<Object>} - Deletion result
+   */
+  async forceDeleteStudent(uuid) {
+    try {
+      const response = await axios.delete(`${this.baseURL}/students/${uuid}/force`, {
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error force deleting student:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk permanently delete students
+   * @param {Array} uuids - Array of student UUIDs
+   * @returns {Promise<Object>} - Bulk deletion result
+   */
+  async bulkForceDeleteStudents(uuids) {
+    try {
+      const response = await axios.post(`${this.baseURL}/students/bulk-force-delete`, {
+        uuids: uuids
+      }, {
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error bulk force deleting students:', error);
       throw error;
     }
   }
@@ -132,10 +166,7 @@ class StudentApiService {
       const response = await axios.post(`${this.baseURL}/students/${uuid}/archive`, {
         reason: reason
       }, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -153,10 +184,7 @@ class StudentApiService {
   async restoreStudent(uuid) {
     try {
       const response = await axios.post(`${this.baseURL}/students/${uuid}/restore`, {}, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -177,10 +205,7 @@ class StudentApiService {
       const response = await axios.post(`${this.baseURL}/students/${uuid}/notes`, {
         note: note
       }, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -225,10 +250,7 @@ class StudentApiService {
   async getStudentFinancialHistory(uuid) {
     try {
       const response = await axios.get(`${this.baseURL}/students/${uuid}/financial-aid`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -246,10 +268,7 @@ class StudentApiService {
   async getStudentAcademicHistory(uuid) {
     try {
       const response = await axios.get(`${this.baseURL}/students/${uuid}/academic-records`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -270,10 +289,7 @@ class StudentApiService {
       const response = await axios.put(`${this.baseURL}/students/${uuid}/academic-status`, {
         academic_status: status
       }, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -290,10 +306,7 @@ class StudentApiService {
   async getStudentStatistics() {
     try {
       const response = await axios.get(`${this.baseURL}/students/statistics`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -311,10 +324,7 @@ class StudentApiService {
   async getStudentsByScholarshipStatus(status) {
     try {
       const response = await axios.get(`${this.baseURL}/students/scholarship-status/${status}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -336,10 +346,7 @@ class StudentApiService {
         uuids: uuids,
         updates: updates
       }, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
@@ -361,16 +368,229 @@ class StudentApiService {
         student_uuids: uuids,
         ...notification
       }, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       });
 
       return response.data;
     } catch (error) {
       console.error('Error sending notification to students:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get student documents
+   * @param {string} uuid - Student UUID
+   * @returns {Promise<Object>} - Documents list
+   */
+  async getStudentDocuments(uuid) {
+    try {
+      const response = await axios.get(`${this.baseURL}/students/${uuid}/documents`, {
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching student documents:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a student document
+   * @param {string} studentUuid - Student UUID
+   * @param {string} documentId - Document ID
+   * @returns {Promise<Object>} - Deletion result
+   */
+  async deleteStudentDocument(studentUuid, documentId) {
+    try {
+      const response = await axios.delete(`${this.baseURL}/students/${studentUuid}/documents/${documentId}`, {
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting student document:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk archive students
+   * @param {Array} uuids - Array of student UUIDs
+   * @param {string} reason - Archive reason
+   * @returns {Promise<Object>} - Bulk archive result
+   */
+  async bulkArchiveStudents(uuids, reason = 'Bulk archived by admin') {
+    try {
+      const response = await axios.post(`${this.baseURL}/students/bulk-archive`, {
+        uuids: uuids,
+        reason: reason
+      }, {
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error bulk archiving students:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk restore students from archive
+   * @param {Array} uuids - Array of student UUIDs
+   * @returns {Promise<Object>} - Bulk restore result
+   */
+  async bulkRestoreStudents(uuids) {
+    try {
+      const response = await axios.post(`${this.baseURL}/students/bulk-restore`, {
+        uuids: uuids
+      }, {
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error bulk restoring students:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Import students from CSV/Excel file
+   * @param {File} file - CSV or Excel file
+   * @param {Object} options - Import options
+   * @returns {Promise<Object>} - Import result with success/error counts
+   */
+  async importStudents(file, options = {}) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Add import options
+      if (options.skipFirstRow !== undefined) {
+        formData.append('skip_first_row', options.skipFirstRow);
+      }
+      if (options.delimiter) {
+        formData.append('delimiter', options.delimiter);
+      }
+      if (options.defaultStatus) {
+        formData.append('default_status', options.defaultStatus);
+      }
+      if (options.validateEmail !== undefined) {
+        formData.append('validate_email', options.validateEmail);
+      }
+      if (options.autoGenerateStudentNumbers !== undefined) {
+        formData.append('auto_generate_student_numbers', options.autoGenerateStudentNumbers);
+      }
+
+      const response = await axios.post(`${this.baseURL}/students/import`, formData, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error importing students:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export students to file (returns download URL or blob)
+   * @param {Object} filters - Filter options
+   * @param {string} format - Export format (csv, excel, json)
+   * @returns {Promise<Blob>} - File blob for download
+   */
+  async exportStudents(filters = {}, format = 'csv') {
+    try {
+      const params = new URLSearchParams();
+      params.append('format', format);
+      
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+          params.append(key, filters[key]);
+        }
+      });
+
+      const response = await axios.get(`${this.baseURL}/students/export?${params.toString()}`, {
+        headers: this.getHeaders(),
+        responseType: 'blob',
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error exporting students:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get student notes
+   * @param {string} uuid - Student UUID
+   * @returns {Promise<Object>} - Notes list
+   */
+  async getStudentNotes(uuid) {
+    try {
+      const response = await axios.get(`${this.baseURL}/students/${uuid}/notes`, {
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching student notes:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a student note
+   * @param {string} studentUuid - Student UUID
+   * @param {string} noteId - Note ID
+   * @returns {Promise<Object>} - Deletion result
+   */
+  async deleteStudentNote(studentUuid, noteId) {
+    try {
+      const response = await axios.delete(`${this.baseURL}/students/${studentUuid}/notes/${noteId}`, {
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting student note:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get available filter options (programs, schools, year levels)
+   * @returns {Promise<Object>} - Filter options
+   */
+  async getFilterOptions() {
+    try {
+      const response = await axios.get(`${this.baseURL}/students/filter-options`, {
+        headers: this.getHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      // Suppress 404 errors as they mean the endpoint isn't ready yet
+      if (error.response && error.response.status !== 404) {
+        console.error('StudentApiService: Error fetching filter options:', error);
+      }
+      // Return default options on error
+      return {
+        data: {
+          programs: [],
+          schools: [],
+          year_levels: ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year'],
+          scholarship_statuses: ['none', 'applicant', 'scholar', 'alumni'],
+          statuses: ['active', 'inactive', 'archived']
+        }
+      };
     }
   }
 }

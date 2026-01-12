@@ -4,13 +4,10 @@ import ScholarshipPrograms from './modules/scholarship/ScholarshipPrograms'
 import SSCManagement from './modules/scholarship/ssc/SSCManagement'
 import SchoolAidDistribution from './modules/schoolAid/SchoolAidDistribution'
 import DisbursementHistory from './modules/schoolAid/DisbursementHistory'
-import StudentRegistryOverview from './modules/studentRegistry/StudentRegistryOverview'
-import ActiveStudents from './modules/studentRegistry/ActiveStudents'
-import ArchivedStudents from './modules/studentRegistry/ArchivedStudents'
-import Scholars from './modules/studentRegistry/Scholars'
-import BulkOperations from './modules/studentRegistry/BulkOperations'
-import ReportsAnalytics from './modules/studentRegistry/ReportsAnalytics'
-import ImportExport from './modules/studentRegistry/ImportExport'
+import StudentRegistryOverview from './modules/studentRegistry'
+import StudentList from './modules/studentRegistry/components/StudentList'
+import AnalyticsView from './modules/studentRegistry/components/AnalyticsView'
+import DataTools from './modules/studentRegistry/components/DataTools'
 import PSDSchoolManagement from './modules/partnerSchool/PSDSchoolManagement'
 import PSDStudentPopulation from './modules/partnerSchool/PSDStudentPopulation'
 import PSDVerification from './modules/partnerSchool/PSDVerification'
@@ -99,18 +96,12 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 			return <div><DisbursementHistory /></div>
 		case 'studentRegistry-overview':
 			return <div><StudentRegistryOverview /></div>
-		case 'studentRegistry-active-students':
-			return <div><ActiveStudents /></div>
-		case 'studentRegistry-archived-students':
-			return <div><ArchivedStudents /></div>
-		case 'studentRegistry-scholars':
-			return <div><Scholars /></div>
-		case 'studentRegistry-bulk-operations':
-			return <div><BulkOperations /></div>
+		case 'studentRegistry-directory':
+			return <div><StudentList viewMode="all" /></div>
 		case 'studentRegistry-reports':
-			return <div><ReportsAnalytics /></div>
-		case 'studentRegistry-import-export':
-			return <div><ImportExport /></div>
+			return <div><AnalyticsView /></div>
+		case 'studentRegistry-tools':
+			return <div><DataTools /></div>
 		case 'psd-school-management':
 			return <div><PSDSchoolManagement /></div>
 		case 'psd-student-population':

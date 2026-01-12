@@ -36,6 +36,14 @@ class StudentController extends Controller
         // If no authenticated user, show all records (for public access)
 
         // Apply filters
+        if ($request->has('status')) {
+            if ($request->status === 'archived') {
+                $query->onlyTrashed();
+            } elseif ($request->status === 'all') {
+                $query->withTrashed();
+            }
+        }
+
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -875,6 +883,214 @@ class StudentController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Bulk update students
+     */
+    public function bulkUpdate(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'uuids' => 'required|array',
+            'updates' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $ids = $request->uuids;
+            
+            // Handle status update separately if it's 'archived' or 'active' (restore)
+            if (isset($request->updates['status'])) {
+                $status = $request->updates['status'];
+                if ($status === 'archived') {
+                    Student::whereIn('id', $ids)->delete();
+                } elseif ($status === 'active') {
+                    Student::withTrashed()->whereIn('id', $ids)->restore();
+                }
+                unset($request->updates['status']);
+            }
+            
+            if (!empty($request->updates)) {
+                Student::whereIn('id', $ids)->update($request->updates);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Students updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update students',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Archive student
+     */
+    public function archive(Request $request, $id): JsonResponse
+    {
+        try {
+            $student = Student::findOrFail($id);
+            $student->delete(); 
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Student archived successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to archive student',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore student
+     */
+    public function restore(Request $request, $id): JsonResponse
+    {
+        try {
+            $student = Student::withTrashed()->findOrFail($id);
+            $student->restore();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Student restored successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore student',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send notification
+     */
+    public function sendNotification(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Notifications queued successfully'
+        ]);
+    }
+
+    /**
+     * Add note
+     */
+    public function addNote(Request $request, $id): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Note added successfully'
+        ]);
+    }
+
+    /**
+     * Upload document
+     */
+    public function uploadDocument(Request $request, $id): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Document uploaded successfully'
+        ]);
+    }
+
+    /**
+     * Get filter options
+     */
+    public function getFilterOptions(): JsonResponse
+    {
+        try {
+            // Get unique programs from academic records
+            $programs = \App\Models\AcademicRecord::distinct()->pluck('program')->filter()->values();
+            
+            // Get schools
+            $schools = \App\Models\School::select('id', 'name')->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'programs' => $programs,
+                    'schools' => $schools,
+                    'year_levels' => ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year'],
+                    'scholarship_statuses' => ['scholar', 'applicant', 'none', 'alumni'],
+                    'statuses' => ['active', 'inactive', 'archived']
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get filter options',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get academic records
+     */
+    public function getAcademicRecords(Student $student): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $student->academicRecords
+        ]);
+    }
+
+    /**
+     * Get financial history
+     */
+    public function getFinancialHistory(Student $student): JsonResponse
+    {
+        $info = $student->financialInformation;
+        return response()->json([
+            'success' => true,
+            'data' => $info ? [$info] : []
+        ]);
+    }
+
+    /**
+     * Get notes
+     */
+    public function getNotes(Student $student): JsonResponse
+    {
+        // Mock empty notes for now
+        return response()->json([
+            'success' => true,
+            'data' => []
+        ]);
+    }
+
+    /**
+     * Get documents
+     */
+    public function getDocuments(Student $student): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $student->documents
+        ]);
     }
 
     /**

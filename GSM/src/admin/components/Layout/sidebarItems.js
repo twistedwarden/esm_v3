@@ -23,12 +23,9 @@ const allSidebarItems = [
         id: 'studentRegistry', icon: ClipboardList, label: 'Student Registry',
         subItems: [
             { id: 'studentRegistry-overview', label: 'Overview' },
-            { id: 'studentRegistry-active-students', label: 'Active Students' },
-            { id: 'studentRegistry-archived-students', label: 'Archived Students' },
-            { id: 'studentRegistry-scholars', label: 'Scholars' },
-            { id: 'studentRegistry-bulk-operations', label: 'Bulk Operations' },
+            { id: 'studentRegistry-directory', label: 'Student Directory' },
             { id: 'studentRegistry-reports', label: 'Reports & Analytics' },
-            { id: 'studentRegistry-import-export', label: 'Import/Export' }
+            { id: 'studentRegistry-tools', label: 'Import/Export' }
         ]
     },
     {
@@ -151,7 +148,7 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
                     id: 'studentRegistry', icon: ClipboardList, label: t('Student Registry'),
                     subItems: [
                         { id: 'studentRegistry-overview', label: t('Overview') },
-                        { id: 'studentRegistry-active-students', label: t('Active Students') }
+                        { id: 'studentRegistry-directory', label: t('Student Directory') }
                     ]
                 },
                 { id: 'settings', icon: Settings, label: t('Settings') }
