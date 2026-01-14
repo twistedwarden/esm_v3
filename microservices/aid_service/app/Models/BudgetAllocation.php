@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BudgetAllocation extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'budget_type',
         'school_year',
@@ -14,12 +17,17 @@ class BudgetAllocation extends Model
         'disbursed_budget',
         'description',
         'is_active',
+        'created_by',
+        'updated_by',
+        'deleted_by',
     ];
 
     protected $casts = [
         'total_budget' => 'decimal:2',
         'allocated_budget' => 'decimal:2',
         'disbursed_budget' => 'decimal:2',
+        'is_active' => 'boolean',
+        'deleted_at' => 'datetime',
     ];
 
     /**

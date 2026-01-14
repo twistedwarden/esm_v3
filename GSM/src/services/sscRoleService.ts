@@ -181,7 +181,7 @@ class SscRoleService {
 
     // Chairperson gets all tabs
     if (roles.is_chairperson) {
-      return ROLE_TAB_MAPPING.chairperson;
+      return [...ROLE_TAB_MAPPING.chairperson, 'members'];
     }
 
     // Combine tabs from all user's roles
@@ -190,6 +190,9 @@ class SscRoleService {
       const tabs = ROLE_TAB_MAPPING[role] || [];
       tabs.forEach((tab) => allowedTabs.add(tab));
     });
+
+    // All SSC members can view the members tab
+    allowedTabs.add('members');
 
     return Array.from(allowedTabs);
   }

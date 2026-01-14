@@ -76,15 +76,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const getPriorityColor = (priority: string) => {
-    const colors = {
-      low: 'bg-gray-100 text-gray-800',
-      normal: 'bg-blue-100 text-blue-800',
-      high: 'bg-orange-100 text-orange-800',
-      urgent: 'bg-red-100 text-red-800'
-    };
-    return colors[priority as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
 
   const handleProcessPayment = async () => {
     if (!application) return;
@@ -345,12 +336,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Priority Status</label>
-                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getPriorityColor(application.priority)}`}>
-                  {application.priority.toUpperCase()}
-                </span>
-              </div>
             </div>
 
             <div className="space-y-4">

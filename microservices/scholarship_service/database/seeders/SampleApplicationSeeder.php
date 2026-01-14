@@ -82,6 +82,8 @@ class SampleApplicationSeeder extends Seeder
                     'requested_amount' => 25000,
                     'marginalized_groups' => ['indigent_family'],
                     'is_school_at_caloocan' => true,
+                    'digital_wallets' => ['GCash'],
+                    'wallet_account_number' => '09123456789',
                 ]
             ],
             [
@@ -133,6 +135,8 @@ class SampleApplicationSeeder extends Seeder
                     'requested_amount' => 20000,
                     'marginalized_groups' => ['indigent_family', 'single_income'],
                     'is_school_at_caloocan' => true,
+                    'digital_wallets' => ['PayMaya'],
+                    'wallet_account_number' => '09234567890',
                 ]
             ],
             [
@@ -309,6 +313,8 @@ class SampleApplicationSeeder extends Seeder
                 'approved_amount' => null,
                 'marginalized_groups' => json_encode($data['application']['marginalized_groups']),
                 'is_school_at_caloocan' => $data['application']['is_school_at_caloocan'],
+                'digital_wallets' => json_encode($data['application']['digital_wallets'] ?? []),
+                'wallet_account_number' => $data['application']['wallet_account_number'] ?? null,
                 'submitted_at' => now()->subDays(rand(1, 30)),
                 'created_at' => now()->subDays(rand(1, 30)),
                 'updated_at' => now()->subDays(rand(1, 30)),

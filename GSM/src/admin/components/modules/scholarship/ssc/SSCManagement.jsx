@@ -38,26 +38,46 @@ function SSCManagement() {
     const fetchRoles = async () => {
       try {
         setLoading(true);
+        
+        // Check if user is admin
+        let isAdmin = false;
+        try {
+          const userDataStr = localStorage.getItem('user_data');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            isAdmin = userData.role === 'admin' || userData.role === 'super_admin' || userData.is_admin;
+          }
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+        }
+        
         const roles = await sscRoleService.fetchUserRoles(true); // Force refresh
         console.log('SSCManagement - User Roles:', roles);
         setUserRoles(roles);
         
         const allowed = await sscRoleService.getAllowedTabs();
         console.log('SSCManagement - Allowed Tabs:', allowed);
-        setAllowedTabs(allowed);
+        
+        // Admins should have access to all tabs including members
+        if (isAdmin) {
+          setAllowedTabs([...allowed, 'members', 'overview', 'applications', 'history']);
+        } else {
+          setAllowedTabs(allowed);
+        }
 
         // Set default active tab based on user's role
         const primaryTab = await sscRoleService.getPrimaryTab();
         console.log('SSCManagement - Primary Tab:', primaryTab);
-        if (allowed.includes(primaryTab)) {
+        const finalAllowedTabs = isAdmin ? [...allowed, 'members', 'overview', 'applications', 'history'] : allowed;
+        if (finalAllowedTabs.includes(primaryTab)) {
           setActiveTab(primaryTab);
-        } else if (allowed.length > 0) {
-          setActiveTab(allowed[0]);
+        } else if (finalAllowedTabs.length > 0) {
+          setActiveTab(finalAllowedTabs[0]);
         }
       } catch (error) {
         console.error('Error fetching SSC roles:', error);
         // Default to overview if error
-        setAllowedTabs(['overview']);
+        setAllowedTabs(['overview', 'members']);
         setActiveTab('overview');
       } finally {
         setLoading(false);

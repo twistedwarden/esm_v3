@@ -46,13 +46,11 @@ class SchoolAidService {
   // Applications
   async getApplications(filters?: {
     status?: string;
-    priority?: string;
     search?: string;
     submodule?: string;
   }): Promise<ScholarshipApplication[]> {
     const params = new URLSearchParams();
     if (filters?.status) params.append('status', filters.status);
-    if (filters?.priority) params.append('priority', filters.priority);
     if (filters?.search) params.append('search', filters.search);
     if (filters?.submodule) params.append('submodule', filters.submodule);
 
@@ -81,15 +79,37 @@ class SchoolAidService {
   }
 
   async processGrant(applicationId: string): Promise<any> {
+    // Get user data for audit trail
+    const userData = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null;
+    let userId: string | undefined;
+    let userName: string | undefined;
+
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        userId = user?.id ? String(user.id) : undefined;
+        userName = user?.first_name && user?.last_name 
+          ? `${user.first_name} ${user.last_name}`.trim()
+          : user?.name || user?.email || undefined;
+      } catch (error) {
+        console.warn('Failed to parse user data:', error);
+      }
+    }
+
     const response = await fetch(`${API_BASE_URL}/school-aid/applications/${applicationId}/process-grant`, {
       method: 'POST',
       headers: this.buildAuthHeaders({
         'Content-Type': 'application/json',
       }),
+      body: JSON.stringify({
+        user_id: userId,
+        user_name: userName,
+      }),
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to process grant: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `Failed to process grant: ${response.statusText}`);
     }
     
     return await response.json();
@@ -107,6 +127,27 @@ class SchoolAidService {
     if (!response.ok) {
       throw new Error(`Failed to batch update applications: ${response.statusText}`);
     }
+  }
+
+  async revertApplicationOnCancel(params: {
+    application_id?: string;
+    checkout_session_id?: string;
+    transaction_id?: string;
+  }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/school-aid/applications/revert-on-cancel`, {
+      method: 'POST',
+      headers: this.buildAuthHeaders({
+        'Content-Type': 'application/json',
+      }),
+      body: JSON.stringify(params),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `Failed to revert application status: ${response.statusText}`);
+    }
+    
+    return await response.json();
   }
 
   // Payments
@@ -248,6 +289,18 @@ class SchoolAidService {
     return await response.json();
   }
 
+  async getAvailableSchoolYears(): Promise<string[]> {
+    const response = await fetch(`${API_BASE_URL}/school-aid/school-years`, {
+      headers: this.buildAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch school years: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data.school_years || [];
+  }
+
   // Settings
   async getSettings(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/school-aid/settings`, {
@@ -282,6 +335,47 @@ class SchoolAidService {
     
     if (!response.ok) {
       throw new Error(`Failed to test configuration: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  }
+
+  // Budget Management
+  async getBudgets(schoolYear?: string): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (schoolYear) {
+      params.append('school_year', schoolYear);
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/school-aid/budgets?${params.toString()}`, {
+      headers: this.buildAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch budgets: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data.budgets || [];
+  }
+
+  async createOrUpdateBudget(budgetData: {
+    budget_type: string;
+    school_year: string;
+    total_budget: number;
+    description?: string;
+  }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/school-aid/budget`, {
+      method: 'POST',
+      headers: this.buildAuthHeaders({
+        'Content-Type': 'application/json',
+      }),
+      body: JSON.stringify(budgetData),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `Failed to save budget: ${response.statusText}`);
     }
     
     return await response.json();

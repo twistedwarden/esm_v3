@@ -986,7 +986,7 @@ class ScholarshipApiService {
     const response = await this.makeRequest<{ success: boolean; data: any[]; message: string }>(
       '/api/staff/interviewers'
     );
-    return response.data!;
+    return response;
   }
 
   async getAllStaff(): Promise<{ success: boolean; data: any[]; message: string }> {
@@ -1374,10 +1374,16 @@ class ScholarshipApiService {
 
   // Get SSC member assignments
   async getSscMemberAssignments(): Promise<any[]> {
-    const response = await this.makeRequest<any[]>(
+    const response = await this.makeRequest<{ success: boolean; data: any[] }>(
       `/api/applications/ssc/member-assignments`
     );
-    return response.data!;
+    // Handle both response structures: { success, data } or direct array
+    if (response.data && Array.isArray(response.data)) {
+      return response.data;
+    } else if (Array.isArray(response)) {
+      return response;
+    }
+    return [];
   }
 
   // ===== INTERVIEWER METHODS =====

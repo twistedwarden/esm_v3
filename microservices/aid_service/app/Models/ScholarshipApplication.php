@@ -37,6 +37,10 @@ class ScholarshipApplication extends Model
         'requested_amount' => 'decimal:2',
         'marginalized_groups' => 'array',
         'digital_wallets' => 'array',
+        'approved_at' => 'datetime',
+        'submitted_at' => 'datetime',
+        'reviewed_at' => 'datetime',
+        'disbursed_at' => 'datetime',
     ];
 
     public function student(): BelongsTo

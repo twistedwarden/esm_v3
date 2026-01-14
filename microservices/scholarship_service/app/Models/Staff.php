@@ -102,33 +102,73 @@ class Staff extends Model
      */
     public static function getActiveInterviewersWithUserData(): array
     {
-        $staff = self::active()->interviewers()->get();
-        
-        if ($staff->isEmpty()) {
-            return [];
-        }
-        
-        // Get user IDs from staff records
-        $userIds = $staff->pluck('user_id')->toArray();
-        
-        // Fetch user data from auth service
-        $authService = app(\App\Services\AuthServiceClient::class);
-        $users = $authService->getUsersByIds($userIds);
-        
-        return $staff->map(function ($staffMember) use ($users) {
-            $userData = $users[$staffMember->user_id] ?? null;
+        try {
+            $staff = self::active()->interviewers()->get();
             
-            return [
-                'id' => $staffMember->id,
-                'user_id' => $staffMember->user_id,
-                'name' => $userData ? ($userData['first_name'] . ' ' . $userData['last_name']) : 'Unknown User',
-                'email' => $userData['email'] ?? 'unknown@example.com',
-                'system_role' => $staffMember->system_role,
-                'department' => $staffMember->department,
-                'position' => $staffMember->position,
-                'citizen_id' => $staffMember->citizen_id,
-                'is_active' => $staffMember->is_active,
-            ];
-        })->toArray();
+            if ($staff->isEmpty()) {
+                return [];
+            }
+            
+            // Get user IDs from staff records (filter out null user_ids)
+            $userIds = $staff->pluck('user_id')->filter()->unique()->toArray();
+            
+            if (empty($userIds)) {
+                // Return staff without user data if no user_ids are available
+                return $staff->map(function ($staffMember) {
+                    return [
+                        'id' => (int) $staffMember->id,
+                        'user_id' => $staffMember->user_id ? (int) $staffMember->user_id : null,
+                        'name' => 'Unknown User',
+                        'email' => 'unknown@example.com',
+                        'system_role' => $staffMember->system_role ?? 'interviewer',
+                        'department' => $staffMember->department ?? null,
+                        'position' => $staffMember->position ?? null,
+                        'citizen_id' => $staffMember->citizen_id ?? null,
+                        'is_active' => (bool) ($staffMember->is_active ?? true),
+                    ];
+                })->filter(function ($staffData) {
+                    // Filter out any invalid entries (must have at least an id)
+                    return isset($staffData['id']) && $staffData['id'] > 0;
+                })->values()->toArray();
+            }
+            
+            // Fetch user data from auth service
+            $authService = app(\App\Services\AuthServiceClient::class);
+            $users = $authService->getUsersByIds($userIds);
+            
+            return $staff->map(function ($staffMember) use ($users) {
+                $userData = $users[$staffMember->user_id] ?? null;
+                
+                // Build name from user data
+                $name = 'Unknown User';
+                if ($userData) {
+                    $firstName = trim($userData['first_name'] ?? '');
+                    $lastName = trim($userData['last_name'] ?? '');
+                    $fullName = trim($firstName . ' ' . $lastName);
+                    $name = $fullName ?: 'Unknown User';
+                }
+                
+                return [
+                    'id' => (int) $staffMember->id,
+                    'user_id' => $staffMember->user_id ? (int) $staffMember->user_id : null,
+                    'name' => $name,
+                    'email' => ($userData && isset($userData['email'])) ? $userData['email'] : 'unknown@example.com',
+                    'system_role' => $staffMember->system_role ?? 'interviewer',
+                    'department' => $staffMember->department ?? null,
+                    'position' => $staffMember->position ?? null,
+                    'citizen_id' => $staffMember->citizen_id ?? null,
+                    'is_active' => (bool) ($staffMember->is_active ?? true),
+                ];
+            })->filter(function ($staffData) {
+                // Filter out any invalid entries (must have at least an id)
+                return isset($staffData['id']) && $staffData['id'] > 0;
+            })->values()->toArray();
+        } catch (\Exception $e) {
+            \Log::error('Error in getActiveInterviewersWithUserData', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 }

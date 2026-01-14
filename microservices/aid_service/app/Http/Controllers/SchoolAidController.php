@@ -9,7 +9,9 @@ use App\Models\School;
 use App\Models\ScholarshipCategory;
 use App\Models\ScholarshipSubcategory;
 use App\Models\BudgetAllocation;
+use App\Models\PaymentTransaction;
 use App\Services\AuditLogService;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -33,13 +35,6 @@ class SchoolAidController extends Controller
                 $query->where('status', 'approved');
             }
 
-            $priority = $request->get('priority');
-            if ($priority && $priority !== 'all') {
-                // Note: Priority might be stored differently in the actual database
-                // This is a placeholder - adjust based on actual schema
-                $query->where('priority', $priority);
-            }
-
             $search = $request->get('search');
             if ($search) {
                 $query->whereHas('student', function ($q) use ($search) {
@@ -53,6 +48,32 @@ class SchoolAidController extends Controller
 
             // Transform data to match frontend expectations
             $transformedApplications = $applications->map(function ($app) {
+                // Get school year from student's current academic record
+                $schoolYear = null;
+                if ($app->student_id) {
+                    try {
+                        $academicRecord = DB::connection('scholarship_service')
+                            ->table('academic_records')
+                            ->where('student_id', $app->student_id)
+                            ->where('is_current', true)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+                        
+                        if ($academicRecord && isset($academicRecord->school_year)) {
+                            $schoolYear = $academicRecord->school_year;
+                        }
+                    } catch (\Exception $e) {
+                        // Fall through to default
+                    }
+                }
+                
+                // Default to current school year if not found
+                if (!$schoolYear) {
+                    $currentYear = date('Y');
+                    $nextYear = date('Y') + 1;
+                    $schoolYear = "{$currentYear}-{$nextYear}";
+                }
+                
                 return [
                     'id' => (string) $app->id,
                     'studentName' => $app->student ? $app->student->full_name : 'Unknown Student',
@@ -61,9 +82,9 @@ class SchoolAidController extends Controller
                     'schoolId' => (string) $app->school_id,
                     'amount' => $app->approved_amount ?? ($app->subcategory ? $app->subcategory->amount : ($app->category ? $app->category->amount : 0)),
                     'status' => $app->status,
-                    'priority' => $this->determinePriority($app),
                     'submittedDate' => $app->created_at ? $app->created_at->format('Y-m-d') : '',
                     'approvalDate' => $app->updated_at ? $app->updated_at->format('Y-m-d') : '',
+                    'schoolYear' => $schoolYear,
                     'digitalWallets' => $app->digital_wallets ?? [],
                     'walletAccountNumber' => $app->wallet_account_number ?? '',
                     'documents' => []
@@ -122,34 +143,155 @@ class SchoolAidController extends Controller
                 ], 400);
             }
 
-            // Update status to grants_processing
+            $amount = $application->approved_amount ?? ($application->subcategory ? $application->subcategory->amount : ($application->category ? $application->category->amount : 0));
+
+            // Create payment link via PaymentService
+            $paymentService = new PaymentService();
+            $paymentLink = $paymentService->createPaymentLink($application);
+
+            // Create payment transaction record
+            $paymentTransaction = PaymentTransaction::create([
+                'application_id' => $application->id,
+                'application_number' => $application->application_number,
+                'student_id' => $application->student_id,
+                'transaction_reference' => 'TXN-' . uniqid(),
+                'payment_provider' => 'paymongo',
+                'payment_method' => 'digital_wallet',
+                'transaction_amount' => $amount,
+                'transaction_status' => 'pending',
+                'payment_link_url' => $paymentLink['checkout_url'],
+                'provider_transaction_id' => $paymentLink['payment_id'],
+                'initiated_at' => now(),
+                'initiated_by_user_id' => $request->input('user_id'),
+                'initiated_by_name' => $request->input('user_name'),
+            ]);
+
+            // Update application status
             $application->status = 'grants_processing';
             $application->save();
 
-            $amount = $application->approved_amount ?? ($application->subcategory ? $application->subcategory->amount : ($application->category ? $application->category->amount : 0));
-
-            AuditLogService::logGrantProcessingStarted(
+            AuditLogService::logAction(
+                'payment_initiated',
+                "Payment link created for application #{$application->application_number}",
+                'scholarship_application',
                 (string) $application->id,
-                (float) $amount
+                null,
+                [
+                    'payment_transaction_id' => $paymentTransaction->id,
+                    'payment_url' => $paymentLink['checkout_url'],
+                    'amount' => $amount,
+                ]
             );
-
-            // Here you can add additional logic for grant processing:
-            // - Create disbursement records
-            // - Send notifications
-            // - Log the action
-            // - Update related tables
 
             return response()->json([
                 'success' => true,
-                'message' => 'Grant processing initiated successfully',
+                'message' => 'Payment link created successfully',
+                'payment_url' => $paymentLink['checkout_url'],
+                'payment_transaction_id' => $paymentTransaction->id,
+                'redirect' => true,
                 'application_id' => $id,
                 'new_status' => 'grants_processing',
-                'amount' => $application->approved_amount ?? 0
+                'amount' => $amount
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Failed to process grant', [
+                'error' => $e->getMessage(),
+                'application_id' => $id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'error' => 'Failed to process grant',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function revertApplicationOnCancel(Request $request): JsonResponse
+    {
+        try {
+            $applicationId = $request->input('application_id');
+            $checkoutSessionId = $request->input('checkout_session_id');
+            $transactionId = $request->input('transaction_id');
+
+            $application = null;
+
+            // Try to find application by ID first
+            if ($applicationId) {
+                $application = ScholarshipApplication::find($applicationId);
+            }
+
+            // If not found and we have checkout_session_id, find via payment transaction
+            if (!$application && $checkoutSessionId) {
+                $transaction = PaymentTransaction::where('provider_transaction_id', $checkoutSessionId)
+                    ->orWhere('transaction_reference', $checkoutSessionId)
+                    ->first();
+                
+                if ($transaction && $transaction->application_id) {
+                    $application = ScholarshipApplication::find($transaction->application_id);
+                }
+            }
+
+            // If still not found and we have transaction_id, find via payment transaction
+            if (!$application && $transactionId) {
+                $transaction = PaymentTransaction::find($transactionId);
+                if ($transaction && $transaction->application_id) {
+                    $application = ScholarshipApplication::find($transaction->application_id);
+                }
+            }
+
+            if (!$application) {
+                return response()->json([
+                    'error' => 'Application not found',
+                    'message' => 'Could not find application with provided parameters'
+                ], 404);
+            }
+
+            // Only revert if status is grants_processing
+            if ($application->status !== 'grants_processing') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Application status is not in processing state, no reversion needed',
+                    'application_id' => $application->id,
+                    'current_status' => $application->status
+                ]);
+            }
+
+            $oldStatus = $application->status;
+            $application->status = 'approved';
+            $application->save();
+
+            // Log audit
+            AuditLogService::logAction(
+                'payment_cancelled',
+                "Payment cancelled for application #{$application->application_number}. Status reverted from {$oldStatus} to approved.",
+                'scholarship_application',
+                (string) $application->id,
+                null,
+                [
+                    'previous_status' => $oldStatus,
+                    'new_status' => 'approved',
+                    'reason' => 'Payment cancelled by user'
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application status reverted to approved',
+                'application_id' => $application->id,
+                'previous_status' => $oldStatus,
+                'new_status' => 'approved'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to revert application status on cancel', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to revert application status',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -279,6 +421,20 @@ class SchoolAidController extends Controller
         try {
             $query = AidDisbursement::query();
 
+            // Filter by application_id (for student-specific disbursements)
+            $applicationId = $request->get('application_id');
+            if ($applicationId) {
+                $query->where('application_id', $applicationId);
+            }
+
+            // Filter by student_id (alternative way to filter by student)
+            $studentId = $request->get('student_id');
+            if ($studentId) {
+                $query->whereHas('application', function ($q) use ($studentId) {
+                    $q->where('student_id', $studentId);
+                });
+            }
+
             $method = $request->get('method');
             if ($method) {
                 $query->where('method', $method);
@@ -332,9 +488,10 @@ class SchoolAidController extends Controller
                     'studentName' => $studentName,
                     'schoolName' => $schoolName,
                     'amount' => (float) $disbursement->amount,
-                    'method' => $disbursement->method,
-                    'providerName' => $disbursement->provider_name,
-                    'referenceNumber' => $disbursement->reference_number,
+                    'method' => $disbursement->method ?: $disbursement->disbursement_method,
+                    'providerName' => $disbursement->provider_name ?: $disbursement->payment_provider_name,
+                    'referenceNumber' => $disbursement->reference_number ?: $disbursement->disbursement_reference_number,
+                    'accountNumber' => $disbursement->account_number ?: ($application ? $application->wallet_account_number : null),
                     'receiptPath' => $disbursement->receipt_path,
                     'notes' => $disbursement->notes,
                     'disbursedByUserId' => $disbursement->disbursed_by_user_id
@@ -407,6 +564,62 @@ class SchoolAidController extends Controller
         ]);
     }
 
+    public function downloadDisbursementReceipt($id)
+    {
+        $disbursement = AidDisbursement::findOrFail($id);
+
+        if (!$disbursement->receipt_path) {
+            abort(404);
+        }
+
+        $receiptPath = $disbursement->receipt_path;
+        $prefix = '/storage/';
+
+        if (strpos($receiptPath, $prefix) === 0) {
+            $relativePath = substr($receiptPath, strlen($prefix));
+        } else {
+            $relativePath = ltrim($receiptPath, '/');
+        }
+
+        if (!Storage::disk('public')->exists($relativePath)) {
+            abort(404);
+        }
+
+        $absolutePath = Storage::disk('public')->path($relativePath);
+        $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '.html';
+        
+        return Storage::disk('public')->download($relativePath, $filename, [
+            'Content-Type' => 'text/html',
+        ]);
+    }
+
+    public function getAvailableSchoolYears(): JsonResponse
+    {
+        try {
+            // Get distinct school years that have at least one budget allocation (active or inactive)
+            // This allows viewing historical budgets as well
+            $schoolYears = BudgetAllocation::whereNotNull('school_year')
+                ->where('school_year', '!=', '')
+                ->select('school_year')
+                ->distinct()
+                ->orderBy('school_year', 'desc')
+                ->pluck('school_year')
+                ->filter()
+                ->values()
+                ->toArray();
+
+            return response()->json([
+                'school_years' => $schoolYears
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch school years',
+                'message' => $e->getMessage(),
+                'school_years' => []
+            ], 500);
+        }
+    }
+
     public function getMetrics(Request $request): JsonResponse
     {
         try {
@@ -418,65 +631,128 @@ class SchoolAidController extends Controller
                 $schoolYear = "{$currentYear}-{$nextYear}";
             }
 
-            // Accounts needing processing (approved but not yet processing)
-            $needProcessing = ScholarshipApplication::where('status', 'approved')->count();
+            // Helper function to get school year from application
+            $getSchoolYearFromApplication = function($application) {
+                try {
+                    if ($application->student_id) {
+                        $academicRecord = DB::connection('scholarship_service')
+                            ->table('academic_records')
+                            ->where('student_id', $application->student_id)
+                            ->where('is_current', true)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+                        
+                        if ($academicRecord && isset($academicRecord->school_year)) {
+                            return $academicRecord->school_year;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Fall through to default
+                }
+                
+                // Default to current school year
+                $currentYear = date('Y');
+                $nextYear = date('Y') + 1;
+                return "{$currentYear}-{$nextYear}";
+            };
 
-            // Accounts needing disbursing (currently in grants_processing)
-            $needDisbursing = ScholarshipApplication::where('status', 'grants_processing')->count();
+            // Get all approved applications and filter by school year
+            $approvedApplications = ScholarshipApplication::where('status', 'approved')->get();
+            $needProcessing = $approvedApplications->filter(function($app) use ($schoolYear, $getSchoolYearFromApplication) {
+                $appSchoolYear = $getSchoolYearFromApplication($app);
+                return $appSchoolYear === $schoolYear;
+            })->count();
 
-            // Total disbursed applications
-            $disbursedCount = ScholarshipApplication::where('status', 'grants_disbursed')->count();
+            // Get all grants_processing applications and filter by school year
+            $processingApplications = ScholarshipApplication::where('status', 'grants_processing')->get();
+            $needDisbursing = $processingApplications->filter(function($app) use ($schoolYear, $getSchoolYearFromApplication) {
+                $appSchoolYear = $getSchoolYearFromApplication($app);
+                return $appSchoolYear === $schoolYear;
+            })->count();
+
+            // Get all disbursed applications and filter by school year
+            $disbursedApplications = ScholarshipApplication::where('status', 'grants_disbursed')->get();
+            $disbursedCount = $disbursedApplications->filter(function($app) use ($schoolYear, $getSchoolYearFromApplication) {
+                $appSchoolYear = $getSchoolYearFromApplication($app);
+                return $appSchoolYear === $schoolYear;
+            })->count();
 
             // Total amount disbursed
             $totalDisbursedAmount = AidDisbursement::sum('amount');
 
-            // Get budget allocations from database (handle case where table doesn't exist yet)
-            $financialSupportBudget = null;
-            $scholarshipBenefitsBudget = null;
+            // Get budget allocations from database (per school year)
+            $financialSupportBudget = BudgetAllocation::where('budget_type', 'financial_support')
+                ->where('school_year', $schoolYear)
+                ->where('is_active', true)
+                ->first();
             
-            try {
-                if (DB::getSchemaBuilder()->hasTable('budget_allocations')) {
-                    $financialSupportBudget = BudgetAllocation::where('budget_type', 'financial_support')
-                        ->where('school_year', $schoolYear)
-                        ->where('is_active', true)
-                        ->first();
-                    $scholarshipBenefitsBudget = BudgetAllocation::where('budget_type', 'scholarship_benefits')
-                        ->where('school_year', $schoolYear)
-                        ->where('is_active', true)
-                        ->first();
-                }
-            } catch (\Exception $e) {
-                // Table doesn't exist or other error - use calculated values
-                \Log::warning('Budget allocations table not available: ' . $e->getMessage());
-            }
+            $scholarshipBenefitsBudget = BudgetAllocation::where('budget_type', 'scholarship_benefits')
+                ->where('school_year', $schoolYear)
+                ->where('is_active', true)
+                ->first();
 
-            // Calculate budgets for each type based on applications (fallback if not set in DB)
-            $financialSupportTotal = $this->calculateBudgetByType('financial_support');
-            $scholarshipBenefitsTotal = $this->calculateBudgetByType('scholarship_benefits');
+            // Use database budget allocations - if not set, return zeros
+            $financialSupportBudgetTotal = $financialSupportBudget ? $financialSupportBudget->total_budget : 0;
+            $scholarshipBenefitsBudgetTotal = $scholarshipBenefitsBudget ? $scholarshipBenefitsBudget->total_budget : 0;
 
-            // Get disbursed amounts by type (use database value if available, otherwise calculate)
-            $financialSupportDisbursed = $financialSupportBudget && $financialSupportBudget->disbursed_budget > 0 
-                ? $financialSupportBudget->disbursed_budget 
-                : $this->calculateDisbursedByType('financial_support');
-            $scholarshipBenefitsDisbursed = $scholarshipBenefitsBudget && $scholarshipBenefitsBudget->disbursed_budget > 0
-                ? $scholarshipBenefitsBudget->disbursed_budget
-                : $this->calculateDisbursedByType('scholarship_benefits');
+            // Get disbursed amounts from database
+            $financialSupportDisbursed = $financialSupportBudget ? $financialSupportBudget->disbursed_budget : 0;
+            $scholarshipBenefitsDisbursed = $scholarshipBenefitsBudget ? $scholarshipBenefitsBudget->disbursed_budget : 0;
 
-            // Use database budget allocations if set (> 0), otherwise use calculated values
-            $financialSupportBudgetTotal = ($financialSupportBudget && $financialSupportBudget->total_budget > 0) 
-                ? $financialSupportBudget->total_budget 
-                : $financialSupportTotal;
-            $scholarshipBenefitsBudgetTotal = ($scholarshipBenefitsBudget && $scholarshipBenefitsBudget->total_budget > 0)
-                ? $scholarshipBenefitsBudget->total_budget
-                : $scholarshipBenefitsTotal;
-
-            // Calculate remaining budgets
+            // Calculate remaining budgets (total - disbursed)
             $financialSupportRemaining = max(0, $financialSupportBudgetTotal - $financialSupportDisbursed);
             $scholarshipBenefitsRemaining = max(0, $scholarshipBenefitsBudgetTotal - $scholarshipBenefitsDisbursed);
 
             // Total budget (sum of both types)
             $totalBudget = $financialSupportBudgetTotal + $scholarshipBenefitsBudgetTotal;
             $totalRemaining = $financialSupportRemaining + $scholarshipBenefitsRemaining;
+
+            // Calculate additional metrics for analytics
+            $totalApplications = ScholarshipApplication::count();
+            $approvedApplications = ScholarshipApplication::where('status', 'approved')->count();
+            $processingApplications = ScholarshipApplication::where('status', 'grants_processing')->count();
+            $failedApplications = ScholarshipApplication::where('status', 'payment_failed')->count();
+            
+            // Calculate pending amount (approved but not yet disbursed)
+            $pendingAmount = ScholarshipApplication::whereIn('status', ['approved', 'grants_processing'])
+                ->sum('approved_amount') ?: 0;
+            
+            // Calculate average processing time (from approved to disbursed)
+            $avgProcessingTime = 0;
+            $disbursedApps = ScholarshipApplication::where('status', 'grants_disbursed')
+                ->whereNotNull('approved_at')
+                ->get();
+            
+            if ($disbursedApps->count() > 0) {
+                $processingTimes = [];
+                foreach ($disbursedApps as $app) {
+                    $disbursement = AidDisbursement::where('application_id', $app->id)
+                        ->whereNotNull('disbursed_at')
+                        ->first();
+                    if ($disbursement && $app->approved_at) {
+                        // Convert to Carbon if needed
+                        $approvedAt = is_string($app->approved_at) 
+                            ? \Carbon\Carbon::parse($app->approved_at) 
+                            : $app->approved_at;
+                        $disbursedAt = is_string($disbursement->disbursed_at) 
+                            ? \Carbon\Carbon::parse($disbursement->disbursed_at) 
+                            : $disbursement->disbursed_at;
+                        
+                        if ($approvedAt && $disbursedAt) {
+                            $days = $approvedAt->diffInDays($disbursedAt);
+                            $processingTimes[] = $days;
+                        }
+                    }
+                }
+                if (count($processingTimes) > 0) {
+                    $avgProcessingTime = round(array_sum($processingTimes) / count($processingTimes), 1);
+                }
+            }
+            
+            // Calculate success rate
+            $successRate = $totalApplications > 0 
+                ? round(($disbursedCount / $totalApplications) * 100, 1) 
+                : 0;
 
             return response()->json([
                 'need_processing' => $needProcessing,
@@ -486,6 +762,15 @@ class SchoolAidController extends Controller
                 'total_budget' => $totalBudget,
                 'remaining_budget' => $totalRemaining,
                 'utilization_rate' => $totalBudget > 0 ? round(($totalDisbursedAmount / $totalBudget) * 100, 1) : 0,
+                'totalApplications' => $totalApplications,
+                'approvedApplications' => $approvedApplications,
+                'processingApplications' => $processingApplications,
+                'failedApplications' => $failedApplications,
+                'totalAmount' => $totalDisbursedAmount + $pendingAmount,
+                'disbursedAmount' => $totalDisbursedAmount,
+                'pendingAmount' => $pendingAmount,
+                'averageProcessingTime' => $avgProcessingTime,
+                'successRate' => $successRate,
                 'budgets' => [
                     'financial_support' => [
                         'total_budget' => $financialSupportBudgetTotal,
@@ -508,6 +793,336 @@ class SchoolAidController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function getAnalytics(Request $request, $type): JsonResponse
+    {
+        try {
+            $dateRange = $request->get('range', '30d');
+            
+            // Calculate date range
+            $days = match($dateRange) {
+                '7d' => 7,
+                '30d' => 30,
+                '90d' => 90,
+                '6m' => 180,
+                default => 30
+            };
+            
+            $startDate = now()->subDays($days);
+            
+            switch ($type) {
+                case 'payments':
+                    return $this->getPaymentsAnalytics($startDate);
+                case 'applications':
+                    return $this->getApplicationsAnalytics($startDate);
+                case 'amounts':
+                    return $this->getAmountsAnalytics($startDate);
+                default:
+                    return $this->getPaymentsAnalytics($startDate);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch analytics',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function getPaymentsAnalytics($startDate): JsonResponse
+    {
+        // Get daily disbursements
+        $dailyDisbursements = AidDisbursement::where('disbursed_at', '>=', $startDate)
+            ->whereNotNull('disbursed_at')
+            ->selectRaw('DATE(disbursed_at) as date, COUNT(*) as count, SUM(amount) as amount')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => $item->date,
+                    'count' => (int) $item->count,
+                    'amount' => (float) $item->amount
+                ];
+            });
+
+        // Fill in missing dates with zero values
+        $allDates = [];
+        $currentDate = clone $startDate;
+        while ($currentDate <= now()) {
+            $dateStr = $currentDate->format('Y-m-d');
+            $existing = $dailyDisbursements->firstWhere('date', $dateStr);
+            $allDates[] = $existing ?: [
+                'date' => $dateStr,
+                'count' => 0,
+                'amount' => 0
+            ];
+            $currentDate->addDay();
+        }
+        $dailyDisbursements = collect($allDates);
+
+        // Get status distribution
+        $statusDistribution = ScholarshipApplication::selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->get()
+            ->map(function ($item) {
+                $total = ScholarshipApplication::count();
+                $percentage = $total > 0 ? round(($item->count / $total) * 100, 1) : 0;
+                
+                $colors = [
+                    'approved' => 'bg-blue-500',
+                    'grants_processing' => 'bg-yellow-500',
+                    'grants_disbursed' => 'bg-green-500',
+                    'payment_failed' => 'bg-red-500',
+                    'rejected' => 'bg-gray-500',
+                    'submitted' => 'bg-purple-500',
+                ];
+                
+                return [
+                    'status' => ucfirst(str_replace('_', ' ', $item->status)),
+                    'count' => (int) $item->count,
+                    'percentage' => $percentage,
+                    'color' => $colors[$item->status] ?? 'bg-gray-500'
+                ];
+            });
+
+        // Get school performance (top schools by disbursement amount)
+        $schoolPerformance = AidDisbursement::where('disbursed_at', '>=', $startDate)
+            ->whereNotNull('school_id')
+            ->selectRaw('school_id, COUNT(*) as scholars, SUM(amount) as disbursed')
+            ->groupBy('school_id')
+            ->orderByDesc('disbursed')
+            ->limit(10)
+            ->get()
+            ->map(function ($item) use ($startDate) {
+                $school = School::find($item->school_id);
+                $avgTime = AidDisbursement::where('school_id', $item->school_id)
+                    ->where('disbursed_at', '>=', $startDate)
+                    ->whereNotNull('disbursed_at')
+                    ->get()
+                    ->map(function ($d) {
+                        $app = ScholarshipApplication::find($d->application_id);
+                        if ($app && $app->approved_at && $d->disbursed_at) {
+                            // Convert to Carbon if needed
+                            $approvedAt = is_string($app->approved_at) 
+                                ? \Carbon\Carbon::parse($app->approved_at) 
+                                : $app->approved_at;
+                            $disbursedAt = is_string($d->disbursed_at) 
+                                ? \Carbon\Carbon::parse($d->disbursed_at) 
+                                : $d->disbursed_at;
+                            
+                            if ($approvedAt && $disbursedAt) {
+                                return $approvedAt->diffInDays($disbursedAt);
+                            }
+                        }
+                        return null;
+                    })
+                    ->filter()
+                    ->avg();
+                
+                return [
+                    'school' => $school ? $school->name : 'Unknown School',
+                    'scholars' => (int) $item->scholars,
+                    'disbursed' => (float) $item->disbursed,
+                    'avgTime' => round($avgTime ?: 0, 1)
+                ];
+            });
+
+        // Get monthly trends
+        $monthlyTrends = ScholarshipApplication::where('created_at', '>=', $startDate)
+            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as applications')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(function ($item) {
+                $disbursed = AidDisbursement::whereRaw('DATE_FORMAT(disbursed_at, "%Y-%m") = ?', [$item->month])
+                    ->whereNotNull('disbursed_at')
+                    ->count();
+                $amount = AidDisbursement::whereRaw('DATE_FORMAT(disbursed_at, "%Y-%m") = ?', [$item->month])
+                    ->whereNotNull('disbursed_at')
+                    ->sum('amount');
+                
+                return [
+                    'month' => date('M Y', strtotime($item->month . '-01')),
+                    'applications' => (int) $item->applications,
+                    'disbursed' => (int) $disbursed,
+                    'amount' => (float) $amount
+                ];
+            });
+
+        // Get category distribution for disbursed applications
+        $categoryDistribution = [];
+        
+        // Get disbursements with their applications
+        $disbursements = AidDisbursement::where('disbursed_at', '>=', $startDate)
+            ->whereNotNull('disbursed_at')
+            ->whereNotNull('application_id')
+            ->get();
+        
+        if ($disbursements->count() > 0) {
+            $categoryGroups = [];
+            foreach ($disbursements as $disbursement) {
+                $app = ScholarshipApplication::with('category')->find($disbursement->application_id);
+                $categoryName = 'Other';
+                
+                if ($app) {
+                    if ($app->category) {
+                        $categoryName = $app->category->name;
+                    } elseif ($app->category_id) {
+                        // Try to get category name directly from database
+                        $category = DB::connection('scholarship_service')
+                            ->table('scholarship_categories')
+                            ->where('id', $app->category_id)
+                            ->first();
+                        $categoryName = $category ? $category->name : 'Other';
+                    }
+                }
+                
+                if (!isset($categoryGroups[$categoryName])) {
+                    $categoryGroups[$categoryName] = ['count' => 0, 'amount' => 0];
+                }
+                $categoryGroups[$categoryName]['count']++;
+                $categoryGroups[$categoryName]['amount'] += $disbursement->amount;
+            }
+            
+            $categoryDistribution = array_map(function ($name, $data) {
+                return [
+                    'name' => $name,
+                    'value' => $data['count'],
+                    'amount' => $data['amount']
+                ];
+            }, array_keys($categoryGroups), $categoryGroups);
+        } else {
+            // Fallback: get from applications
+            $applications = ScholarshipApplication::where('status', 'grants_disbursed')
+                ->whereNotNull('category_id')
+                ->get();
+            
+            $categoryGroups = [];
+            foreach ($applications as $app) {
+                $categoryName = 'Other';
+                if ($app->category) {
+                    $categoryName = $app->category->name;
+                } elseif ($app->category_id) {
+                    $category = DB::connection('scholarship_service')
+                        ->table('scholarship_categories')
+                        ->where('id', $app->category_id)
+                        ->first();
+                    $categoryName = $category ? $category->name : 'Other';
+                }
+                
+                if (!isset($categoryGroups[$categoryName])) {
+                    $categoryGroups[$categoryName] = ['count' => 0, 'amount' => 0];
+                }
+                $categoryGroups[$categoryName]['count']++;
+                $categoryGroups[$categoryName]['amount'] += $app->approved_amount ?: 0;
+            }
+            
+            $categoryDistribution = array_map(function ($name, $data) {
+                return [
+                    'name' => $name,
+                    'value' => $data['count'],
+                    'amount' => $data['amount']
+                ];
+            }, array_keys($categoryGroups), $categoryGroups);
+        }
+        
+        // Calculate percentages
+        $total = array_sum(array_column($categoryDistribution, 'value'));
+        if ($total > 0) {
+            foreach ($categoryDistribution as &$category) {
+                $category['percentage'] = round(($category['value'] / $total) * 100, 1);
+            }
+        }
+
+        // Assign colors to categories
+        $colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+        foreach ($categoryDistribution as $index => &$category) {
+            $category['color'] = $colors[$index % count($colors)];
+        }
+
+        return response()->json([
+            'labels' => $dailyDisbursements->pluck('date')->map(function ($date) {
+                return date('M d', strtotime($date));
+            })->toArray(),
+            'datasets' => [
+                [
+                    'label' => 'Disbursements',
+                    'data' => $dailyDisbursements->pluck('amount')->toArray(),
+                    'borderColor' => 'rgb(59, 130, 246)',
+                    'backgroundColor' => 'rgba(59, 130, 246, 0.1)'
+                ]
+            ],
+            'dailyDisbursements' => $dailyDisbursements->toArray(),
+            'statusDistribution' => $statusDistribution->toArray(),
+            'schoolPerformance' => $schoolPerformance->toArray(),
+            'monthlyTrends' => $monthlyTrends->toArray(),
+            'categoryDistribution' => $categoryDistribution
+        ]);
+    }
+
+    private function getApplicationsAnalytics($startDate): JsonResponse
+    {
+        // Get weekly application counts
+        $weeklyData = ScholarshipApplication::where('created_at', '>=', $startDate)
+            ->selectRaw('WEEK(created_at) as week, COUNT(*) as count')
+            ->groupBy('week')
+            ->orderBy('week')
+            ->get();
+
+        $labels = [];
+        $data = [];
+        
+        for ($i = 0; $i < 4; $i++) {
+            $week = now()->subWeeks(3 - $i)->format('W');
+            $weekData = $weeklyData->firstWhere('week', $week);
+            $labels[] = 'Week ' . ($i + 1);
+            $data[] = $weekData ? (int) $weekData->count : 0;
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'datasets' => [
+                [
+                    'label' => 'Applications',
+                    'data' => $data,
+                    'borderColor' => 'rgb(59, 130, 246)',
+                    'backgroundColor' => 'rgba(59, 130, 246, 0.1)'
+                ]
+            ]
+        ]);
+    }
+
+    private function getAmountsAnalytics($startDate): JsonResponse
+    {
+        // Get weekly disbursement amounts
+        $weeklyData = AidDisbursement::where('disbursed_at', '>=', $startDate)
+            ->selectRaw('WEEK(disbursed_at) as week, SUM(amount) as total')
+            ->groupBy('week')
+            ->orderBy('week')
+            ->get();
+
+        $labels = [];
+        $data = [];
+        
+        for ($i = 0; $i < 4; $i++) {
+            $week = now()->subWeeks(3 - $i)->format('W');
+            $weekData = $weeklyData->firstWhere('week', $week);
+            $labels[] = 'Week ' . ($i + 1);
+            $data[] = $weekData ? (float) $weekData->total : 0;
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'datasets' => [
+                [
+                    'label' => 'Amount (₱)',
+                    'data' => $data,
+                    'borderColor' => 'rgb(168, 85, 247)',
+                    'backgroundColor' => 'rgba(168, 85, 247, 0.1)'
+                ]
+            ]
+        ]);
     }
 
     private function determinePriority($application): string
@@ -646,10 +1261,159 @@ class SchoolAidController extends Controller
             
             if ($budgetAllocation) {
                 $budgetAllocation->incrementDisbursed($amount);
+                // Track who updated the budget
+                $userId = $this->getCurrentUserId();
+                if ($userId) {
+                    $budgetAllocation->updated_by = $userId;
+                    $budgetAllocation->save();
+                }
             }
         } catch (\Exception $e) {
             // Log error but don't fail the disbursement
             \Log::warning('Failed to update budget allocation: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all budget allocations
+     */
+    public function getBudgets(Request $request): JsonResponse
+    {
+        try {
+            $schoolYear = $request->get('school_year');
+            
+            $query = BudgetAllocation::query();
+            
+            if ($schoolYear) {
+                $query->where('school_year', $schoolYear);
+            }
+            
+            $budgets = $query->orderBy('school_year', 'desc')
+                ->orderBy('budget_type', 'asc')
+                ->get()
+                ->map(function ($budget) {
+                    return [
+                        'id' => $budget->id,
+                        'budget_type' => $budget->budget_type,
+                        'school_year' => $budget->school_year,
+                        'total_budget' => (float) $budget->total_budget,
+                        'allocated_budget' => (float) $budget->allocated_budget,
+                        'disbursed_budget' => (float) $budget->disbursed_budget,
+                        'remaining_budget' => (float) $budget->remaining_budget,
+                        'description' => $budget->description,
+                        'is_active' => $budget->is_active,
+                        'created_at' => $budget->created_at?->toISOString(),
+                        'updated_at' => $budget->updated_at?->toISOString(),
+                        'created_by' => $budget->created_by,
+                        'updated_by' => $budget->updated_by,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'budgets' => $budgets,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to fetch budgets', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to fetch budgets',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create or update budget allocation
+     */
+    public function createOrUpdateBudget(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'budget_type' => 'required|string|max:100',
+                'school_year' => 'required|string',
+                'total_budget' => 'required|numeric|min:0',
+                'description' => 'nullable|string',
+            ]);
+
+            $userId = $this->getCurrentUserId();
+
+            $budget = BudgetAllocation::updateOrCreate(
+                [
+                    'budget_type' => $validated['budget_type'],
+                    'school_year' => $validated['school_year'],
+                ],
+                [
+                    'total_budget' => $validated['total_budget'],
+                    'description' => $validated['description'] ?? null,
+                    'is_active' => true,
+                    'updated_by' => $userId,
+                    'created_by' => $userId, // Only set on create
+                ]
+            );
+
+            // Log audit action
+            AuditLogService::logAction(
+                'budget_updated',
+                "Budget allocation {$validated['budget_type']} for {$validated['school_year']} updated",
+                'budget_allocation',
+                (string) $budget->id,
+                null,
+                $budget->toArray()
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Budget allocation saved successfully',
+                'data' => [
+                    'id' => $budget->id,
+                    'budget_type' => $budget->budget_type,
+                    'school_year' => $budget->school_year,
+                    'total_budget' => $budget->total_budget,
+                    'disbursed_budget' => $budget->disbursed_budget,
+                    'remaining_budget' => $budget->remaining_budget,
+                    'utilization_rate' => $budget->total_budget > 0 
+                        ? round(($budget->disbursed_budget / $budget->total_budget) * 100, 2) 
+                        : 0,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'details' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to save budget allocation',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get current user ID from request or auth
+     */
+    private function getCurrentUserId(): ?int
+    {
+        try {
+            // Try to get from request
+            $userId = request()->input('user_id');
+            if ($userId) {
+                return (int) $userId;
+            }
+
+            // Try to get from auth (if available)
+            if (auth()->check()) {
+                return auth()->id();
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            return null;
         }
     }
 }

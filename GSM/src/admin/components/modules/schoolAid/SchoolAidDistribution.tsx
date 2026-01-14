@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import {
   FileText,
-  DollarSign,
-  LayoutDashboard
+  LayoutDashboard,
+  DollarSign
 } from 'lucide-react';
 import { TabConfig, ScholarshipApplication } from './types';
 import SADOverview from './SADOverview';
 import ApplicationsTab from './tabs/ApplicationsTab';
-import PaymentsTab from './tabs/PaymentsTab';
+import BudgetTab from './tabs/BudgetTab';
 import ManualDisbursementModal from './components/disbursement/ManualDisbursementModal';
 import ApplicationViewModal from './components/ApplicationViewModal';
 import { schoolAidService } from './services/schoolAidService';
@@ -44,11 +44,10 @@ const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}
       submodules: []
     },
     {
-      id: 'payments',
-      label: 'Disbursement',
+      id: 'budget',
+      label: 'Yearly School Budget',
       icon: DollarSign,
-      component: PaymentsTab,
-      statusFilter: ['grants_processing'],
+      component: BudgetTab,
       submodules: []
     }
   ];
@@ -144,15 +143,21 @@ const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}
     try {
       // Process grant using the dedicated API endpoint
       const result = await schoolAidService.processGrant(application.id);
+      
+      // Check if payment URL is returned (PayMongo redirect)
+      if (result.success && result.payment_url && result.redirect) {
+        // Redirect to PayMongo checkout page
+        window.location.href = result.payment_url;
+        return; // Don't update state yet, wait for webhook to process
+      }
+
+      // If no redirect, show success message
       console.log('Grant processing initiated for application:', application.id, result);
-
-      // Show success message or notification
-      // You can add additional logic here for grant processing
-      // For example, creating disbursement records, sending notifications, etc.
-
       setLastUpdated(Date.now());
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing grant:', error);
+      // Show error notification to user
+      alert(error.message || 'Failed to process grant. Please try again.');
       throw error;
     }
   };
@@ -173,6 +178,15 @@ const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}
       actions: []
     };
 
+    // Pass tab change handler to Overview component
+    const handleOverviewPageChange = (tabId?: string) => {
+      if (tabId) {
+        handleTabChange(tabId);
+      } else if (onPageChange) {
+        onPageChange('applications');
+      }
+    };
+
     return (
       <Component
         submodule={submoduleConfig}
@@ -188,7 +202,8 @@ const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}
         onApproveApplication={handleApproveApplication}
         onRejectApplication={handleRejectApplication}
         lastUpdated={lastUpdated}
-        onPageChange={onPageChange || (() => {})}
+        onPageChange={activeTab === 'overview' ? handleOverviewPageChange : (onPageChange || (() => {}))}
+        onTabChange={handleTabChange}
       />
     );
   };

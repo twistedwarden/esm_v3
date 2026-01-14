@@ -25,14 +25,27 @@ class StaffController extends Controller
         try {
             $interviewers = Staff::getActiveInterviewersWithUserData();
             
+            \Log::info('Retrieved interviewers', [
+                'count' => count($interviewers),
+                'interviewers' => $interviewers
+            ]);
+            
             return response()->json([
                 'success' => true,
                 'data' => $interviewers,
-                'message' => 'Interviewers retrieved successfully'
+                'message' => count($interviewers) > 0 
+                    ? 'Interviewers retrieved successfully' 
+                    : 'No interviewers found. Please configure staff members with interviewer role.'
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error retrieving interviewers', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
+                'data' => [],
                 'message' => 'Failed to retrieve interviewers: ' . $e->getMessage()
             ], 500);
         }

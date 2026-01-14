@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../../store/v1authStore';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare } from 'lucide-react';
+import { API_CONFIG } from '../../config/api';
+import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, Download, Eye } from 'lucide-react';
 import { SecureDocumentUpload } from '../../components/ui/SecureDocumentUpload';
 import { SkeletonDashboard } from '../../components/ui/Skeleton';
 // EnrollmentVerificationCard removed - automatic verification disabled
@@ -24,6 +25,10 @@ export const ScholarshipDashboard: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Disbursements state
+  const [disbursements, setDisbursements] = useState<any[]>([]);
+  const [isLoadingDisbursements, setIsLoadingDisbursements] = useState(false);
 
   // Notification state
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -298,6 +303,37 @@ export const ScholarshipDashboard: React.FC = () => {
 
   // Get current application data (most recent or first one)
   const currentApplication = applications.length > 0 ? applications[0] : null;
+
+  // Fetch disbursements for current application
+  useEffect(() => {
+    const fetchDisbursements = async () => {
+      if (!currentApplication || !currentApplication.id) {
+        setDisbursements([]);
+        return;
+      }
+
+      try {
+        setIsLoadingDisbursements(true);
+        const response = await fetch(
+          `${API_CONFIG.AID_SERVICE.BASE_URL}/api/school-aid/disbursements?application_id=${currentApplication.id}`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch disbursements');
+        }
+
+        const data = await response.json();
+        setDisbursements(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error fetching disbursements:', err);
+        setDisbursements([]);
+      } finally {
+        setIsLoadingDisbursements(false);
+      }
+    };
+
+    fetchDisbursements();
+  }, [currentApplication]);
 
   // Standard required documents for scholarship applications
   // Using actual document type IDs from the database seeder
@@ -648,7 +684,16 @@ export const ScholarshipDashboard: React.FC = () => {
       verificationNotes: doc.verification_notes,
       verifiedAt: doc.verified_at ? new Date(doc.verified_at).toLocaleDateString() : null
     })),
-    disbursements: [] as any[]
+    disbursements: disbursements.map((d: any) => ({
+      id: d.id,
+      date: d.disbursedAt ? new Date(d.disbursedAt).toLocaleDateString() : 'N/A',
+      amount: `₱${parseFloat(d.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      status: d.disbursement_status || 'completed',
+      receiptPath: d.receiptPath,
+      referenceNumber: d.referenceNumber || d.reference_number,
+      providerName: d.providerName || d.provider_name,
+      method: d.method || d.disbursement_method
+    }))
 
   } : {
     referenceNumber: 'No Application',
@@ -727,7 +772,16 @@ export const ScholarshipDashboard: React.FC = () => {
     howDidYouKnow: [],
     isSchoolAtQC: false,
     requirements: [],
-    disbursements: [] as any[]
+    disbursements: disbursements.map((d: any) => ({
+      id: d.id,
+      date: d.disbursedAt ? new Date(d.disbursedAt).toLocaleDateString() : 'N/A',
+      amount: `₱${parseFloat(d.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      status: d.disbursement_status || 'completed',
+      receiptPath: d.receiptPath,
+      referenceNumber: d.referenceNumber || d.reference_number,
+      providerName: d.providerName || d.provider_name,
+      method: d.method || d.disbursement_method
+    }))
   };
 
   // Helper component for collapsible section
@@ -1768,27 +1822,60 @@ export const ScholarshipDashboard: React.FC = () => {
                 </h2>
               </div>
               <div className="p-4 space-y-3">
-                {scholarshipData.disbursements.length > 0 ? (
-                  scholarshipData.disbursements.map((disbursement, index) => (
-                    <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                {isLoadingDisbursements ? (
+                  <div className="text-center py-4">
+                    <RefreshCw className="h-5 w-5 text-gray-400 animate-spin mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">Loading disbursements...</p>
+                  </div>
+                ) : scholarshipData.disbursements.length > 0 ? (
+                  scholarshipData.disbursements.map((disbursement: any, index: number) => (
+                    <div key={disbursement.id || index} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-700">{disbursement.date}</span>
+                          <Calendar className="h-4 w-4 text-gray-500 dark:text-slate-400" />
+                          <span className="text-sm text-gray-700 dark:text-slate-300">{disbursement.date}</span>
                         </div>
                         <div className={`px-2 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(disbursement.status)}`}>
-                          {disbursement.status}
+                          {disbursement.status === 'completed' ? 'Completed' : disbursement.status}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <DollarSign className="h-4 w-4 text-green-500" />
-                        <span className="text-lg font-bold text-gray-900">{disbursement.amount}</span>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <DollarSign className="h-4 w-4 text-green-500" />
+                          <span className="text-lg font-bold text-gray-900 dark:text-white">{disbursement.amount}</span>
+                        </div>
                       </div>
+                      {disbursement.referenceNumber && (
+                        <div className="text-xs text-gray-500 dark:text-slate-400 mb-2">
+                          Ref: {disbursement.referenceNumber}
+                        </div>
+                      )}
+                      {disbursement.receiptPath && (
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-slate-700">
+                          <a
+                            href={`${API_CONFIG.AID_SERVICE.BASE_URL}/api/school-aid/disbursements/${disbursement.id}/receipt`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-200 dark:hover:bg-blue-900/60 transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            View Receipt
+                          </a>
+                          <a
+                            href={`${API_CONFIG.AID_SERVICE.BASE_URL}/api/school-aid/disbursements/${disbursement.id}/receipt/download`}
+                            download
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-200 dark:hover:bg-green-900/60 transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download
+                          </a>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-4">
-                    <p className="text-sm text-gray-500 font-medium italic">No record found</p>
+                    <p className="text-sm text-gray-500 dark:text-slate-400 font-medium italic">No record found</p>
                   </div>
                 )}
               </div>

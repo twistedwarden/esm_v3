@@ -7,7 +7,12 @@ import {
   Calendar,
   FileText,
   CheckCircle,
-  Clock
+  Clock,
+  CreditCard,
+  Hash,
+  Receipt,
+  ExternalLink,
+  Download
 } from 'lucide-react';
 
 const DisbursementDetailModal = ({ disbursement, onClose }) => {
@@ -103,7 +108,7 @@ const DisbursementDetailModal = ({ disbursement, onClose }) => {
               <InfoRow
                 icon={FileText}
                 label="Scholarship Type"
-                value={disbursement.scholarshipType}
+                value={disbursement.scholarshipType || 'N/A'}
               />
               <InfoRow
                 icon={DollarSign}
@@ -114,34 +119,86 @@ const DisbursementDetailModal = ({ disbursement, onClose }) => {
               <InfoRow
                 icon={Calendar}
                 label="Semester/Term"
-                value={disbursement.semester}
+                value={disbursement.semester || 'N/A'}
               />
               <InfoRow
                 icon={Calendar}
                 label="Approval Date"
-                value={formatDate(disbursement.approvalDate)}
+                value={disbursement.approvalDate ? formatDate(disbursement.approvalDate) : 'N/A'}
               />
             </div>
           </div>
 
-          {/* Priority */}
+          {/* Payment Information */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Priority Status</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Information</h3>
             <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <div className={`px-4 py-2 rounded-full font-medium ${
-                  disbursement.priority === 'Urgent' 
-                    ? 'bg-red-100 text-red-800' 
-                    : 'bg-blue-100 text-blue-800'
-                }`}>
-                  {disbursement.priority}
-                </div>
-                {disbursement.priority === 'Urgent' && (
-                  <p className="text-sm text-gray-600">Requires immediate attention</p>
-                )}
-              </div>
+              <InfoRow
+                icon={CreditCard}
+                label="Provider"
+                value={disbursement.providerName || disbursement.paymentProviderName || '-'}
+              />
+              <InfoRow
+                icon={Hash}
+                label="Reference"
+                value={disbursement.referenceNumber || disbursement.disbursementReferenceNumber || '-'}
+              />
+              <InfoRow
+                icon={CreditCard}
+                label="Account Number"
+                value={disbursement.accountNumber || '-'}
+              />
+              <InfoRow
+                icon={Receipt}
+                label="Receipt"
+                value={
+                  disbursement.receiptPath ? (
+                    <div className="flex items-center gap-3">
+                      <a
+                        href={`${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/api/school-aid/disbursements/${disbursement.id || disbursement.applicationId}/receipt`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        View
+                      </a>
+                      <a
+                        href={`${import.meta.env.VITE_API_URL || 'http://localhost:8002'}/api/school-aid/disbursements/${disbursement.id || disbursement.applicationId}/receipt/download`}
+                        download
+                        className="flex items-center gap-2 text-green-600 hover:text-green-800"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download
+                      </a>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">No receipt available</span>
+                  )
+                }
+              />
+              <InfoRow
+                icon={FileText}
+                label="Method"
+                value={disbursement.method || disbursement.disbursementMethod || 'N/A'}
+              />
+              {disbursement.disbursedAt && (
+                <InfoRow
+                  icon={Calendar}
+                  label="Disbursed At"
+                  value={formatDate(disbursement.disbursedAt)}
+                />
+              )}
+              {disbursement.disbursedByName && (
+                <InfoRow
+                  icon={User}
+                  label="Disbursed By"
+                  value={disbursement.disbursedByName}
+                />
+              )}
             </div>
           </div>
+
 
           {/* Application History Timeline */}
           <div>

@@ -51,15 +51,6 @@ const ApplicationViewModal: React.FC<ApplicationViewModalProps> = ({
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getPriorityColor = (priority: string) => {
-    const colors: Record<string, string> = {
-      low: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-      normal: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-      high: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-      urgent: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-    };
-    return colors[priority] || 'bg-gray-100 text-gray-800';
-  };
 
   const maskAccountNumber = (accountNumber?: string) => {
     if (!accountNumber) return '****';
@@ -87,13 +78,10 @@ const ApplicationViewModal: React.FC<ApplicationViewModalProps> = ({
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Status and Priority */}
+          {/* Status */}
           <div className="flex items-center gap-3">
             <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(application.status)}`}>
               {application.status.replace('_', ' ').toUpperCase()}
-            </span>
-            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getPriorityColor(application.priority)}`}>
-              {application.priority.toUpperCase()} PRIORITY
             </span>
           </div>
 

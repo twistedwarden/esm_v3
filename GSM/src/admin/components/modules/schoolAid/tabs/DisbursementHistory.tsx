@@ -358,9 +358,6 @@ const DisbursementHistory = () => {
                     Scholar Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    School
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Amount
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -383,7 +380,7 @@ const DisbursementHistory = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredHistory.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                       <div className="flex flex-col items-center">
                         <FileText className="w-12 h-12 text-gray-400 mb-2" />
                         <p>No disbursement history found</p>
@@ -398,9 +395,6 @@ const DisbursementHistory = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {item.scholarName}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {item.schoolName}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                         {formatCurrency(item.amount)}
@@ -462,7 +456,6 @@ const DisbursementHistory = () => {
                 {/* Scholar Info */}
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.scholarName}</h3>
-                  <p className="text-sm text-gray-500">{item.schoolName}</p>
                 </div>
 
                 {/* Disbursement Details */}

@@ -80,6 +80,16 @@ class StudentPopulationSeeder extends Seeder
         // Create scholarship applications for some students
         $scholarshipStudents = $students->take(2); // First 2 students get scholarships
         
+        // Account numbers for different payment methods
+        $accountNumbers = [
+            '09456789012', // GCash
+            '09567890123', // PayMaya
+        ];
+        $digitalWallets = [
+            ['GCash'],
+            ['PayMaya'],
+        ];
+
         foreach ($scholarshipStudents as $index => $student) {
             ScholarshipApplication::create([
                 'application_number' => 'APP-' . str_pad($student->id, 6, '0', STR_PAD_LEFT),
@@ -92,6 +102,8 @@ class StudentPopulationSeeder extends Seeder
                 'financial_need_description' => 'Financial assistance needed for education',
                 'requested_amount' => 50000,
                 'approved_amount' => 50000,
+                'digital_wallets' => json_encode($digitalWallets[$index] ?? ['GCash']),
+                'wallet_account_number' => $accountNumbers[$index] ?? '09123456789',
                 'submitted_at' => now()->subDays(30),
                 'approved_at' => now()->subDays(25),
             ]);

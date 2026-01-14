@@ -12,12 +12,12 @@ import {
   School,
   AlertCircle,
   FileText,
-  Gift
+  Gift,
+  Loader2
 } from 'lucide-react';
 import {
   ScholarshipApplication,
   ApplicationStatus,
-  Priority,
   SubmoduleConfig,
   ModalState
 } from '../types';
@@ -55,9 +55,11 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   const [applications, setApplications] = useState<ScholarshipApplication[]>([]);
   const [filteredApplications, setFilteredApplications] = useState<ScholarshipApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processingGrantId, setProcessingGrantId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all');
-  const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all');
+  const [schoolYearFilter, setSchoolYearFilter] = useState<string>('all');
+  const [availableSchoolYears, setAvailableSchoolYears] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   useEffect(() => {
@@ -66,7 +68,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
 
   useEffect(() => {
     filterApplications();
-  }, [applications, searchTerm, statusFilter, priorityFilter]);
+  }, [applications, searchTerm, statusFilter]);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -102,9 +104,9 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
       filtered = filtered.filter(app => app.status === statusFilter);
     }
 
-    // Priority filter
-    if (priorityFilter !== 'all') {
-      filtered = filtered.filter(app => app.priority === priorityFilter);
+    // School Year filter
+    if (schoolYearFilter !== 'all') {
+      filtered = filtered.filter(app => app.schoolYear === schoolYearFilter);
     }
 
     setFilteredApplications(filtered);
@@ -142,15 +144,6 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
     return colors[status];
   };
 
-  const getPriorityColor = (priority: Priority) => {
-    const colors = {
-      low: 'bg-gray-100 text-gray-800',
-      normal: 'bg-blue-100 text-blue-800',
-      high: 'bg-orange-100 text-orange-800',
-      urgent: 'bg-red-100 text-red-800'
-    };
-    return colors[priority];
-  };
 
   const handleSelectApplication = (applicationId: string) => {
     if (selectedApplications.includes(applicationId)) {
@@ -187,12 +180,27 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   };
 
   const handleProcessGrant = async (application: ScholarshipApplication) => {
+    // Prevent multiple clicks
+    if (processingGrantId === application.id || processingGrantId !== null) {
+      return;
+    }
+
     if (onProcessGrant) {
       try {
+        setProcessingGrantId(application.id);
         await onProcessGrant(application);
-        fetchApplications();
+        // Refresh applications after processing
+        await fetchApplications();
       } catch (error) {
         console.error('Error processing grant:', error);
+        // Clear loading state on error
+        setProcessingGrantId(null);
+      } finally {
+        // Clear loading state after processing (with delay if redirect happens)
+        // If redirect happens, this won't execute, which is fine
+        setTimeout(() => {
+          setProcessingGrantId(null);
+        }, 2000);
       }
     }
   };
@@ -256,14 +264,29 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
 
     // Add action buttons based on application status
     if (application.status === 'approved') {
+      const isProcessing = processingGrantId === application.id;
       buttons.push(
         <button
           key="process-grant"
           onClick={() => handleProcessGrant(application)}
-          className="flex items-center gap-1 px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+          disabled={isProcessing || !!processingGrantId}
+          className={`flex items-center gap-1 px-3 py-1 text-sm rounded transition-colors ${
+            isProcessing || processingGrantId
+              ? 'bg-purple-50 text-purple-400 cursor-not-allowed'
+              : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+          }`}
         >
-          <Gift className="w-4 h-4" />
-          Process Grant
+          {isProcessing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <Gift className="w-4 h-4" />
+              Process Grant
+            </>
+          )}
         </button>
       );
     }
@@ -364,15 +387,16 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             </select>
 
             <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value as Priority | 'all')}
+              value={schoolYearFilter}
+              onChange={(e) => setSchoolYearFilter(e.target.value)}
               className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent text-sm sm:text-base bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
             >
-              <option value="all">All Priority</option>
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
+              <option value="all">All School Years</option>
+              {availableSchoolYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
             </select>
 
             <div className="flex border border-gray-300 dark:border-slate-600 rounded-lg">
@@ -448,10 +472,6 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                     <span className="sm:hidden">STUDENT</span>
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                    <span className="hidden sm:inline">School</span>
-                    <span className="sm:hidden">SCHOOL</span>
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">Amount</span>
                     <span className="sm:hidden">AMOUNT</span>
                   </th>
@@ -460,12 +480,12 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                     <span className="sm:hidden">STATUS</span>
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                    <span className="hidden sm:inline">Priority</span>
-                    <span className="sm:hidden">PRIORITY</span>
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">Date</span>
                     <span className="sm:hidden">DATE</span>
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                    <span className="hidden sm:inline">School Year</span>
+                    <span className="sm:hidden">SY</span>
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                     <span className="hidden sm:inline">Actions</span>
@@ -502,12 +522,6 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <School className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1 sm:mr-2 flex-shrink-0" />
-                        <div className="text-xs sm:text-sm text-gray-900 truncate">{application.school}</div>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       <div className="text-xs sm:text-sm font-semibold text-gray-900">
                         {formatCurrency(application.amount)}
                       </div>
@@ -519,15 +533,14 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                       </span>
                     </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getPriorityColor(application.priority)}`}>
-                        <span className="hidden sm:inline">{application.priority.toUpperCase()}</span>
-                        <span className="sm:hidden">{application.priority.charAt(0).toUpperCase()}</span>
-                      </span>
-                    </td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       <div className="flex items-center text-xs sm:text-sm text-gray-500">
                         <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                         <span className="truncate">{formatDate(application.approvalDate || application.submittedDate)}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                      <div className="text-xs sm:text-sm text-gray-900 dark:text-slate-200">
+                        {application.schoolYear || 'N/A'}
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
@@ -569,28 +582,22 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                   <p className="text-xs sm:text-sm text-gray-500 truncate">{application.studentId}</p>
                 </div>
 
-                <div className="flex items-center text-xs sm:text-sm text-gray-600">
-                  <School className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                  <span className="truncate">{application.school}</span>
-                </div>
-
                 <div className="flex items-center justify-between">
                   <span className="text-lg sm:text-2xl font-bold text-gray-900">
                     {formatCurrency(application.amount)}
                   </span>
-                  <div className="flex flex-col gap-1">
-                    <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getStatusColor(application.status)}`}>
-                      {application.status.replace('_', ' ').toUpperCase()}
-                    </span>
-                    <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getPriorityColor(application.priority)}`}>
-                      {application.priority.toUpperCase()}
-                    </span>
-                  </div>
+                  <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getStatusColor(application.status)}`}>
+                    {application.status.replace('_', ' ').toUpperCase()}
+                  </span>
                 </div>
 
                 <div className="flex items-center text-xs sm:text-sm text-gray-500">
                   <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
                   <span className="truncate">{formatDate(application.approvalDate || application.submittedDate)}</span>
+                </div>
+                <div className="flex items-center text-xs sm:text-sm text-gray-500">
+                  <span className="font-medium text-gray-700 dark:text-slate-300">SY: </span>
+                  <span className="truncate">{application.schoolYear || 'N/A'}</span>
                 </div>
               </div>
             </div>
@@ -606,7 +613,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
           </div>
           <h3 className="mt-2 text-sm sm:text-base font-medium text-gray-900">No applications found</h3>
           <p className="mt-1 text-xs sm:text-sm text-gray-500">
-            {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
+            {searchTerm || statusFilter !== 'all'
               ? 'Try adjusting your search criteria.'
               : 'No applications match the current submodule filter.'}
           </p>

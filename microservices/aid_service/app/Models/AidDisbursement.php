@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\PaymentTransaction;
 
 class AidDisbursement extends Model
 {
@@ -10,13 +11,21 @@ class AidDisbursement extends Model
 
     protected $fillable = [
         'application_id',
+        'payment_transaction_id',
         'application_number',
         'student_id',
         'school_id',
         'amount',
         'method',
+        'disbursement_method',
         'provider_name',
+        'payment_provider_name',
+        'payment_provider',
+        'provider_transaction_id',
+        'account_number',
         'reference_number',
+        'disbursement_reference_number',
+        'disbursement_status',
         'receipt_path',
         'notes',
         'disbursed_by_user_id',
@@ -32,5 +41,13 @@ class AidDisbursement extends Model
     public function application()
     {
         return $this->belongsTo(ScholarshipApplication::class, 'application_id');
+    }
+
+    /**
+     * Get the payment transaction associated with this disbursement
+     */
+    public function paymentTransaction()
+    {
+        return $this->belongsTo(PaymentTransaction::class, 'payment_transaction_id');
     }
 }

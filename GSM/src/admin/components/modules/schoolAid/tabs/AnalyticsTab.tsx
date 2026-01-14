@@ -65,13 +65,35 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     try {
       const [metricsData, chartData] = await Promise.all([
         schoolAidService.getMetrics(),
-        schoolAidService.getAnalyticsData(activeSubmodule, dateRange)
+        schoolAidService.getAnalyticsData('payments', dateRange)
       ]);
 
       setMetrics(metricsData);
-      setChartData(chartData);
+      
+      // Process chart data - ensure it has the expected structure
+      if (chartData) {
+        setChartData({
+          dailyDisbursements: chartData.dailyDisbursements || [],
+          statusDistribution: chartData.statusDistribution || [],
+          schoolPerformance: chartData.schoolPerformance || [],
+          monthlyTrends: chartData.monthlyTrends || []
+        });
+      } else {
+        setChartData({
+          dailyDisbursements: [],
+          statusDistribution: [],
+          schoolPerformance: [],
+          monthlyTrends: []
+        });
+      }
     } catch (error) {
       console.error('Error fetching analytics data:', error);
+      setChartData({
+        dailyDisbursements: [],
+        statusDistribution: [],
+        schoolPerformance: [],
+        monthlyTrends: []
+      });
     } finally {
       setLoading(false);
     }
@@ -193,18 +215,28 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
             </div>
           </div>
           <div className="h-64 flex items-end justify-between gap-2">
-            {chartData?.dailyDisbursements.slice(-7).map((day: any, index: number) => (
-              <div key={day.date} className="flex-1 flex flex-col items-center">
-                <div
-                  className="w-full bg-blue-500 rounded-t transition-all duration-300 hover:bg-blue-600"
-                  style={{ height: `${(day.amount / 720000) * 200}px` }}
-                  title={`${formatCurrency(day.amount)} - ${day.count} scholars`}
-                ></div>
-                <div className="text-xs text-gray-500 mt-2 transform -rotate-45 origin-left">
-                  {new Date(day.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
-                </div>
+            {chartData?.dailyDisbursements && chartData.dailyDisbursements.length > 0 ? (
+              chartData.dailyDisbursements.slice(-7).map((day: any, index: number) => {
+                const maxAmount = Math.max(...chartData.dailyDisbursements.map((d: any) => d.amount || 0), 1);
+                const heightPercent = maxAmount > 0 ? (day.amount / maxAmount) * 100 : 0;
+                return (
+                  <div key={day.date || index} className="flex-1 flex flex-col items-center">
+                    <div
+                      className="w-full bg-blue-500 rounded-t transition-all duration-300 hover:bg-blue-600"
+                      style={{ height: `${Math.max(heightPercent * 2, 5)}px` }}
+                      title={`${formatCurrency(day.amount || 0)} - ${day.count || 0} scholars`}
+                    ></div>
+                    <div className="text-xs text-gray-500 mt-2 transform -rotate-45 origin-left whitespace-nowrap">
+                      {day.date ? new Date(day.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : `Day ${index + 1}`}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="w-full text-center text-gray-500 py-12">
+                <p>No disbursement data available</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -212,18 +244,24 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Distribution</h3>
           <div className="space-y-4">
-            {chartData?.statusDistribution.map((item: any, index: number) => (
-              <div key={item.status} className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className={`w-4 h-4 rounded-full ${item.color} mr-3`}></div>
-                  <span className="text-sm font-medium text-gray-700">{item.status}</span>
+            {chartData?.statusDistribution && chartData.statusDistribution.length > 0 ? (
+              chartData.statusDistribution.map((item: any, index: number) => (
+                <div key={item.status || index} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className={`w-4 h-4 rounded-full ${item.color || 'bg-gray-500'} mr-3`}></div>
+                    <span className="text-sm font-medium text-gray-700">{item.status || 'Unknown'}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-gray-900">{item.count || 0}</div>
+                    <div className="text-xs text-gray-500">{item.percentage || 0}%</div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-gray-900">{item.count}</div>
-                  <div className="text-xs text-gray-500">{item.percentage}%</div>
-                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                <p>No status data available</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
@@ -232,22 +270,28 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Schools by Disbursement</h3>
         <div className="space-y-4">
-          {chartData?.schoolPerformance.map((school: any, index: number) => (
-            <div key={school.school} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-8 text-center">
-                  <span className="text-sm font-bold text-gray-400">#{index + 1}</span>
+          {chartData?.schoolPerformance && chartData.schoolPerformance.length > 0 ? (
+            chartData.schoolPerformance.map((school: any, index: number) => (
+              <div key={school.school || index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                <div className="flex items-center">
+                  <div className="w-8 text-center">
+                    <span className="text-sm font-bold text-gray-400">#{index + 1}</span>
+                  </div>
+                  <div className="ml-4">
+                    <div className="text-sm font-medium text-gray-900">{school.school || 'Unknown School'}</div>
+                    <div className="text-xs text-gray-500">{school.scholars || 0} scholars • {school.avgTime || 0} days avg</div>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <div className="text-sm font-medium text-gray-900">{school.school}</div>
-                  <div className="text-xs text-gray-500">{school.scholars} scholars • {school.avgTime} days avg</div>
+                <div className="text-right">
+                  <div className="text-sm font-semibold text-gray-900">{formatCurrency(school.disbursed || 0)}</div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm font-semibold text-gray-900">{formatCurrency(school.disbursed)}</div>
-              </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              <p>No school performance data available</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
@@ -383,27 +427,33 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Trends</h3>
         <div className="space-y-4">
-          {chartData?.monthlyTrends.map((month: any, index: number) => (
-            <div key={month.month} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-              <div className="flex items-center">
-                <div className="text-sm font-medium text-gray-900">{month.month}</div>
+          {chartData?.monthlyTrends && chartData.monthlyTrends.length > 0 ? (
+            chartData.monthlyTrends.map((month: any, index: number) => (
+              <div key={month.month || index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                <div className="flex items-center">
+                  <div className="text-sm font-medium text-gray-900">{month.month || 'Unknown Month'}</div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <div className="text-sm font-semibold text-blue-600">{month.applications || 0}</div>
+                    <div className="text-xs text-gray-500">Applications</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-semibold text-green-600">{month.disbursed || 0}</div>
+                    <div className="text-xs text-gray-500">Disbursed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-semibold text-purple-600">{formatCurrency(month.amount || 0)}</div>
+                    <div className="text-xs text-gray-500">Amount</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-6">
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-blue-600">{month.applications}</div>
-                  <div className="text-xs text-gray-500">Applications</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-green-600">{month.disbursed}</div>
-                  <div className="text-xs text-gray-500">Disbursed</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-purple-600">{formatCurrency(month.amount)}</div>
-                  <div className="text-xs text-gray-500">Amount</div>
-                </div>
-              </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              <p>No monthly trends data available</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

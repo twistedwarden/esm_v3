@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, Download, Calendar, DollarSign, User, School, X, ExternalLink } from 'lucide-react';
+import { Search, Filter, Download, Calendar, DollarSign, User, School, X, ExternalLink, FileDown } from 'lucide-react';
 import { DisbursementHistoryRecord, PaymentMethod } from './types';
 import { schoolAidService } from './services/schoolAidService';
 import { API_CONFIG } from '../../../../config/api';
@@ -93,7 +93,6 @@ const DisbursementHistory: React.FC = () => {
       <tr>
         <td>${record.applicationNumber ?? ''}</td>
         <td>${record.studentName ?? ''}</td>
-        <td>${record.schoolName ?? ''}</td>
         <td>${formatCurrency(record.amount)}</td>
         <td>${record.method}</td>
         <td>${record.providerName}</td>
@@ -122,7 +121,6 @@ const DisbursementHistory: React.FC = () => {
               <tr>
                 <th>Application No.</th>
                 <th>Student</th>
-                <th>School</th>
                 <th>Amount</th>
                 <th>Method</th>
                 <th>Provider</th>
@@ -160,6 +158,11 @@ const DisbursementHistory: React.FC = () => {
       return record.receiptPath;
     }
     return `${API_CONFIG.AID_SERVICE.BASE_URL}${record.receiptPath}`;
+  };
+
+  const getReceiptDownloadUrl = (record: DisbursementHistoryRecord) => {
+    if (!record.receiptPath || !record.id) return null;
+    return `${API_CONFIG.AID_SERVICE.BASE_URL}/api/school-aid/disbursements/${record.id}/receipt/download`;
   };
 
   if (loading) {
@@ -259,9 +262,6 @@ const DisbursementHistory: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Student
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  School
-                </th>
                 <th
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none"
                   onClick={() => handleSort('amount')}
@@ -305,14 +305,6 @@ const DisbursementHistory: React.FC = () => {
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {record.studentName}
                         </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <School className="w-4 h-4 text-gray-400 dark:text-slate-400 mr-2" />
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {record.schoolName}
                       </div>
                     </div>
                   </td>
@@ -435,6 +427,27 @@ const DisbursementHistory: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-xs font-medium text-gray-500 dark:text-slate-400">
+                    Account Number
+                  </div>
+                  <div className="text-gray-900 dark:text-white font-mono">
+                    {selectedRecord.accountNumber || '—'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500 dark:text-slate-400">
+                    Disbursed By
+                  </div>
+                  <div className="text-gray-900 dark:text-white">
+                    {selectedRecord.disbursedByName ??
+                      (selectedRecord.disbursedByUserId
+                        ? `User #${selectedRecord.disbursedByUserId}`
+                        : '—')}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-medium text-gray-500 dark:text-slate-400">
                     Disbursed By
                   </div>
                   <div className="text-gray-900 dark:text-white">
@@ -468,15 +481,25 @@ const DisbursementHistory: React.FC = () => {
                   Receipt
                 </div>
                 {getReceiptUrl(selectedRecord) ? (
-                  <a
-                    href={getReceiptUrl(selectedRecord) || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center mt-1 px-3 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-200"
-                  >
-                    <ExternalLink className="w-3 h-3 mr-1" />
-                    View receipt
-                  </a>
+                  <div className="flex items-center gap-2 mt-1">
+                    <a
+                      href={getReceiptUrl(selectedRecord) || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-200"
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      View
+                    </a>
+                    <a
+                      href={getReceiptDownloadUrl(selectedRecord) || '#'}
+                      download
+                      className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-200"
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      Download
+                    </a>
+                  </div>
                 ) : (
                   <div className="text-gray-500 dark:text-slate-400">
                     No receipt available

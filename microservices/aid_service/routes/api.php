@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SchoolAidController;
+use App\Http\Controllers\PaymentWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,12 +33,16 @@ Route::prefix('school-aid')->group(function () {
     // Disbursement history
     Route::get('/disbursements', [SchoolAidController::class, 'getDisbursementHistory']);
     Route::get('/disbursements/{id}/receipt', [SchoolAidController::class, 'viewDisbursementReceipt']);
+    Route::get('/disbursements/{id}/receipt/download', [SchoolAidController::class, 'downloadDisbursementReceipt']);
 
     // Update application status
     Route::patch('/applications/{id}/status', [SchoolAidController::class, 'updateApplicationStatus']);
 
     // Process grant for application
     Route::post('/applications/{id}/process-grant', [SchoolAidController::class, 'processGrant']);
+
+    // Revert application status when payment is cancelled
+    Route::post('/applications/revert-on-cancel', [SchoolAidController::class, 'revertApplicationOnCancel']);
 
     // Batch update applications
     Route::patch('/applications/batch-update', [SchoolAidController::class, 'batchUpdateApplications']);
@@ -109,50 +114,16 @@ Route::prefix('school-aid')->group(function () {
 
     // Metrics
     Route::get('/metrics', [SchoolAidController::class, 'getMetrics']);
+    
+    // Get available school years (only those with budgets)
+    Route::get('/school-years', [SchoolAidController::class, 'getAvailableSchoolYears']);
+
+    // Budget Management
+    Route::get('/budgets', [SchoolAidController::class, 'getBudgets']);
+    Route::post('/budget', [SchoolAidController::class, 'createOrUpdateBudget']);
 
     // Analytics
-    Route::get('/analytics/{type}', function (Request $request, $type) {
-        $dateRange = $request->get('range', '30d');
-        
-        // Mock analytics data
-        $data = [
-            'applications' => [
-                'labels' => ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                'datasets' => [
-                    [
-                        'label' => 'Applications',
-                        'data' => [25, 30, 28, 35],
-                        'borderColor' => 'rgb(59, 130, 246)',
-                        'backgroundColor' => 'rgba(59, 130, 246, 0.1)'
-                    ]
-                ]
-            ],
-            'payments' => [
-                'labels' => ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                'datasets' => [
-                    [
-                        'label' => 'Payments',
-                        'data' => [15, 20, 18, 25],
-                        'borderColor' => 'rgb(34, 197, 94)',
-                        'backgroundColor' => 'rgba(34, 197, 94, 0.1)'
-                    ]
-                ]
-            ],
-            'amounts' => [
-                'labels' => ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                'datasets' => [
-                    [
-                        'label' => 'Amount (₱)',
-                        'data' => [225000, 300000, 270000, 375000],
-                        'borderColor' => 'rgb(168, 85, 247)',
-                        'backgroundColor' => 'rgba(168, 85, 247, 0.1)'
-                    ]
-                ]
-            ]
-        ];
-
-        return response()->json($data[$type] ?? []);
-    });
+    Route::get('/analytics/{type}', [SchoolAidController::class, 'getAnalytics']);
 
     // Settings
     Route::get('/settings', function () {
@@ -199,3 +170,7 @@ Route::prefix('school-aid')->group(function () {
         ]);
     });
 });
+
+// Payment Webhooks
+Route::post('/webhooks/paymongo', [PaymentWebhookController::class, 'handlePaymongoWebhook'])
+    ->withoutMiddleware(['csrf']);

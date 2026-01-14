@@ -12,8 +12,6 @@ export type ApplicationStatus =
   | 'received'
   | 'rejected';
 
-export type Priority = 'low' | 'normal' | 'high' | 'urgent';
-
 export type PaymentMethod = 'bank_transfer' | 'gcash' | 'paymaya' | 'check';
 
 export interface ScholarshipApplication {
@@ -24,11 +22,11 @@ export interface ScholarshipApplication {
   schoolId: string;
   amount: number;
   status: ApplicationStatus;
-  priority: Priority;
   submittedDate: string;
   approvalDate?: string;
   processingDate?: string;
   disbursedDate?: string;
+  schoolYear?: string;
   paymentMethod?: PaymentMethod;
   paymentReference?: string;
   notes?: string;
@@ -73,6 +71,7 @@ export interface DisbursementHistoryRecord {
   method: PaymentMethod | string;
   providerName: string;
   referenceNumber: string;
+  accountNumber?: string | null;
   receiptPath: string;
   notes?: string | null;
    disbursedByUserId?: string | null;

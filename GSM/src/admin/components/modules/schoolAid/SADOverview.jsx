@@ -28,11 +28,13 @@ import {
 import { schoolAidService } from './services/schoolAidService';
 import dashboardService from '../../../../services/dashboardService';
 
-function SADOverview({ onPageChange, lastUpdated = null }) {
+function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     const [loading, setLoading] = useState(true);
     const [metrics, setMetrics] = useState(null);
     const [trends, setTrends] = useState([]);
+    const [categoryDistribution, setCategoryDistribution] = useState([]);
     const [error, setError] = useState(null);
+    const [availableSchoolYears, setAvailableSchoolYears] = useState([]);
     
     // Get current school year (format: YYYY-YYYY)
     const getCurrentSchoolYear = () => {
@@ -42,128 +44,122 @@ function SADOverview({ onPageChange, lastUpdated = null }) {
     };
     
     const [selectedSchoolYear, setSelectedSchoolYear] = useState(getCurrentSchoolYear());
-    
-    // Generate school year options (current year and 2 years back)
-    const getSchoolYearOptions = () => {
-        const currentYear = new Date().getFullYear();
-        const options = [];
-        for (let i = 0; i < 3; i++) {
-            const year = currentYear - i;
-            const nextYear = year + 1;
-            options.push(`${year}-${nextYear}`);
+
+    const fetchSchoolYears = async () => {
+        try {
+            const schoolYears = await schoolAidService.getAvailableSchoolYears();
+            setAvailableSchoolYears(schoolYears);
+            
+            // If selected school year is not in the list, select the first available or current year
+            if (schoolYears.length > 0) {
+                const currentYear = getCurrentSchoolYear();
+                if (!schoolYears.includes(selectedSchoolYear)) {
+                    if (schoolYears.includes(currentYear)) {
+                        setSelectedSchoolYear(currentYear);
+                    } else {
+                        setSelectedSchoolYear(schoolYears[0]);
+                    }
+                }
+            } else {
+                // If no school years with budgets, use current year as fallback
+                const currentYear = getCurrentSchoolYear();
+                setAvailableSchoolYears([currentYear]);
+                setSelectedSchoolYear(currentYear);
+            }
+        } catch (err) {
+            console.error('Error fetching school years:', err);
+            // Fallback to current year if API fails
+            const currentYear = getCurrentSchoolYear();
+            setAvailableSchoolYears([currentYear]);
+            setSelectedSchoolYear(currentYear);
         }
-        return options;
     };
 
     const fetchData = async () => {
         try {
             setLoading(true);
+            setError(null);
+
+            const [apiMetrics, analyticsData] = await Promise.all([
+                schoolAidService.getMetrics({ school_year: selectedSchoolYear }),
+                schoolAidService.getAnalyticsData('payments', '6m')
+            ]);
             
-            // Temporary mock data for scholarship budget
-            const mockBudgetData = {
-                total_budget: 1000000.00, // ₱1,000,000
-                disbursed: 0,
-                remaining: 1000000.00,
-                utilization_rate: 0
-            };
+            setMetrics(apiMetrics);
+            
+            // Process trends data from analytics if available
+            if (analyticsData && analyticsData.dailyDisbursements && analyticsData.dailyDisbursements.length > 0) {
+                // Use dailyDisbursements directly (last 30 days for better visualization)
+                const recentDays = analyticsData.dailyDisbursements.slice(-30);
+                const processedTrends = recentDays.map((day) => ({
+                    name: day.date ? new Date(day.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : 'Unknown',
+                    amount: parseFloat(day.amount) || 0
+                }));
+                setTrends(processedTrends);
+            } else if (analyticsData && analyticsData.labels && analyticsData.datasets && analyticsData.datasets[0]) {
+                // Fallback to old format
+                const processedTrends = analyticsData.labels.map((label, index) => ({
+                    name: label,
+                    amount: parseFloat(analyticsData.datasets[0].data[index]) || 0
+                }));
+                setTrends(processedTrends);
+            } else {
+                // Empty trends if no data available
+                setTrends([]);
+            }
 
-            let metricsData;
-            try {
-                const [apiMetrics, analyticsData] = await Promise.all([
-                    schoolAidService.getMetrics({ school_year: selectedSchoolYear }),
-                    schoolAidService.getAnalyticsData('payments', '6m')
-                ]);
-                metricsData = apiMetrics;
-                
-                // Process trends data from analytics if available, else use meaningful mock data
-                if (analyticsData && analyticsData.labels) {
-                    const processedTrends = analyticsData.labels.map((label, index) => ({
-                        name: label,
-                        amount: analyticsData.datasets[0].data[index] * 1000 // scaling for visualization
-                    }));
-                    setTrends(processedTrends);
-                } else {
-                    // Fallback trends
-                    setTrends([
-                        { name: 'Aug', amount: 450000 },
-                        { name: 'Sep', amount: 520000 },
-                        { name: 'Oct', amount: 480000 },
-                        { name: 'Nov', amount: 610000 },
-                        { name: 'Dec', amount: 750000 },
-                        { name: 'Jan', amount: 820000 },
-                    ]);
+            // Process category distribution
+            if (analyticsData && analyticsData.categoryDistribution && analyticsData.categoryDistribution.length > 0) {
+                const total = analyticsData.categoryDistribution.reduce((sum, cat) => sum + (cat.value || 0), 0);
+                const processedCategories = analyticsData.categoryDistribution.map((cat) => ({
+                    name: cat.name || 'Other',
+                    value: total > 0 ? Math.round((cat.value / total) * 100) : 0,
+                    color: cat.color || '#3b82f6'
+                }));
+                setCategoryDistribution(processedCategories);
+            } else {
+                // Default empty distribution
+                setCategoryDistribution([]);
+            }
+
+        } catch (err) {
+            console.error('Error fetching SAD metrics:', err);
+            setError('Failed to load metrics. Please try again.');
+            // Set empty metrics on error
+            setMetrics({
+                need_processing: 0,
+                need_disbursing: 0,
+                disbursed_count: 0,
+                total_disbursed: 0,
+                total_budget: 0,
+                remaining_budget: 0,
+                utilization_rate: 0,
+                budgets: {
+                    scholarship_benefits: {
+                        total_budget: 0,
+                        disbursed: 0,
+                        remaining: 0,
+                        utilization_rate: 0
+                    }
                 }
-            } catch (apiError) {
-                console.warn('Failed to fetch metrics from API, using mock data:', apiError);
-                // Use mock data if API fails
-                metricsData = {
-                    need_processing: 5,
-                    need_disbursing: 3,
-                    disbursed_count: 12,
-                    total_disbursed: 245000,
-                    total_budget: 1000000,
-                    remaining_budget: 755000,
-                    utilization_rate: 24.5,
-                    budgets: {
-                        scholarship_benefits: mockBudgetData
-                    }
-                };
-                // Set fallback trends
-                setTrends([
-                    { name: 'Aug', amount: 450000 },
-                    { name: 'Sep', amount: 520000 },
-                    { name: 'Oct', amount: 480000 },
-                    { name: 'Nov', amount: 610000 },
-                    { name: 'Dec', amount: 750000 },
-                    { name: 'Jan', amount: 820000 },
-                ]);
-            }
+            });
+            setTrends([]);
+            setCategoryDistribution([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            // Ensure budgets object exists with mock data if missing
-            if (!metricsData.budgets || !metricsData.budgets.scholarship_benefits) {
-                metricsData.budgets = {
-                    scholarship_benefits: mockBudgetData
-                };
-            }
-
-            setMetrics(metricsData);
-
-            } catch (err) {
-                console.error('Error fetching SAD metrics:', err);
-                // Use mock data on error
-                setMetrics({
-                    need_processing: 5,
-                    need_disbursing: 3,
-                    disbursed_count: 12,
-                    total_disbursed: 245000,
-                    total_budget: 1000000,
-                    remaining_budget: 755000,
-                    utilization_rate: 24.5,
-                    budgets: {
-                        scholarship_benefits: {
-                            total_budget: 1000000.00,
-                            disbursed: 245000.00,
-                            remaining: 755000.00,
-                            utilization_rate: 24.5
-                        }
-                    }
-                });
-                setTrends([
-                    { name: 'Aug', amount: 450000 },
-                    { name: 'Sep', amount: 520000 },
-                    { name: 'Oct', amount: 480000 },
-                    { name: 'Nov', amount: 610000 },
-                    { name: 'Dec', amount: 750000 },
-                    { name: 'Jan', amount: 820000 },
-                ]);
-                setError(null); // Don't show error, just use mock data
-            } finally {
-                setLoading(false);
-            }
-        };
-
+    // Fetch available school years on component mount
     useEffect(() => {
-        fetchData();
+        fetchSchoolYears();
+    }, []);
+
+    // Fetch data when school year changes
+    useEffect(() => {
+        if (availableSchoolYears.length > 0 || selectedSchoolYear) {
+            fetchData();
+        }
     }, [selectedSchoolYear]);
 
     // Refresh when lastUpdated changes (when grants are processed)
@@ -186,34 +182,58 @@ function SADOverview({ onPageChange, lastUpdated = null }) {
         }
     ];
 
-    // Temporary mock data for scholarship budget (used as fallback)
-    const mockScholarshipBudget = {
-        total_budget: 1000000.00, // ₱1,000,000
-        disbursed: 245000.00, // ₱245,000 (example disbursed amount)
-        remaining: 755000.00, // ₱755,000
-        utilization_rate: 24.5 // 24.5% utilized
+    // Dynamically generate budget cards from metrics
+    const getBudgetStats = () => {
+        if (!metrics?.budgets) return [];
+        
+        const budgetConfigs = {
+            scholarship_benefits: {
+                title: 'Scholarship Budget',
+                icon: FileText,
+                color: 'bg-indigo-500',
+                textColor: 'text-indigo-600',
+                description: 'Budget for merit, special, and renewal scholarship programs'
+            },
+            financial_support: {
+                title: 'Financial Support Budget',
+                icon: HandCoins,
+                color: 'bg-emerald-500',
+                textColor: 'text-emerald-600',
+                description: 'Budget for need-based financial support programs'
+            }
+        };
+        
+        const budgetStats = [];
+        
+        // Iterate through all budget types in metrics
+        Object.keys(metrics.budgets).forEach((budgetType) => {
+            const budgetData = metrics.budgets[budgetType];
+            const config = budgetConfigs[budgetType];
+            
+            // Only add card if budget exists (total_budget > 0) and config exists
+            if (budgetData && budgetData.total_budget > 0 && config) {
+                budgetStats.push({
+                    id: budgetType,
+                    title: config.title,
+                    totalBudget: budgetData.total_budget || 0,
+                    disbursed: budgetData.disbursed || 0,
+                    remaining: budgetData.remaining || 0,
+                    utilizationRate: budgetData.utilization_rate || 0,
+                    icon: config.icon,
+                    color: config.color,
+                    textColor: config.textColor,
+                    description: config.description
+                });
+            }
+        });
+        
+        return budgetStats;
     };
+    
+    const budgetStats = getBudgetStats();
 
-    const budgetStats = [
-        {
-            id: 'scholarship_benefits',
-            title: 'Scholarship Budget',
-            totalBudget: metrics?.budgets?.scholarship_benefits?.total_budget || mockScholarshipBudget.total_budget,
-            disbursed: metrics?.budgets?.scholarship_benefits?.disbursed || mockScholarshipBudget.disbursed,
-            remaining: metrics?.budgets?.scholarship_benefits?.remaining || mockScholarshipBudget.remaining,
-            utilizationRate: metrics?.budgets?.scholarship_benefits?.utilization_rate || mockScholarshipBudget.utilization_rate,
-            icon: FileText,
-            color: 'bg-indigo-500',
-            textColor: 'text-indigo-600',
-            description: 'Budget for merit, special, and renewal scholarship programs'
-        }
-    ];
-
-    const distributionData = [
-        { name: 'Financial Need', value: 45, color: '#3b82f6' },
-        { name: 'Educational Assistance', value: 35, color: '#10b981' },
-        { name: 'Emergency Aid', value: 20, color: '#f59e0b' }
-    ];
+    // Use real category distribution data, fallback to empty if not loaded
+    const distributionData = categoryDistribution.length > 0 ? categoryDistribution : [];
 
     const handleGenerateReport = async () => {
         try {
@@ -259,12 +279,17 @@ function SADOverview({ onPageChange, lastUpdated = null }) {
                             value={selectedSchoolYear}
                             onChange={(e) => setSelectedSchoolYear(e.target.value)}
                             className="bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-0 cursor-pointer"
+                            disabled={availableSchoolYears.length === 0}
                         >
-                            {getSchoolYearOptions().map((year) => (
-                                <option key={year} value={year}>
-                                    {year}
-                                </option>
-                            ))}
+                            {availableSchoolYears.length > 0 ? (
+                                availableSchoolYears.map((year) => (
+                                    <option key={year} value={year}>
+                                        {year}
+                                    </option>
+                                ))
+                            ) : (
+                                <option value={selectedSchoolYear}>{selectedSchoolYear}</option>
+                            )}
                         </select>
                     </div>
                     <button
@@ -297,16 +322,30 @@ function SADOverview({ onPageChange, lastUpdated = null }) {
                         key={index}
                         className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all group cursor-pointer"
                         onClick={() => {
-                            // For applications and payments tab within the same module
-                            // We'd need to lift the tab state or use a URL hash
-                            // For now, just a visual indicator
+                            // Navigate to Processing Grants tab when card is clicked
+                            if (stat.id === 'need_processing' && onTabChange) {
+                                onTabChange('applications');
+                            } else if (onPageChange) {
+                                onPageChange(stat.targetTab || 'applications');
+                            }
                         }}
                     >
                         <div className="flex items-start justify-between">
                             <div className={`${stat.color} p-3 rounded-xl shadow-sm text-white transform group-hover:scale-110 transition-transform`}>
                                 <stat.icon className="w-6 h-6" />
                             </div>
-                            <div className="flex items-center text-slate-400 group-hover:text-blue-500 transition-colors">
+                            <div 
+                                className="flex items-center text-slate-400 group-hover:text-blue-500 transition-colors"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Navigate to Processing Grants tab when arrow is clicked
+                                    if (stat.id === 'need_processing' && onTabChange) {
+                                        onTabChange('applications');
+                                    } else if (onPageChange) {
+                                        onPageChange(stat.targetTab || 'applications');
+                                    }
+                                }}
+                            >
                                 <ArrowRight className="w-4 h-4" />
                             </div>
                         </div>
@@ -326,8 +365,9 @@ function SADOverview({ onPageChange, lastUpdated = null }) {
             </div>
 
             {/* Budget Cards */}
-            <div className="grid grid-cols-1 gap-6 mt-6">
-                {budgetStats.map((budget, index) => {
+            {budgetStats.length > 0 && (
+                <div className="grid grid-cols-1 gap-6 mt-6">
+                    {budgetStats.map((budget, index) => {
                     const Icon = budget.icon;
                     const remainingPercent = budget.totalBudget > 0 
                         ? (budget.remaining / budget.totalBudget) * 100 
@@ -394,7 +434,8 @@ function SADOverview({ onPageChange, lastUpdated = null }) {
                         </div>
                     );
                 })}
-            </div>
+                </div>
+            )}
 
             {/* Analytics Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -408,40 +449,56 @@ function SADOverview({ onPageChange, lastUpdated = null }) {
                         <div className="text-xs font-semibold text-slate-400 uppercase">Last 6 Months</div>
                     </div>
                     <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={trends}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 12 }}
-                                    dy={10}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 12 }}
-                                    tickFormatter={(value) => `₱${value >= 1000 ? (value / 1000) + 'k' : value}`}
-                                />
-                                <Tooltip
-                                    cursor={{ fill: '#f1f5f9' }}
-                                    contentStyle={{
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                        backgroundColor: '#fff'
-                                    }}
-                                    formatter={(value) => [`₱${value.toLocaleString()}`, 'Disbursed']}
-                                />
-                                <Bar
-                                    dataKey="amount"
-                                    fill="#3b82f6"
-                                    radius={[4, 4, 0, 0]}
-                                    barSize={40}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {trends.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={trends}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#64748b', fontSize: 12 }}
+                                        dy={10}
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={60}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#64748b', fontSize: 12 }}
+                                        tickFormatter={(value) => {
+                                            if (value >= 1000000) return `₱${(value / 1000000).toFixed(1)}M`;
+                                            if (value >= 1000) return `₱${(value / 1000).toFixed(0)}k`;
+                                            return `₱${value}`;
+                                        }}
+                                    />
+                                    <Tooltip
+                                        cursor={{ fill: '#f1f5f9' }}
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                            backgroundColor: '#fff'
+                                        }}
+                                        formatter={(value) => [`₱${Number(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Disbursed']}
+                                    />
+                                    <Bar
+                                        dataKey="amount"
+                                        fill="#3b82f6"
+                                        radius={[4, 4, 0, 0]}
+                                        barSize={trends.length > 30 ? 20 : 40}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-gray-500">
+                                <div className="text-center">
+                                    <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">No disbursement trends data available</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -454,36 +511,44 @@ function SADOverview({ onPageChange, lastUpdated = null }) {
                         </h3>
                     </div>
                     <div className="h-[300px] flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={distributionData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={70}
-                                    outerRadius={100}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {distributionData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                                    }}
-                                />
-                                <Legend
-                                    verticalAlign="bottom"
-                                    align="center"
-                                    layout="horizontal"
-                                    iconType="circle"
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        {distributionData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={distributionData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={70}
+                                        outerRadius={100}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {distributionData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                        }}
+                                        formatter={(value) => `${value}%`}
+                                    />
+                                    <Legend
+                                        verticalAlign="bottom"
+                                        align="center"
+                                        layout="horizontal"
+                                        iconType="circle"
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="text-center text-gray-500">
+                                <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">No category data available</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

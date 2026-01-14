@@ -195,17 +195,31 @@ function InterviewSchedules() {
   const fetchStaffMembers = async () => {
     try {
       const response = await scholarshipApiService.getStaffInterviewers();
+      console.log('Staff interviewers API response:', response);
       
-      if (response.success && response.data) {
-        setStaffMembers(response.data);
+      if (response && response.success && Array.isArray(response.data)) {
+        // Filter out any empty or invalid objects
+        const validStaff = response.data.filter(staff => 
+          staff && staff.id && (staff.name || staff.user_id)
+        );
+        
+        if (validStaff.length > 0) {
+          setStaffMembers(validStaff);
+        } else {
+          console.warn('No valid staff members found in response:', response.data);
+          showError('No interviewers available. Please ensure staff members with interviewer role are configured.');
+          setStaffMembers([]);
+        }
       } else {
-        console.error('Failed to fetch staff members:', response.message);
-        showError('Failed to load interviewers. Please refresh the page.');
+        const errorMessage = response?.message || 'Invalid response format';
+        console.error('Failed to fetch staff members:', errorMessage, response);
+        showError(`Failed to load interviewers: ${errorMessage}. Please refresh the page.`);
         setStaffMembers([]);
       }
     } catch (error) {
+      const errorMessage = error?.message || 'Network error or server unavailable';
       console.error('Error fetching staff members:', error);
-      showError('Failed to load interviewers. Please refresh the page.');
+      showError(`Failed to load interviewers: ${errorMessage}. Please refresh the page.`);
       setStaffMembers([]);
     }
   };

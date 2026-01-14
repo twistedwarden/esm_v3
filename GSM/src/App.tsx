@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { PortalLayout } from './components/layout/PortalLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -7,6 +8,8 @@ import { ScholarshipDashboard } from './pages/scholarshipDashboard/ScholarshipDa
 import { NewApplicationForm } from './pages/newApplication/NewApplicationForm';
 import { Login } from './pages/auth/Login';
 import { GatewayLogin } from './pages/GatewayLogin';
+import { PaymentSuccess } from './admin/pages/PaymentSuccess';
+import { PaymentCancel } from './admin/pages/PaymentCancel';
 import { useAuthStore } from './store/v1authStore';
 import AdminApp from './admin/App';
 import PartnerSchoolApp from './partner-school/PartnerSchoolApp';
@@ -21,7 +24,7 @@ function PortalLayoutWrapper() {
 	);
 }
 
-function RequireAdmin() {
+function RequireAdmin({ children }: { children?: React.ReactNode }) {
 	const location = useLocation()
 	const currentUser = useAuthStore(s => s.currentUser)
 	const isLoading = useAuthStore(s => s.isLoading)
@@ -45,25 +48,15 @@ function RequireAdmin() {
 	}
 
 	// Check role-based access
-	if (currentUser.role === 'admin' || currentUser.role === 'ssc' || String(currentUser.role).startsWith('ssc')) {
-		return <AdminApp />
-	}
+	const isAuthorized = 
+		currentUser.role === 'admin' || 
+		currentUser.role === 'ssc' || 
+		String(currentUser.role).startsWith('ssc') ||
+		(currentUser.role === 'staff' && currentUser.system_role);
 
-	// For staff users, they must have a system_role from scholarship service
-	if (currentUser.role === 'staff') {
-		// Log current user data for debugging
-		console.log('✅ Staff user authorization check:', {
-			user_id: currentUser.id,
-			role: currentUser.role,
-			system_role: currentUser.system_role,
-			department: currentUser.department,
-			position: currentUser.position,
-			isLoading: isLoading
-		});
-		
-		if (!currentUser.system_role) {
-			// Staff without system_role - show access denied
-			console.error('Staff user missing system_role. User data:', currentUser);
+	if (!isAuthorized) {
+		// For staff users without system_role
+		if (currentUser.role === 'staff' && !currentUser.system_role) {
 			return (
 				<div className="min-h-screen flex items-center justify-center bg-gray-50">
 					<div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
@@ -76,18 +69,6 @@ function RequireAdmin() {
 						<p className="text-sm text-gray-500 mb-4">
 							You need to be registered as staff in the scholarship system to access this dashboard. Please contact your administrator.
 						</p>
-						<details className="mt-4 text-left">
-							<summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">Debug Info (for developers)</summary>
-							<pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
-								{JSON.stringify({ 
-									user_id: currentUser.id, 
-									role: currentUser.role,
-									system_role: currentUser.system_role,
-									department: currentUser.department,
-									position: currentUser.position
-								}, null, 2)}
-							</pre>
-						</details>
 						<button 
 							onClick={() => window.location.href = '/'}
 							className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4"
@@ -98,13 +79,17 @@ function RequireAdmin() {
 				</div>
 			)
 		}
-		// Staff with system_role can proceed
-		console.log('Staff user authorized with system_role:', currentUser.system_role);
-		return <AdminApp />
+		// All other roles - redirect to login
+		return <Navigate to="/" replace state={{ from: location }} />
 	}
 
-	// All other roles - redirect to login
-	return <Navigate to="/" replace state={{ from: location }} />
+	// If children provided (for payment pages), render them
+	if (children) {
+		return <>{children}</>;
+	}
+
+	// Otherwise render AdminApp
+	return <AdminApp />
 }
 
 function App() {
@@ -127,6 +112,25 @@ function App() {
 
 						{/* Admin login and admin routes */}
 						<Route path="/admin-login" element={<Login />} />
+						
+						{/* Payment callback routes - accessible to authenticated admin users */}
+						<Route 
+							path="/admin/school-aid/payment/success" 
+							element={
+								<RequireAdmin>
+									<PaymentSuccess />
+								</RequireAdmin>
+							} 
+						/>
+						<Route 
+							path="/admin/school-aid/payment/cancel" 
+							element={
+								<RequireAdmin>
+									<PaymentCancel />
+								</RequireAdmin>
+							} 
+						/>
+						
 						<Route path="/admin/*" element={<RequireAdmin />} />
 
 						{/* Partner School routes */}
