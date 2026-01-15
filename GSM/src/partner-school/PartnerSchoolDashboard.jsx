@@ -39,6 +39,7 @@ import {
   fetchFlexibleStudents
 } from '../services/partnerSchoolService';
 import { API_CONFIG, getAuthServiceUrl } from '../config/api';
+import PartnerSchoolApplicationStatus from './PartnerSchoolApplicationStatus';
 // import * as XLSX from 'xlsx';
 
 const PartnerSchoolDashboard = () => {
@@ -60,6 +61,7 @@ const PartnerSchoolDashboard = () => {
   const [schoolStats, setSchoolStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isApplicant, setIsApplicant] = useState(false);
 
 
   const [uploadProgress, setUploadProgress] = useState(null);
@@ -278,14 +280,25 @@ const PartnerSchoolDashboard = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch school info and stats in parallel
-        const [schoolData, statsData] = await Promise.all([
-          fetchPartnerSchoolInfo(token),
-          fetchPartnerSchoolStats(token)
-        ]);
-
+        // Fetch school info first to check verification status
+        const schoolData = await fetchPartnerSchoolInfo(token);
         setSchoolInfo(schoolData);
-        setSchoolStats(statsData);
+
+        // Check if school is verified
+        const verificationStatus = schoolData?.school?.verification_status;
+        const isVerified = verificationStatus === 'verified';
+        setIsApplicant(!isVerified);
+
+        // Only fetch stats if school is verified
+        if (isVerified) {
+          try {
+            const statsData = await fetchPartnerSchoolStats(token);
+            setSchoolStats(statsData);
+          } catch (statsErr) {
+            console.error('Error fetching stats (may not be available for applicants):', statsErr);
+            // Don't set error for stats failure, it's expected for applicants
+          }
+        }
       } catch (err) {
         console.error('Error fetching school data:', err);
         
@@ -2926,6 +2939,11 @@ const PartnerSchoolDashboard = () => {
       </div>
     </div>
   );
+
+  // If applicant, show only application status view
+  if (isApplicant) {
+    return <PartnerSchoolApplicationStatus />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">

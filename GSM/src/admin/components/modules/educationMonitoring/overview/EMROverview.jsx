@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, PieChart } from 'lucide-react';
-import { getAuthServiceUrl } from '../../../../../config/api';
+import { getMonitoringServiceUrl } from '../../../../../config/api';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import DashboardHeader from './DashboardHeader';
 import KPICards from './KPICards';
 import AnalyticsCharts from '../analytics/AnalyticsCharts';
 import ReportCategories from './ReportCategories';
 import ReportsList from './ReportsList';
+import AIInsightsPanel from '../AIInsightsPanel';
 
 function EMROverview() {
     const [selectedPeriod, setSelectedPeriod] = useState('monthly');
@@ -36,48 +37,32 @@ function EMROverview() {
     const fetchStudentData = async () => {
         setLoading(true);
         try {
-            const response = await fetch(getAuthServiceUrl('/api/students'), {
+            const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+            
+            // Fetch analytics chart data from monitoring service
+            const analyticsResponse = await fetch(getMonitoringServiceUrl('/api/analytics/analytics-charts'), {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
-            const data = await response.json();
             
+            if (!analyticsResponse.ok) {
+                throw new Error(`HTTP error! status: ${analyticsResponse.status}`);
+            }
             
-            if (data.success) {
-                setStudents(data.data);
-                calculateAcademicStats(data.data);
-                setChartData(calculateEnhancedKPIs(data.data));
+            const analyticsData = await analyticsResponse.json();
+            
+            if (analyticsData.success) {
+                setChartData(analyticsData.data || {});
             } else {
-                console.error('API returned success: false', data);
-                showError('Failed to load student data from server.');
-                
-                // Fallback: Use sample data for testing
-                const sampleData = [
-                    { id: 1, first_name: 'John', last_name: 'Doe', status: 'active', program: 'Computer Science', year_level: '3rd Year', grades: [{ grade: '85' }, { grade: '90' }] },
-                    { id: 2, first_name: 'Jane', last_name: 'Smith', status: 'active', program: 'Engineering', year_level: '2nd Year', grades: [{ grade: '88' }, { grade: '92' }] },
-                    { id: 3, first_name: 'Bob', last_name: 'Johnson', status: 'completed', program: 'Business', year_level: '4th Year', grades: [{ grade: '95' }, { grade: '87' }] },
-                    { id: 4, first_name: 'Alice', last_name: 'Brown', status: 'active', program: 'Computer Science', year_level: '1st Year', grades: [{ grade: '78' }, { grade: '82' }] }
-                ];
-                setStudents(sampleData);
-                calculateAcademicStats(sampleData);
-                setChartData(calculateEnhancedKPIs(sampleData));
+                throw new Error(analyticsData.message || 'Failed to fetch analytics data');
             }
         } catch (error) {
-            console.error('Error fetching student data:', error);
-            showError('Failed to load student data. Please try again.');
-            
-            // Fallback: Use sample data for testing when API fails
-            const sampleData = [
-                { id: 1, first_name: 'John', last_name: 'Doe', status: 'active', program: 'Computer Science', year_level: '3rd Year', grades: [{ grade: '85' }, { grade: '90' }] },
-                { id: 2, first_name: 'Jane', last_name: 'Smith', status: 'active', program: 'Engineering', year_level: '2nd Year', grades: [{ grade: '88' }, { grade: '92' }] },
-                { id: 3, first_name: 'Bob', last_name: 'Johnson', status: 'completed', program: 'Business', year_level: '4th Year', grades: [{ grade: '95' }, { grade: '87' }] },
-                { id: 4, first_name: 'Alice', last_name: 'Brown', status: 'active', program: 'Computer Science', year_level: '1st Year', grades: [{ grade: '78' }, { grade: '82' }] }
-            ];
-            setStudents(sampleData);
-            calculateAcademicStats(sampleData);
-            setChartData(calculateEnhancedKPIs(sampleData));
+            console.error('Error fetching analytics data:', error);
+            showError('Failed to load analytics data. Please try again.');
+            setChartData({});
         } finally {
             setLoading(false);
         }
@@ -689,21 +674,29 @@ function EMROverview() {
     };
 
     return (
-        <div className="">
+        <div className="space-y-6 pb-6">
+            {/* Header */}
             <DashboardHeader 
                 onExportData={exportData}
                 onGenerateReport={generateReport}
                 loading={loading}
+                onRefresh={fetchStudentData}
             />
 
+            {/* KPI Cards - Z-Pattern Row 1 */}
             <KPICards 
                 academicStats={academicStats}
                 chartData={chartData}
             />
 
+            {/* Charts Grid - Z-Pattern Row 2 */}
             <AnalyticsCharts chartData={chartData} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* AI Insights Panel */}
+            <AIInsightsPanel compact={true} />
+
+            {/* Reports Section - Z-Pattern Row 3 */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
                 <ReportCategories 
                     selectedCategory={selectedCategory}
                     onCategoryChange={setSelectedCategory}
@@ -713,7 +706,7 @@ function EMROverview() {
                 <ReportsList 
                     filteredReports={filteredReports}
                     selectedCategory={selectedCategory}
-                    reportCategories={[]} // This will be calculated in ReportCategories component
+                    reportCategories={[]}
                     selectedPeriod={selectedPeriod}
                     onPeriodChange={setSelectedPeriod}
                     onGenerateReport={generateReport}
@@ -721,38 +714,44 @@ function EMROverview() {
                 />
             </div>
 
-            {/* Quick Report Generation */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Quick Report Generation</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Quick Actions - Z-Pattern Row 4 (Bottom Right Focus) */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                <h3 className="text-sm sm:text-base font-semibold text-slate-800 dark:text-white mb-4">Quick Report Generation</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <button 
                         onClick={() => generateReport('Academic Performance')}
-                        className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                        className="flex items-center gap-3 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors group"
                     >
-                        <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                        <div className="text-left">
-                            <div className="font-medium text-slate-800 dark:text-white">Performance Report</div>
-                            <div className="text-sm text-slate-600 dark:text-slate-400">Academic grades & progress</div>
+                        <div className="p-2 bg-blue-500 rounded-lg text-white group-hover:scale-105 transition-transform">
+                            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </div>
+                        <div className="text-left min-w-0">
+                            <div className="text-sm font-medium text-slate-800 dark:text-white">Performance</div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 truncate">Academic grades</div>
                         </div>
                     </button>
                     <button 
                         onClick={() => generateReport('Enrollment Statistics')}
-                        className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                        className="flex items-center gap-3 p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors group"
                     >
-                        <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
-                        <div className="text-left">
-                            <div className="font-medium text-slate-800 dark:text-white">Enrollment Report</div>
-                            <div className="text-sm text-slate-600 dark:text-slate-400">Student registration analytics</div>
+                        <div className="p-2 bg-green-500 rounded-lg text-white group-hover:scale-105 transition-transform">
+                            <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </div>
+                        <div className="text-left min-w-0">
+                            <div className="text-sm font-medium text-slate-800 dark:text-white">Enrollment</div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 truncate">Registration data</div>
                         </div>
                     </button>
                     <button 
                         onClick={() => generateReport('Student Progress')}
-                        className="flex items-center space-x-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                        className="flex items-center gap-3 p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors group"
                     >
-                        <PieChart className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                        <div className="text-left">
-                            <div className="font-medium text-slate-800 dark:text-white">Progress Report</div>
-                            <div className="text-sm text-slate-600 dark:text-slate-400">Individual student tracking</div>
+                        <div className="p-2 bg-purple-500 rounded-lg text-white group-hover:scale-105 transition-transform">
+                            <PieChart className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </div>
+                        <div className="text-left min-w-0">
+                            <div className="text-sm font-medium text-slate-800 dark:text-white">Progress</div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 truncate">Student tracking</div>
                         </div>
                     </button>
                 </div>
@@ -760,10 +759,10 @@ function EMROverview() {
 
             {/* Loading Overlay */}
             {loading && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-6 flex items-center space-x-3">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
-                        <span className="text-slate-800 dark:text-white">Generating report...</span>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 flex items-center gap-3 shadow-xl">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-orange-500 border-t-transparent"></div>
+                        <span className="text-sm font-medium text-slate-800 dark:text-white">Generating report...</span>
                     </div>
                 </div>
             )}

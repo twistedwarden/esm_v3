@@ -31,6 +31,8 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\ScholarshipCategoryController;
 use App\Http\Controllers\Api\PartnerSchoolController;
+use App\Http\Controllers\PartnerSchoolGuidelineController;
+use App\Http\Controllers\PartnerSchoolApplicationController;
 use App\Http\Controllers\EnrollmentVerificationController;
 use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\InterviewEvaluationController;
@@ -602,7 +604,7 @@ Route::fallback(function () {
 });
 
 // Partner School routes (for PS reps) - Authentication handled manually via auth service
-Route::prefix('partner-school')->group(function () {
+Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(function () {
     Route::get('/stats', [PartnerSchoolController::class, 'getStats']);
     Route::get('/students', [PartnerSchoolController::class, 'getStudents']);
     Route::get('/enrollment/data', [PartnerSchoolController::class, 'getEnrollmentData']);
@@ -613,4 +615,52 @@ Route::prefix('partner-school')->group(function () {
     Route::get('/flexible/students', [PartnerSchoolController::class, 'getFlexibleStudents']);
     Route::get('/student-population', [PartnerSchoolController::class, 'getStudentPopulation']);
     Route::get('/schools', [PartnerSchoolController::class, 'getSchools']);
+    
+    // Get my application status (for partner school representatives)
+    Route::get('/my-application', [PartnerSchoolApplicationController::class, 'getMyApplication']);
+    
+    // Submit/Withdraw application (for partner school representatives)
+    Route::post('/applications/{id}/submit', [PartnerSchoolApplicationController::class, 'submit']);
+    Route::post('/applications/{id}/withdraw', [PartnerSchoolApplicationController::class, 'withdraw']);
+    
+    // View/Download verification documents (for partner school representatives)
+    Route::get('/applications/{id}/documents/{docId}/view', [PartnerSchoolApplicationController::class, 'viewDocument']);
+    Route::get('/applications/{id}/documents/{docId}/download', [PartnerSchoolApplicationController::class, 'downloadDocument']);
+    
+    // Update school information (for partner school representatives - applicants only)
+    Route::put('/school-info', [PartnerSchoolController::class, 'updateSchoolInfo']);
+    
+    // Download MOA template
+    Route::get('/download-moa', [PartnerSchoolApplicationController::class, 'downloadMOA']);
+});
+
+// Public guidelines viewing (no auth required)
+Route::prefix('partner-school')->group(function () {
+    Route::get('/guidelines', [PartnerSchoolGuidelineController::class, 'index']);
+    Route::get('/guidelines/{id}', [PartnerSchoolGuidelineController::class, 'show']);
+});
+
+// Partner School Guidelines and Applications routes (admin only)
+Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(function () {
+    // Guidelines management (admin only)
+    Route::post('/guidelines', [PartnerSchoolGuidelineController::class, 'store']);
+    Route::put('/guidelines/{id}', [PartnerSchoolGuidelineController::class, 'update']);
+    Route::delete('/guidelines/{id}', [PartnerSchoolGuidelineController::class, 'destroy']);
+    Route::put('/guidelines/{id}/toggle-active', [PartnerSchoolGuidelineController::class, 'toggleActive']);
+    
+    // Applications
+    Route::get('/applications', [PartnerSchoolApplicationController::class, 'index']);
+    Route::post('/applications', [PartnerSchoolApplicationController::class, 'store']);
+    Route::get('/applications/{id}', [PartnerSchoolApplicationController::class, 'show']);
+    Route::put('/applications/{id}', [PartnerSchoolApplicationController::class, 'update']);
+    Route::post('/applications/{id}/create-account', [PartnerSchoolApplicationController::class, 'createAccount']);
+    Route::post('/applications/{id}/submit', [PartnerSchoolApplicationController::class, 'submit']);
+    Route::post('/applications/{id}/mark-under-review', [PartnerSchoolApplicationController::class, 'markUnderReview']);
+    Route::post('/applications/{id}/approve', [PartnerSchoolApplicationController::class, 'approve']);
+    Route::post('/applications/{id}/reject', [PartnerSchoolApplicationController::class, 'reject']);
+    
+    // Documents (school can upload, admin can verify)
+    Route::post('/applications/{id}/documents', [PartnerSchoolApplicationController::class, 'uploadDocument']);
+    Route::get('/applications/{id}/documents', [PartnerSchoolApplicationController::class, 'getDocuments']);
+    Route::post('/applications/{id}/documents/{docId}/verify', [PartnerSchoolApplicationController::class, 'verifyDocument']);
 });

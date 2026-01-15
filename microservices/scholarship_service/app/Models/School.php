@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Services\SchoolSpecificTableService;
 
 class School extends Model
@@ -26,12 +27,18 @@ class School extends Model
         'is_public',
         'is_partner_school',
         'is_active',
+        'verification_status',
+        'verification_date',
+        'verification_expiry_date',
+        'application_id',
     ];
 
     protected $casts = [
         'is_public' => 'boolean',
         'is_partner_school' => 'boolean',
         'is_active' => 'boolean',
+        'verification_date' => 'date',
+        'verification_expiry_date' => 'date',
     ];
 
     /**
@@ -97,6 +104,14 @@ class School extends Model
         return $this->hasMany(ScholarshipApplication::class);
     }
 
+    /**
+     * Get the partner school application for this school
+     */
+    public function partnerSchoolApplication(): BelongsTo
+    {
+        return $this->belongsTo(PartnerSchoolApplication::class, 'application_id');
+    }
+
     // Accessors
     public function getFullNameAttribute(): string
     {
@@ -126,5 +141,41 @@ class School extends Model
     public function scopeByClassification($query, $classification)
     {
         return $query->where('classification', $classification);
+    }
+
+    /**
+     * Scope to filter by verification status
+     */
+    public function scopeByVerificationStatus($query, $status)
+    {
+        return $query->where('verification_status', $status);
+    }
+
+    /**
+     * Scope to get verified schools
+     */
+    public function scopeVerified($query)
+    {
+        return $query->where('verification_status', 'verified');
+    }
+
+    /**
+     * Check if school is verified
+     */
+    public function isVerified(): bool
+    {
+        return $this->verification_status === 'verified';
+    }
+
+    /**
+     * Check if verification is expired
+     */
+    public function isVerificationExpired(): bool
+    {
+        if (!$this->verification_expiry_date) {
+            return false;
+        }
+        
+        return $this->verification_expiry_date->isPast();
     }
 }

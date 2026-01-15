@@ -8,6 +8,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PartnerSchoolAccountController;
 
 /*
 |--------------------------------------------------------------------------
@@ -84,3 +85,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/dashboard/top-schools', [DashboardController::class, 'getTopSchools']);
     Route::post('/dashboard/export', [DashboardController::class, 'exportReport']);
 });
+
+// Partner School Account Management (authenticated)
+Route::prefix('partner-school')->middleware(['auth:sanctum'])->group(function () {
+    Route::get('/check-password-reset-required', [PartnerSchoolAccountController::class, 'checkPasswordResetRequired']);
+    Route::post('/force-password-reset', [PartnerSchoolAccountController::class, 'forcePasswordReset']);
+});
+
+// Public password reset (no auth required for token-based reset)
+Route::post('/partner-school/reset-password', [PartnerSchoolAccountController::class, 'resetPassword']);

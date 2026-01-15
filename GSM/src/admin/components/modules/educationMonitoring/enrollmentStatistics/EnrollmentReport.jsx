@@ -3,7 +3,7 @@ import {
     Users, TrendingUp, Calendar, School, BarChart3, 
     Download, Filter, PieChart, Activity, UserPlus 
 } from 'lucide-react';
-import { getAuthServiceUrl } from '../../../../../config/api';
+import { getMonitoringServiceUrl } from '../../../../../config/api';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function EnrollmentReport() {
@@ -24,20 +24,29 @@ function EnrollmentReport() {
     const fetchStudentData = async () => {
         setLoading(true);
         try {
-            const response = await fetch(getAuthServiceUrl('/api/students'), {
+            const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+            const response = await fetch(getMonitoringServiceUrl('/api/analytics/enrollment-statistics'), {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (data.success) {
-                setStudents(data.data);
+                setStudents(data.data || []);
+            } else {
+                throw new Error(data.message || 'Failed to fetch enrollment data');
             }
         } catch (error) {
-            console.error('Error fetching student data:', error);
-            showError('Failed to load student data. Please try again.');
+            console.error('Error fetching enrollment data:', error);
+            showError('Failed to load enrollment data. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -46,11 +55,21 @@ function EnrollmentReport() {
     const getEnrollmentTrends = () => {
         const trends = {};
         students.forEach(student => {
-            const month = new Date(student.enrollmentDate || student.created_at).toISOString().slice(0, 7);
-            if (!trends[month]) {
-                trends[month] = 0;
+            const enrollmentDate = student.enrollmentDate || student.created_at;
+            if (!enrollmentDate) return;
+            
+            try {
+                const date = new Date(enrollmentDate);
+                if (isNaN(date.getTime())) return;
+                
+                const month = date.toISOString().slice(0, 7);
+                if (!trends[month]) {
+                    trends[month] = 0;
+                }
+                trends[month]++;
+            } catch (e) {
+                // Skip invalid dates
             }
-            trends[month]++;
         });
         return trends;
     };
@@ -85,12 +104,21 @@ function EnrollmentReport() {
     const getRecentEnrollments = () => {
         return students
             .filter(student => {
-                const enrollmentDate = new Date(student.enrollmentDate || student.created_at);
+                const enrollmentDate = student.enrollmentDate || student.created_at;
+                if (!enrollmentDate) return false;
+                
+                const date = new Date(enrollmentDate);
+                if (isNaN(date.getTime())) return false;
+                
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                return enrollmentDate >= thirtyDaysAgo;
+                return date >= thirtyDaysAgo;
             })
-            .sort((a, b) => new Date(b.enrollmentDate || b.created_at) - new Date(a.enrollmentDate || a.created_at))
+            .sort((a, b) => {
+                const dateA = new Date(a.enrollmentDate || a.created_at || 0);
+                const dateB = new Date(b.enrollmentDate || b.created_at || 0);
+                return dateB - dateA;
+            })
             .slice(0, 10);
     };
 
@@ -100,23 +128,32 @@ function EnrollmentReport() {
         if (filters.status !== 'all' && student.status !== filters.status) return false;
         
         if (filters.dateRange !== 'all') {
-            const enrollmentDate = new Date(student.enrollmentDate || student.created_at);
-            const now = new Date();
+            const enrollmentDateStr = student.enrollmentDate || student.created_at;
+            if (!enrollmentDateStr) return false;
             
-            switch (filters.dateRange) {
-                case 'last30days':
-                    const thirtyDaysAgo = new Date();
-                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                    if (enrollmentDate < thirtyDaysAgo) return false;
-                    break;
-                case 'last90days':
-                    const ninetyDaysAgo = new Date();
-                    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-                    if (enrollmentDate < ninetyDaysAgo) return false;
-                    break;
-                case 'thisyear':
-                    if (enrollmentDate.getFullYear() !== now.getFullYear()) return false;
-                    break;
+            try {
+                const enrollmentDate = new Date(enrollmentDateStr);
+                if (isNaN(enrollmentDate.getTime())) return false;
+                
+                const now = new Date();
+                
+                switch (filters.dateRange) {
+                    case 'last30days':
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        if (enrollmentDate < thirtyDaysAgo) return false;
+                        break;
+                    case 'last90days':
+                        const ninetyDaysAgo = new Date();
+                        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+                        if (enrollmentDate < ninetyDaysAgo) return false;
+                        break;
+                    case 'thisyear':
+                        if (enrollmentDate.getFullYear() !== now.getFullYear()) return false;
+                        break;
+                }
+            } catch (e) {
+                return false;
             }
         }
         
@@ -204,6 +241,17 @@ function EnrollmentReport() {
             showError('Failed to export report. Please try again.');
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                    <p className="text-slate-600 dark:text-slate-400">Loading enrollment statistics data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -429,12 +477,23 @@ function EnrollmentReport() {
                         <tbody>
                             {recentEnrollments.map((student) => (
                                 <tr key={student.student_id} className="border-b border-slate-100 dark:border-slate-700">
-                                    <td className="py-3 px-4 text-sm text-slate-800 dark:text-white">{student.name}</td>
+                                    <td className="py-3 px-4 text-sm text-slate-800 dark:text-white">
+                                        {student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown'}
+                                    </td>
                                     <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">{student.program || 'N/A'}</td>
                                     <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">{student.year_level || 'N/A'}</td>
-                                    <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400 capitalize">{student.status}</td>
+                                    <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400 capitalize">{student.status || 'unknown'}</td>
                                     <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">
-                                        {new Date(student.enrollmentDate || student.created_at).toLocaleDateString()}
+                                        {(() => {
+                                            const dateStr = student.enrollmentDate || student.created_at;
+                                            if (!dateStr) return 'N/A';
+                                            try {
+                                                const date = new Date(dateStr);
+                                                return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+                                            } catch (e) {
+                                                return 'N/A';
+                                            }
+                                        })()}
                                     </td>
                                 </tr>
                             ))}

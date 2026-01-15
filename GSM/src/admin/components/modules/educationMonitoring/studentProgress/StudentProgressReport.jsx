@@ -3,7 +3,7 @@ import {
     TrendingUp, User, BookOpen, Award, Calendar, 
     Download, Filter, BarChart3, Activity, Target 
 } from 'lucide-react';
-import { getAuthServiceUrl } from '../../../../../config/api';
+import { getMonitoringServiceUrl } from '../../../../../config/api';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function StudentProgressReport() {
@@ -24,45 +24,83 @@ function StudentProgressReport() {
     const fetchStudentData = async () => {
         setLoading(true);
         try {
-            const response = await fetch(getAuthServiceUrl('/api/students'), {
+            const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+            const response = await fetch(getMonitoringServiceUrl('/api/analytics/student-progress'), {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (data.success) {
-                setStudents(data.data);
+                setStudents(data.data || []);
+            } else {
+                throw new Error(data.message || 'Failed to fetch student progress data');
             }
         } catch (error) {
-            console.error('Error fetching student data:', error);
-            showError('Failed to load student data. Please try again.');
+            console.error('Error fetching student progress data:', error);
+            showError('Failed to load student progress data. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
-    const calculateGPA = (grades) => {
-        if (!grades || grades.length === 0) return 0;
-        const numericGrades = grades
-            .map(grade => parseFloat(grade.grade))
-            .filter(grade => !isNaN(grade));
+    const calculateGPA = (student) => {
+        // First try to use the direct GPA field
+        if (student.gpa !== null && student.gpa !== undefined) {
+            return parseFloat(student.gpa);
+        }
         
-        if (numericGrades.length === 0) return 0;
-        return (numericGrades.reduce((sum, grade) => sum + grade, 0) / numericGrades.length).toFixed(2);
+        // Fall back to calculating from grades array
+        if (student.grades && student.grades.length > 0) {
+            const numericGrades = student.grades
+                .map(grade => parseFloat(grade.grade))
+                .filter(grade => !isNaN(grade));
+            
+            if (numericGrades.length > 0) {
+                return parseFloat((numericGrades.reduce((sum, grade) => sum + grade, 0) / numericGrades.length).toFixed(2));
+            }
+        }
+        
+        // Try to get GPA from academic records
+        if (student.academic_records && student.academic_records.length > 0) {
+            const currentRecord = student.academic_records.find(record => record.is_current) 
+                || student.academic_records[student.academic_records.length - 1];
+            
+            if (currentRecord) {
+                const gpa = currentRecord.gpa || currentRecord.general_weighted_average;
+                if (gpa !== null && gpa !== undefined) {
+                    return parseFloat(gpa);
+                }
+            }
+        }
+        
+        return 0;
     };
 
     const getProgressStatus = (student) => {
-        const gpa = parseFloat(calculateGPA(student.grades));
+        const gpa = calculateGPA(student);
         const totalGrades = student.grades ? student.grades.length : 0;
         
-        if (totalGrades === 0) return 'No Data';
-        if (gpa >= 90) return 'Excellent';
-        if (gpa >= 80) return 'Good';
-        if (gpa >= 70) return 'Satisfactory';
-        if (gpa >= 60) return 'Needs Improvement';
-        return 'At Risk';
+        if (totalGrades === 0 && gpa === 0) return 'No Data';
+        
+        // Convert GPA (0-4 scale) to percentage (0-100 scale) for status determination
+        // Assuming 4.0 = 100%, 3.5 = 87.5%, 3.0 = 75%, 2.5 = 62.5%, 2.0 = 50%
+        const percentage = (gpa / 4.0) * 100;
+        
+        if (percentage >= 87.5 || gpa >= 3.5) return 'Excellent';
+        if (percentage >= 75 || gpa >= 3.0) return 'Good';
+        if (percentage >= 62.5 || gpa >= 2.5) return 'Satisfactory';
+        if (percentage >= 50 || gpa >= 2.0) return 'Needs Improvement';
+        if (gpa > 0) return 'At Risk';
+        return 'No Data';
     };
 
     const getProgressColor = (status) => {
@@ -79,15 +117,24 @@ function StudentProgressReport() {
     const getRecentGrades = (student) => {
         if (!student.grades || student.grades.length === 0) return [];
         return student.grades
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .sort((a, b) => {
+                const dateA = new Date(a.created_at || a.year || 0);
+                const dateB = new Date(b.created_at || b.year || 0);
+                return dateB - dateA;
+            })
             .slice(0, 5);
     };
 
     const getGradeTrend = (student) => {
         if (!student.grades || student.grades.length < 2) return 'stable';
         
-        const recentGrades = student.grades
-            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        const sortedGrades = [...student.grades].sort((a, b) => {
+            const dateA = new Date(a.created_at || a.year || 0);
+            const dateB = new Date(b.created_at || b.year || 0);
+            return dateA - dateB;
+        });
+        
+        const recentGrades = sortedGrades
             .slice(-3)
             .map(grade => parseFloat(grade.grade))
             .filter(grade => !isNaN(grade));
@@ -100,8 +147,10 @@ function StudentProgressReport() {
         const firstAvg = firstHalf.reduce((sum, grade) => sum + grade, 0) / firstHalf.length;
         const secondAvg = secondHalf.reduce((sum, grade) => sum + grade, 0) / secondHalf.length;
         
-        if (secondAvg > firstAvg + 5) return 'improving';
-        if (secondAvg < firstAvg - 5) return 'declining';
+        // For GPA scale (0-4), use smaller threshold (0.2 instead of 5)
+        const threshold = 0.2;
+        if (secondAvg > firstAvg + threshold) return 'improving';
+        if (secondAvg < firstAvg - threshold) return 'declining';
         return 'stable';
     };
 
@@ -118,7 +167,10 @@ function StudentProgressReport() {
 
         students.forEach(student => {
             const status = getProgressStatus(student);
-            stats[status.toLowerCase().replace(' ', '')]++;
+            const key = status.toLowerCase().replace(/\s+/g, '');
+            if (stats.hasOwnProperty(key)) {
+                stats[key]++;
+            }
         });
 
         return stats;
@@ -150,7 +202,12 @@ function StudentProgressReport() {
                 { 'Metric': 'On Track Students', 'Value': progressStats.onTrack },
                 { 'Metric': 'At Risk Students', 'Value': progressStats.atRisk },
                 { 'Metric': 'Needs Attention Students', 'Value': progressStats.needsAttention },
-                { 'Metric': 'Average GPA', 'Value': (filteredStudents.reduce((sum, s) => sum + calculateGPA(s.grades), 0) / filteredStudents.length).toFixed(2) },
+                { 'Metric': 'Average GPA', 'Value': (() => {
+                    const studentsWithGPA = filteredStudents.filter(s => calculateGPA(s) > 0);
+                    if (studentsWithGPA.length === 0) return '0.00';
+                    const totalGPA = studentsWithGPA.reduce((sum, s) => sum + calculateGPA(s), 0);
+                    return (totalGPA / studentsWithGPA.length).toFixed(2);
+                })() },
                 { 'Metric': 'Report Generated', 'Value': new Date().toLocaleDateString() },
                 { 'Metric': 'Report Type', 'Value': 'Student Progress Tracking Analysis' }
             ];
@@ -184,10 +241,10 @@ function StudentProgressReport() {
 
             // Create performance level analysis
             const performanceDistribution = {
-                'Excellent (3.5+)': filteredStudents.filter(s => calculateGPA(s.grades) >= 3.5).length,
-                'Good (3.0-3.4)': filteredStudents.filter(s => calculateGPA(s.grades) >= 3.0 && calculateGPA(s.grades) < 3.5).length,
-                'Satisfactory (2.5-2.9)': filteredStudents.filter(s => calculateGPA(s.grades) >= 2.5 && calculateGPA(s.grades) < 3.0).length,
-                'Needs Improvement (<2.5)': filteredStudents.filter(s => calculateGPA(s.grades) < 2.5).length
+                'Excellent (3.5+)': filteredStudents.filter(s => calculateGPA(s) >= 3.5).length,
+                'Good (3.0-3.4)': filteredStudents.filter(s => calculateGPA(s) >= 3.0 && calculateGPA(s) < 3.5).length,
+                'Satisfactory (2.5-2.9)': filteredStudents.filter(s => calculateGPA(s) >= 2.5 && calculateGPA(s) < 3.0).length,
+                'Needs Improvement (<2.5)': filteredStudents.filter(s => calculateGPA(s) > 0 && calculateGPA(s) < 2.5).length
             };
 
             const performanceStats = Object.entries(performanceDistribution).map(([level, count]) => ({
@@ -229,6 +286,17 @@ function StudentProgressReport() {
             showError('Failed to export report. Please try again.');
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                    <p className="text-slate-600 dark:text-slate-400">Loading student progress data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -409,10 +477,12 @@ function StudentProgressReport() {
                                 const recentGrades = getRecentGrades(student);
                                 
                                 return (
-                                    <tr key={student.student_id} className="border-b border-slate-100 dark:border-slate-700">
-                                        <td className="py-3 px-4 text-sm text-slate-800 dark:text-white">{student.name}</td>
+                                    <tr key={student.student_id || student.id} className="border-b border-slate-100 dark:border-slate-700">
+                                        <td className="py-3 px-4 text-sm text-slate-800 dark:text-white">
+                                            {student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown'}
+                                        </td>
                                         <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">{student.program || 'N/A'}</td>
-                                        <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">{gpa}</td>
+                                        <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">{gpa > 0 ? gpa.toFixed(2) : 'N/A'}</td>
                                         <td className="py-3 px-4 text-sm">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getProgressColor(status)}`}>
                                                 {status}
@@ -473,7 +543,12 @@ function StudentProgressReport() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400">GPA</p>
-                                    <p className="text-slate-800 dark:text-white">{calculateGPA(selectedStudent.grades)}</p>
+                                    <p className="text-slate-800 dark:text-white">
+                                        {(() => {
+                                            const gpa = calculateGPA(selectedStudent);
+                                            return gpa > 0 ? gpa.toFixed(2) : 'N/A';
+                                        })()}
+                                    </p>
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Progress Status</p>
@@ -488,9 +563,15 @@ function StudentProgressReport() {
                                 <div className="space-y-2">
                                     {getRecentGrades(selectedStudent).map((grade, index) => (
                                         <div key={index} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700/50 rounded">
-                                            <span className="text-sm text-slate-700 dark:text-slate-300">{grade.course_code}</span>
-                                            <span className="text-sm font-medium text-slate-800 dark:text-white">{grade.grade}</span>
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">{grade.term}</span>
+                                            <span className="text-sm text-slate-700 dark:text-slate-300">
+                                                {grade.course_code || grade.program || 'N/A'}
+                                            </span>
+                                            <span className="text-sm font-medium text-slate-800 dark:text-white">
+                                                {grade.grade ? parseFloat(grade.grade).toFixed(2) : 'N/A'}
+                                            </span>
+                                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                {grade.term || grade.year || 'N/A'}
+                                            </span>
                                         </div>
                                     ))}
                                     {getRecentGrades(selectedStudent).length === 0 && (

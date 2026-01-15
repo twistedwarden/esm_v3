@@ -10,12 +10,13 @@ import AnalyticsView from './modules/studentRegistry/components/AnalyticsView'
 import DataTools from './modules/studentRegistry/components/DataTools'
 import PSDSchoolManagement from './modules/partnerSchool/PSDSchoolManagement'
 import PSDStudentPopulation from './modules/partnerSchool/PSDStudentPopulation'
-import PSDVerification from './modules/partnerSchool/PSDVerification'
 import PSDAnalytics from './modules/partnerSchool/PSDAnalytics'
 import PSDSettings from './modules/partnerSchool/PSDSettings'
+import PSDGuidelinesTabbed from './modules/partnerSchool/PSDGuidelinesTabbed'
+import PSDApplicationsTabbed from './modules/partnerSchool/PSDApplicationsTabbed'
 import UserManagement from './modules/UserManagement/UserManagement'
 import AuditLog from './modules/AuditLog/AuditLog'
-import { EMROverview, AcademicPerformanceReport, EnrollmentReport, StudentProgressReport, AnalyticsCharts } from './modules/educationMonitoring'
+import { EMROverview, AcademicPerformanceReport, EnrollmentReport, StudentProgressReport, AnalyticsCharts, MonitoringDashboard } from './modules/educationMonitoring'
 import SettingsOverview from './modules/settings/SettingsOverview'
 import InterviewerDashboard from './modules/interviewer/InterviewerDashboard'
 import MyInterviews from './modules/interviewer/MyInterviews'
@@ -106,14 +107,16 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 			return <div><PSDSchoolManagement /></div>
 		case 'psd-student-population':
 			return <div><PSDStudentPopulation /></div>
-		case 'psd-verification':
-			return <div><PSDVerification /></div>
 		case 'psd-analytics':
 			return <div><PSDAnalytics /></div>
 		case 'psd-settings':
 			return <div><PSDSettings /></div>
+		case 'psd-guidelines':
+			return <div><PSDGuidelinesTabbed /></div>
+		case 'psd-applications':
+			return <div><PSDApplicationsTabbed /></div>
 		case 'emr-overview':
-			return <div><EMROverview /></div>
+			return <div><MonitoringDashboard /></div>
 		case 'emr-academic-performance':
 			return <div><AcademicPerformanceReport /></div>
 		case 'emr-enrollment-statistics':
@@ -122,6 +125,8 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 			return <div><StudentProgressReport /></div>
 		case 'emr-analytics':
 			return <div><AnalyticsCharts /></div>
+		case 'emr-legacy':
+			return <div><EMROverview /></div>
 		case 'user-management':
 			return <div><UserManagement /></div>
 		case 'audit-logs':

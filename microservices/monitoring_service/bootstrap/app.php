@@ -12,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Register route middleware aliases
+        $middleware->alias([
+            'auth.analytics' => \App\Http\Middleware\AuthenticateAnalytics::class,
+            'auth.internal' => \App\Http\Middleware\InternalServiceAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

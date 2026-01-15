@@ -39,6 +39,9 @@ class User extends Authenticatable
         'email_verified_at',
         'google_id',
         'assigned_school_id',
+        'password_reset_required',
+        'password_reset_token',
+        'password_reset_expires_at',
     ];
 
     /**
@@ -61,6 +64,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'password_reset_required' => 'boolean',
+            'password_reset_expires_at' => 'datetime',
         ];
     }
 

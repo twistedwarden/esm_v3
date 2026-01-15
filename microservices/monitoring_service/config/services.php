@@ -35,4 +35,33 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Internal Microservices
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for communicating with other microservices in the GSM
+    | platform. Used for token validation and service-to-service auth.
+    |
+    */
+
+    'auth' => [
+        'url' => env('AUTH_SERVICE_URL', 'http://localhost:8000'),
+        'token' => env('AUTH_SERVICE_TOKEN'),
+    ],
+
+    'scholarship' => [
+        'url' => env('SCHOLARSHIP_SERVICE_URL', 'http://localhost:8001'),
+        'token' => env('SCHOLARSHIP_SERVICE_TOKEN'),
+    ],
+
+    'aid' => [
+        'url' => env('AID_SERVICE_URL', 'http://localhost:8002'),
+        'token' => env('AID_SERVICE_TOKEN'),
+    ],
+
+    'internal' => [
+        'token' => env('INTERNAL_SERVICE_TOKEN'),
+    ],
+
 ];

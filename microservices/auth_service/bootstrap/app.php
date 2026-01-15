@@ -12,20 +12,24 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // CORS must be handled FIRST for preflight requests
+        // Apply to both API and web routes
+        $middleware->api(prepend: [
+            \App\Http\Middleware\CorsMiddleware::class,
+        ]);
+
+        $middleware->web(prepend: [
+            \App\Http\Middleware\CorsMiddleware::class,
+        ]);
+
+        // Sanctum middleware after CORS
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
-        $middleware->web(append: [
-            \Illuminate\Http\Middleware\HandleCors::class,
-        ]);
-
-        $middleware->api(append: [
-            \Illuminate\Http\Middleware\HandleCors::class,
-        ]);
-
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+            'cors' => \App\Http\Middleware\CorsMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

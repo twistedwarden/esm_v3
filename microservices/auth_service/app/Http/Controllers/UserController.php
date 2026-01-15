@@ -302,6 +302,9 @@ class UserController extends Controller
                 'barangay' => 'nullable|string|max:255',
                 'role' => 'required|in:admin,citizen,staff,ps_rep,ssc,ssc_chairperson,ssc_city_council,ssc_budget_dept,ssc_education_affairs,ssc_hrd,ssc_social_services,ssc_accounting,ssc_treasurer,ssc_qcydo,ssc_planning_dept,ssc_schools_division,ssc_qcu',
                 'assigned_school_id' => 'nullable|integer',
+                'password_reset_required' => 'nullable|boolean',
+                'password_reset_token' => 'nullable|string',
+                'password_reset_expires_at' => 'nullable|date',
             ]);
 
             \Log::info('Validation passed, creating user');
@@ -317,6 +320,10 @@ class UserController extends Controller
                 'password' => bcrypt($validated['password']),
                 'is_active' => true,
                 'status' => 'active',
+                'password_reset_required' => $request->input('password_reset_required', false),
+                'password_reset_token' => $request->input('password_reset_token'),
+                'password_reset_expires_at' => $request->input('password_reset_expires_at') ? 
+                    \Carbon\Carbon::parse($request->input('password_reset_expires_at')) : null,
             ]);
 
             \Log::info('User created successfully', ['user_id' => $user->id]);

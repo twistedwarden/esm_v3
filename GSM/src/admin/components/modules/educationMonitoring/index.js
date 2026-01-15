@@ -12,3 +12,9 @@ export { StudentProgressReport } from './studentProgress';
 
 // Analytics module
 export { AnalyticsCharts } from './analytics';
+
+// AI Insights
+export { default as AIInsightsPanel } from './AIInsightsPanel';
+
+// New Monitoring Dashboard (Z-Pattern)
+export { default as MonitoringDashboard } from './MonitoringDashboard';

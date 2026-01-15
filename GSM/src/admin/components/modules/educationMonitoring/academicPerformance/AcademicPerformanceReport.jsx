@@ -3,7 +3,7 @@ import {
     BarChart3, TrendingUp, Users, Award, BookOpen, 
     Download, Filter, Calendar, AlertCircle, CheckCircle 
 } from 'lucide-react';
-import { getAuthServiceUrl } from '../../../../../config/api';
+import { getMonitoringServiceUrl } from '../../../../../config/api';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function AcademicPerformanceReport() {
@@ -23,16 +23,25 @@ function AcademicPerformanceReport() {
     const fetchStudentData = async () => {
         setLoading(true);
         try {
-            const response = await fetch(getAuthServiceUrl('/api/students'), {
+            const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+            const response = await fetch(getMonitoringServiceUrl('/api/analytics/academic-performance'), {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (data.success) {
-                setStudents(data.data);
+                setStudents(data.data || []);
+            } else {
+                throw new Error(data.message || 'Failed to fetch student data');
             }
         } catch (error) {
             console.error('Error fetching student data:', error);
@@ -42,14 +51,37 @@ function AcademicPerformanceReport() {
         }
     };
 
-    const calculateGPA = (grades) => {
-        if (!grades || grades.length === 0) return 0;
-        const numericGrades = grades
-            .map(grade => parseFloat(grade.grade))
-            .filter(grade => !isNaN(grade));
+    const calculateGPA = (student) => {
+        // First try to use the direct GPA field
+        if (student.gpa !== null && student.gpa !== undefined) {
+            return parseFloat(student.gpa);
+        }
         
-        if (numericGrades.length === 0) return 0;
-        return (numericGrades.reduce((sum, grade) => sum + grade, 0) / numericGrades.length).toFixed(2);
+        // Fall back to calculating from grades array
+        if (student.grades && student.grades.length > 0) {
+            const numericGrades = student.grades
+                .map(grade => parseFloat(grade.grade))
+                .filter(grade => !isNaN(grade));
+            
+            if (numericGrades.length > 0) {
+                return parseFloat((numericGrades.reduce((sum, grade) => sum + grade, 0) / numericGrades.length).toFixed(2));
+            }
+        }
+        
+        // Try to get GPA from academic records
+        if (student.academic_records && student.academic_records.length > 0) {
+            const currentRecord = student.academic_records.find(record => record.is_current) 
+                || student.academic_records[student.academic_records.length - 1];
+            
+            if (currentRecord) {
+                const gpa = currentRecord.gpa || currentRecord.general_weighted_average;
+                if (gpa !== null && gpa !== undefined) {
+                    return parseFloat(gpa);
+                }
+            }
+        }
+        
+        return 0;
     };
 
     const getGradeDistribution = () => {
@@ -62,14 +94,16 @@ function AcademicPerformanceReport() {
         };
 
         students.forEach(student => {
-            if (student.grades && student.grades.length > 0) {
-                const gpa = parseFloat(calculateGPA(student.grades));
-                if (gpa >= 90) distribution['A (90-100)']++;
-                else if (gpa >= 80) distribution['B (80-89)']++;
-                else if (gpa >= 70) distribution['C (70-79)']++;
-                else if (gpa >= 60) distribution['D (60-69)']++;
-                else distribution['F (Below 60)']++;
-            }
+            const gpa = calculateGPA(student);
+            // Convert GPA (0-4 scale) to percentage (0-100 scale) for distribution
+            // Assuming 4.0 = 100%, 3.0 = 75%, 2.0 = 50%, etc.
+            const percentage = (gpa / 4.0) * 100;
+            
+            if (percentage >= 90) distribution['A (90-100)']++;
+            else if (percentage >= 80) distribution['B (80-89)']++;
+            else if (percentage >= 70) distribution['C (70-79)']++;
+            else if (percentage >= 60) distribution['D (60-69)']++;
+            else if (gpa > 0) distribution['F (Below 60)']++;
         });
 
         return distribution;
@@ -89,9 +123,9 @@ function AcademicPerformanceReport() {
             }
             programStats[program].total++;
             
-            if (student.grades && student.grades.length > 0) {
+            const gpa = calculateGPA(student);
+            if (gpa > 0) {
                 programStats[program].withGrades++;
-                const gpa = parseFloat(calculateGPA(student.grades));
                 programStats[program].totalGPA += gpa;
             }
         });
@@ -120,9 +154,9 @@ function AcademicPerformanceReport() {
             }
             yearStats[year].total++;
             
-            if (student.grades && student.grades.length > 0) {
+            const gpa = calculateGPA(student);
+            if (gpa > 0) {
                 yearStats[year].withGrades++;
-                const gpa = parseFloat(calculateGPA(student.grades));
                 yearStats[year].totalGPA += gpa;
             }
         });
@@ -138,14 +172,26 @@ function AcademicPerformanceReport() {
     };
 
     const getGradeTrend = (student) => {
-        if (!student.grades || student.grades.length < 2) return 'Insufficient Data';
+        if (!student.academic_records || student.academic_records.length < 2) {
+            return 'Insufficient Data';
+        }
         
-        const recentGrades = student.grades.slice(-3); // Last 3 grades
-        const firstGrade = parseFloat(recentGrades[0].grade);
-        const lastGrade = parseFloat(recentGrades[recentGrades.length - 1].grade);
+        // Sort records by school year and term
+        const sortedRecords = [...student.academic_records].sort((a, b) => {
+            if (a.school_year !== b.school_year) {
+                return a.school_year.localeCompare(b.school_year);
+            }
+            return (a.school_term || '').localeCompare(b.school_term || '');
+        });
         
-        if (lastGrade > firstGrade) return 'Improving';
-        if (lastGrade < firstGrade) return 'Declining';
+        const recentRecords = sortedRecords.slice(-3); // Last 3 records
+        if (recentRecords.length < 2) return 'Insufficient Data';
+        
+        const firstGPA = parseFloat(recentRecords[0].gpa || recentRecords[0].general_weighted_average || 0);
+        const lastGPA = parseFloat(recentRecords[recentRecords.length - 1].gpa || recentRecords[recentRecords.length - 1].general_weighted_average || 0);
+        
+        if (lastGPA > firstGPA) return 'Improving';
+        if (lastGPA < firstGPA) return 'Declining';
         return 'Stable';
     };
 
@@ -163,13 +209,17 @@ function AcademicPerformanceReport() {
     const exportReport = () => {
         try {
             // Create academic performance summary
+            const studentsWithGPA = filteredStudents.filter(s => calculateGPA(s) > 0);
+            const totalGPA = studentsWithGPA.reduce((sum, s) => sum + calculateGPA(s), 0);
+            const avgGPA = studentsWithGPA.length > 0 ? (totalGPA / studentsWithGPA.length).toFixed(2) : '0.00';
+            
             const performanceSummary = [
                 { 'Metric': 'Total Students', 'Value': filteredStudents.length },
-                { 'Metric': 'Average GPA', 'Value': (filteredStudents.reduce((sum, s) => sum + calculateGPA(s.grades), 0) / filteredStudents.length).toFixed(2) },
-                { 'Metric': 'Excellent Students (3.5+)', 'Value': filteredStudents.filter(s => calculateGPA(s.grades) >= 3.5).length },
-                { 'Metric': 'Good Students (3.0-3.4)', 'Value': filteredStudents.filter(s => calculateGPA(s.grades) >= 3.0 && calculateGPA(s.grades) < 3.5).length },
-                { 'Metric': 'Satisfactory Students (2.5-2.9)', 'Value': filteredStudents.filter(s => calculateGPA(s.grades) >= 2.5 && calculateGPA(s.grades) < 3.0).length },
-                { 'Metric': 'Needs Improvement (<2.5)', 'Value': filteredStudents.filter(s => calculateGPA(s.grades) < 2.5).length },
+                { 'Metric': 'Average GPA', 'Value': avgGPA },
+                { 'Metric': 'Excellent Students (3.5+)', 'Value': filteredStudents.filter(s => calculateGPA(s) >= 3.5).length },
+                { 'Metric': 'Good Students (3.0-3.4)', 'Value': filteredStudents.filter(s => calculateGPA(s) >= 3.0 && calculateGPA(s) < 3.5).length },
+                { 'Metric': 'Satisfactory Students (2.5-2.9)', 'Value': filteredStudents.filter(s => calculateGPA(s) >= 2.5 && calculateGPA(s) < 3.0).length },
+                { 'Metric': 'Needs Improvement (<2.5)', 'Value': filteredStudents.filter(s => calculateGPA(s) > 0 && calculateGPA(s) < 2.5).length },
                 { 'Metric': 'Report Generated', 'Value': new Date().toLocaleDateString() },
                 { 'Metric': 'Report Type', 'Value': 'Academic Performance Analysis' }
             ];
@@ -233,6 +283,17 @@ function AcademicPerformanceReport() {
             showError('Failed to export report. Please try again.');
         }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                    <p className="text-slate-600 dark:text-slate-400">Loading academic performance data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -318,7 +379,7 @@ function AcademicPerformanceReport() {
                         <div>
                             <p className="text-sm font-medium text-slate-600 dark:text-slate-400">With Grades</p>
                             <p className="text-2xl font-bold text-slate-800 dark:text-white">
-                                {filteredStudents.filter(s => s.grades && s.grades.length > 0).length}
+                                {filteredStudents.filter(s => calculateGPA(s) > 0).length}
                             </p>
                         </div>
                         <BookOpen className="w-8 h-8 text-green-500" />
@@ -330,9 +391,9 @@ function AcademicPerformanceReport() {
                             <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Average GPA</p>
                             <p className="text-2xl font-bold text-slate-800 dark:text-white">
                                 {(() => {
-                                    const studentsWithGrades = filteredStudents.filter(s => s.grades && s.grades.length > 0);
+                                    const studentsWithGrades = filteredStudents.filter(s => calculateGPA(s) > 0);
                                     if (studentsWithGrades.length === 0) return '0.00';
-                                    const totalGPA = studentsWithGrades.reduce((sum, s) => sum + parseFloat(calculateGPA(s.grades)), 0);
+                                    const totalGPA = studentsWithGrades.reduce((sum, s) => sum + calculateGPA(s), 0);
                                     return (totalGPA / studentsWithGrades.length).toFixed(2);
                                 })()}
                             </p>
@@ -346,9 +407,10 @@ function AcademicPerformanceReport() {
                             <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Passing Rate</p>
                             <p className="text-2xl font-bold text-slate-800 dark:text-white">
                                 {(() => {
-                                    const studentsWithGrades = filteredStudents.filter(s => s.grades && s.grades.length > 0);
+                                    const studentsWithGrades = filteredStudents.filter(s => calculateGPA(s) > 0);
                                     if (studentsWithGrades.length === 0) return '0%';
-                                    const passingStudents = studentsWithGrades.filter(s => parseFloat(calculateGPA(s.grades)) >= 70).length;
+                                    // Convert GPA (0-4 scale) to percentage for passing (2.0 GPA = 50% = passing)
+                                    const passingStudents = studentsWithGrades.filter(s => calculateGPA(s) >= 2.0).length;
                                     return `${((passingStudents / studentsWithGrades.length) * 100).toFixed(1)}%`;
                                 })()}
                             </p>

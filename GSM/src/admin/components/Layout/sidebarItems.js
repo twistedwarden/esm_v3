@@ -33,7 +33,8 @@ const allSidebarItems = [
         subItems: [
             { id: 'psd-school-management', label: 'School Management' },
             { id: 'psd-student-population', label: 'Student Population' },
-            { id: 'psd-verification', label: 'Verification & Accreditation' },
+            { id: 'psd-guidelines', label: 'Guidelines' },
+            { id: 'psd-applications', label: 'Applications' },
             { id: 'psd-analytics', label: 'Analytics & Reports' },
             { id: 'psd-settings', label: 'Settings' }
         ]

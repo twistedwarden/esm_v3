@@ -16,6 +16,98 @@ use Illuminate\Support\Facades\DB;
 class PartnerSchoolController extends Controller
 {
     /**
+     * Update school information (for partner school representatives - applicants only)
+     */
+    public function updateSchoolInfo(Request $request): JsonResponse
+    {
+        $authUser = $request->get('auth_user');
+        
+        // Verify this is a partner school representative
+        if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Partner school representative role required.'
+            ], 403);
+        }
+
+        if (!isset($authUser['citizen_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Citizen ID not found in authentication data.'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'classification' => 'nullable|string|in:LOCAL UNIVERSITY/COLLEGE (LUC),STATE UNIVERSITY/COLLEGE (SUC),PRIVATE UNIVERSITY/COLLEGE,TECHNICAL/VOCATIONAL INSTITUTE,OTHER',
+            'address' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'region' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:20',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Look up the representative's school
+            $representative = PartnerSchoolRepresentative::with('school')
+                ->where('citizen_id', $authUser['citizen_id'])
+                ->where('is_active', true)
+                ->first();
+
+            if (!$representative || !$representative->school) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No school assignment found for this representative.'
+                ], 404);
+            }
+
+            $school = $representative->school;
+
+            // Only allow updates if school is not yet verified (applicant status)
+            if ($school->verification_status === 'verified') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot update school information. School is already verified. Please contact administrator for changes.'
+                ], 403);
+            }
+
+            // Update only allowed fields
+            $school->update([
+                'classification' => $request->classification ?? $school->classification,
+                'address' => $request->address ?? $school->address,
+                'city' => $request->city ?? $school->city,
+                'province' => $request->province ?? $school->province,
+                'region' => $request->region ?? $school->region,
+                'contact_number' => $request->contact_number ?? $school->contact_number,
+            ]);
+
+            Log::info('School information updated by representative', [
+                'citizen_id' => $authUser['citizen_id'],
+                'school_id' => $school->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'School information updated successfully',
+                'data' => $school
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating school information: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update school information'
+            ], 500);
+        }
+    }
+
+    /**
      * Get school information for the authenticated partner school representative
      */
     public function getSchoolInfo(Request $request): JsonResponse
