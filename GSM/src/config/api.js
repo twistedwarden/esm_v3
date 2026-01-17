@@ -12,7 +12,8 @@ export const API_CONFIG = {
         }
     },
     SCHOLARSHIP_SERVICE: {
-        BASE_URL: 'http://localhost:8001',
+        // BASE_URL: 'http://localhost:8001',
+        BASE_URL: 'https://scholarship-educ.goserveph.com',
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health',
@@ -92,7 +93,8 @@ export const API_CONFIG = {
         }
     },
     AID_SERVICE: {
-        BASE_URL: 'http://localhost:8002',
+        // BASE_URL: 'http://localhost:8002',
+        BASE_URL: 'https://aid-educ.goserveph.com',
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health',
@@ -118,7 +120,8 @@ export const API_CONFIG = {
         }
     },
     MONITORING_SERVICE: {
-        BASE_URL: 'http://localhost:8003',
+        // BASE_URL: 'http://localhost:8003',
+        BASE_URL: 'https://monitoring-educ.goserveph.com',
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health'
