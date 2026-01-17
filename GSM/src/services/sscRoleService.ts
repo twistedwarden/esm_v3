@@ -32,19 +32,19 @@ export const ROLE_TAB_MAPPING: Record<string, string[]> = {
   city_council: ['overview', 'my-queue', 'document-verification'],
   hrd: ['overview', 'my-queue', 'document-verification'],
   social_services: ['overview', 'my-queue', 'document-verification'],
-  
+
   // Financial Review Stage
   budget_dept: ['overview', 'my-queue', 'financial-review'],
   accounting: ['overview', 'my-queue', 'financial-review'],
   treasurer: ['overview', 'my-queue', 'financial-review'],
-  
+
   // Academic Review Stage
   education_affairs: ['overview', 'my-queue', 'academic-review'],
   qcydo: ['overview', 'my-queue', 'academic-review'],
   planning_dept: ['overview', 'my-queue', 'academic-review'],
   schools_division: ['overview', 'my-queue', 'academic-review'],
   qcu: ['overview', 'my-queue', 'academic-review'],
-  
+
   // Chairperson - has access to all stages
   chairperson: ['overview', 'my-queue', 'final-approval', 'history'],
 };
@@ -174,14 +174,14 @@ class SscRoleService {
    */
   async getAllowedTabs(): Promise<string[]> {
     const roles = await this.fetchUserRoles();
-    
+
     if (!roles.has_ssc_role) {
       return [];
     }
 
     // Chairperson gets all tabs
     if (roles.is_chairperson) {
-      return [...ROLE_TAB_MAPPING.chairperson, 'members'];
+      return [...ROLE_TAB_MAPPING.chairperson];
     }
 
     // Combine tabs from all user's roles
@@ -190,9 +190,6 @@ class SscRoleService {
       const tabs = ROLE_TAB_MAPPING[role] || [];
       tabs.forEach((tab) => allowedTabs.add(tab));
     });
-
-    // All SSC members can view the members tab
-    allowedTabs.add('members');
 
     return Array.from(allowedTabs);
   }
@@ -258,7 +255,7 @@ class SscRoleService {
    */
   async getPrimaryTab(): Promise<string> {
     const roles = await this.fetchUserRoles();
-    
+
     if (!roles.has_ssc_role) {
       return 'overview';
     }

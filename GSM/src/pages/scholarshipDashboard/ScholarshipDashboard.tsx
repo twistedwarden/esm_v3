@@ -55,67 +55,93 @@ export const ScholarshipDashboard: React.FC = () => {
   // Notification functions
   const generateMockNotifications = useCallback((application: any) => {
     const mockNotifications = [];
+    const readNotificationIds = JSON.parse(localStorage.getItem('read_notifications') || '[]');
 
     if (application) {
-      // Status-based notifications
-      switch (application.status) {
-        case 'submitted':
-          mockNotifications.push({
-            id: 1,
-            type: 'info',
-            title: 'Application Submitted',
-            message: 'Your scholarship application has been successfully submitted and is now under review.',
-            timestamp: new Date(application.submitted_at || Date.now()),
-            isRead: false,
-            priority: 'high'
-          });
-          break;
-        case 'reviewed':
-          mockNotifications.push({
-            id: 2,
-            type: 'success',
-            title: 'Application Reviewed',
-            message: 'Your application has been reviewed by the Student Services Committee.',
-            timestamp: new Date(application.reviewed_at || Date.now()),
-            isRead: false,
-            priority: 'high'
-          });
-          break;
-        case 'approved':
-          mockNotifications.push({
-            id: 3,
-            type: 'success',
-            title: 'Application Approved!',
-            message: `Congratulations! Your scholarship application has been approved for ₱${application.approved_amount?.toLocaleString() || '0'}.`,
-            timestamp: new Date(application.approved_at || Date.now()),
-            isRead: false,
-            priority: 'urgent'
-          });
-          break;
-        // approved_pending_verification status removed - applications go directly to interview_scheduled
-        // enrollment_verified status removed - automatic verification disabled
-        case 'interview_completed':
-          mockNotifications.push({
-            id: 6,
-            type: 'success',
-            title: 'Interview Completed',
-            message: 'Your interview has been completed. The results are being reviewed by the committee.',
-            timestamp: new Date(application.interview_completed_at || Date.now()),
-            isRead: false,
-            priority: 'high'
-          });
-          break;
-        case 'rejected':
-          mockNotifications.push({
-            id: 7,
-            type: 'error',
-            title: 'Application Not Approved',
-            message: `Unfortunately, your application was not approved. Reason: ${application.rejection_reason || 'Please contact support for details.'}`,
-            timestamp: new Date(application.rejected_at || Date.now()),
-            isRead: false,
-            priority: 'high'
-          });
-          break;
+      // Status-based notifications (Historical)
+
+      // Submitted
+      if (application.submitted_at) {
+        const id = 1;
+        mockNotifications.push({
+          id,
+          type: 'info',
+          title: 'Application Submitted',
+          message: 'Your scholarship application has been successfully submitted and is now under review.',
+          timestamp: new Date(application.submitted_at),
+          isRead: readNotificationIds.includes(id),
+          priority: 'high'
+        });
+      }
+
+      // Reviewed
+      if (application.reviewed_at) {
+        const id = 2;
+        mockNotifications.push({
+          id,
+          type: 'success',
+          title: 'Application Reviewed',
+          message: 'Your application has been reviewed by the Student Services Committee.',
+          timestamp: new Date(application.reviewed_at),
+          isRead: readNotificationIds.includes(id),
+          priority: 'high'
+        });
+      }
+
+      // Interview Completed
+      if (application.interview_completed_at) {
+        const id = 6;
+        mockNotifications.push({
+          id,
+          type: 'success',
+          title: 'Interview Completed',
+          message: 'Your interview has been completed. The results are being reviewed by the committee.',
+          timestamp: new Date(application.interview_completed_at),
+          isRead: readNotificationIds.includes(id),
+          priority: 'high'
+        });
+      }
+
+      // Approved
+      if (application.approved_at) {
+        const id = 3;
+        mockNotifications.push({
+          id,
+          type: 'success',
+          title: 'Application Approved!',
+          message: `Congratulations! Your scholarship application has been approved for ₱${application.approved_amount?.toLocaleString() || '0'}.`,
+          timestamp: new Date(application.approved_at),
+          isRead: readNotificationIds.includes(id),
+          priority: 'urgent'
+        });
+      }
+
+      // Rejected
+      if (application.rejected_at) {
+        const id = 7;
+        mockNotifications.push({
+          id,
+          type: 'error',
+          title: 'Application Not Approved',
+          message: `Unfortunately, your application was not approved. Reason: ${application.rejection_reason || 'Please contact support for details.'}`,
+          timestamp: new Date(application.rejected_at),
+          isRead: readNotificationIds.includes(id),
+          priority: 'high'
+        });
+      }
+
+      // Disbursement (if any)
+      if (application.disbursed_at) {
+        const id = 4;
+        mockNotifications.push({
+          id,
+          type: 'success',
+          title: 'Grant Disbursed',
+          message: 'Your scholarship grant has been disbursed.',
+          timestamp: new Date(application.disbursed_at),
+          isRead: readNotificationIds.includes(id),
+          priority: 'urgent'
+        });
       }
 
       // Document-related notifications
@@ -128,7 +154,7 @@ export const ScholarshipDashboard: React.FC = () => {
             title: 'Document Issues',
             message: `${rejectedDocs.length} document(s) were rejected and need to be resubmitted.`,
             timestamp: new Date(),
-            isRead: false,
+            isRead: readNotificationIds.includes(8),
             priority: 'high'
           });
         }
@@ -141,7 +167,7 @@ export const ScholarshipDashboard: React.FC = () => {
             title: 'Documents Verified',
             message: `${verifiedDocs.length} document(s) have been successfully verified.`,
             timestamp: new Date(),
-            isRead: false,
+            isRead: readNotificationIds.includes(9),
             priority: 'medium'
           });
         }
@@ -155,7 +181,7 @@ export const ScholarshipDashboard: React.FC = () => {
           title: 'Compliance Review Required',
           message: 'Your application has been flagged for compliance review. Please check the details and make necessary corrections.',
           timestamp: new Date(),
-          isRead: false,
+          isRead: readNotificationIds.includes(10),
           priority: 'urgent'
         });
       }
@@ -170,7 +196,7 @@ export const ScholarshipDashboard: React.FC = () => {
             title: 'Complete Your Application',
             message: `You have ${missingDocs} required document(s) remaining to complete your application.`,
             timestamp: new Date(),
-            isRead: false,
+            isRead: readNotificationIds.includes(11),
             priority: 'medium'
           });
         }
@@ -178,20 +204,27 @@ export const ScholarshipDashboard: React.FC = () => {
     }
 
     // Add some general system notifications
+    const sysId = 12;
     mockNotifications.push({
-      id: 9,
+      id: sysId,
       type: 'info',
       title: 'System Maintenance',
       message: 'Scheduled maintenance will occur on Sunday, 2:00 AM - 4:00 AM. Some features may be temporarily unavailable.',
       timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      isRead: true,
+      isRead: readNotificationIds.includes(sysId),
       priority: 'low'
     });
 
     return mockNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, []);
+  }, [documents]); // Added documents dependency
+
+  // Sync unread count with notifications state
+  useEffect(() => {
+    setUnreadCount(notifications.filter(n => !n.isRead).length);
+  }, [notifications]);
 
   const markNotificationAsRead = (notificationId: number) => {
+    // Update local state
     setNotifications(prev =>
       prev.map(notif =>
         notif.id === notificationId
@@ -199,12 +232,25 @@ export const ScholarshipDashboard: React.FC = () => {
           : notif
       )
     );
+
+    // Update local storage
+    const readNotificationIds = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+    if (!readNotificationIds.includes(notificationId)) {
+      localStorage.setItem('read_notifications', JSON.stringify([...readNotificationIds, notificationId]));
+    }
   };
 
   const markAllAsRead = () => {
+    // Update local state
     setNotifications(prev =>
       prev.map(notif => ({ ...notif, isRead: true }))
     );
+
+    // Update local storage
+    const allIds = notifications.map(n => n.id);
+    const existingRead = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+    const newRead = [...new Set([...existingRead, ...allIds])];
+    localStorage.setItem('read_notifications', JSON.stringify(newRead));
   };
 
   const deleteNotification = (notificationId: number) => {
@@ -317,7 +363,7 @@ export const ScholarshipDashboard: React.FC = () => {
         const response = await fetch(
           `${API_CONFIG.AID_SERVICE.BASE_URL}/api/school-aid/disbursements?application_id=${currentApplication.id}`
         );
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch disbursements');
         }
@@ -772,6 +818,7 @@ export const ScholarshipDashboard: React.FC = () => {
     howDidYouKnow: [],
     isSchoolAtQC: false,
     requirements: [],
+    complianceIssues: [],
     disbursements: disbursements.map((d: any) => ({
       id: d.id,
       date: d.disbursedAt ? new Date(d.disbursedAt).toLocaleDateString() : 'N/A',
@@ -1129,7 +1176,7 @@ export const ScholarshipDashboard: React.FC = () => {
         </div>
 
         {/* Compliance Issues Alert */}
-        {(scholarshipData.rawStatus === 'for_compliance' || scholarshipData.complianceIssues.length > 0) && (
+        {(scholarshipData.rawStatus === 'for_compliance' || (scholarshipData.complianceIssues && scholarshipData.complianceIssues.length > 0)) && (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg animate-in fade-in slide-in-from-top-2">
             <div className="flex items-start space-x-3">
               <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />

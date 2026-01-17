@@ -60,8 +60,59 @@ class SchoolAidService {
     if (!response.ok) {
       throw new Error(`Failed to fetch applications: ${response.statusText}`);
     }
-    
-    return await response.json();
+
+    const data = await response.json();
+
+    // Map backend response to frontend types to ensure all fields are present
+    return data.map((app: any) => {
+      // Check for nested application object (backend might return data nested)
+      const appData = app.application || app;
+
+      // Helper to extract wallet method safely
+      let walletMethod = undefined;
+      const digitalWallets = appData.digital_wallets || app.digital_wallets;
+
+      if (digitalWallets) {
+        let wallets = digitalWallets;
+        // If it comes as a JSON string, parse it
+        if (typeof wallets === 'string') {
+          try {
+            // Check if it looks like a JSON array
+            if (wallets.trim().startsWith('[')) {
+              wallets = JSON.parse(wallets);
+            }
+          } catch (e) {
+            console.warn('Failed to parse digital_wallets', e);
+          }
+        }
+
+        if (Array.isArray(wallets) && wallets.length > 0) {
+          walletMethod = wallets[0];
+        } else if (typeof wallets === 'string') {
+          walletMethod = wallets;
+        }
+      }
+
+      // Debug logging
+      console.log('SchoolAidService - Mapping application:', {
+        id: app.id,
+        digital_wallets: digitalWallets,
+        walletMethod,
+        raw_app: app
+      });
+
+      return {
+        ...app,
+        studentName: app.studentName || app.student_name || appData.student_name || `${app.first_name || appData.first_name || ''} ${app.last_name || appData.last_name || ''}`.trim(),
+        studentId: app.studentId || app.student_id || appData.student_id_number || app.student_id_number,
+        paymentMethod: app.paymentMethod || app.payment_method || appData.payment_method || walletMethod,
+        walletAccountNumber: app.walletAccountNumber || app.wallet_account_number || appData.wallet_account_number || app.account_number,
+        schoolYear: app.schoolYear || app.school_year || appData.school_year,
+        submittedDate: app.submittedDate || app.submitted_at || appData.submitted_at || app.created_at,
+        approvalDate: app.approvalDate || app.approved_at || appData.approved_at,
+        digitalWallets: digitalWallets,
+      };
+    });
   }
 
   async updateApplicationStatus(applicationId: string, status: string, notes?: string): Promise<void> {
@@ -72,7 +123,7 @@ class SchoolAidService {
       }),
       body: JSON.stringify({ status, notes }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to update application status: ${response.statusText}`);
     }
@@ -88,7 +139,7 @@ class SchoolAidService {
       try {
         const user = JSON.parse(userData);
         userId = user?.id ? String(user.id) : undefined;
-        userName = user?.first_name && user?.last_name 
+        userName = user?.first_name && user?.last_name
           ? `${user.first_name} ${user.last_name}`.trim()
           : user?.name || user?.email || undefined;
       } catch (error) {
@@ -106,12 +157,12 @@ class SchoolAidService {
         user_name: userName,
       }),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || errorData.error || `Failed to process grant: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
@@ -123,7 +174,7 @@ class SchoolAidService {
       }),
       body: JSON.stringify({ applicationIds, status }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to batch update applications: ${response.statusText}`);
     }
@@ -141,12 +192,12 @@ class SchoolAidService {
       }),
       body: JSON.stringify(params),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || errorData.error || `Failed to revert application status: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
@@ -159,16 +210,16 @@ class SchoolAidService {
       }),
       body: JSON.stringify({ applicationId, paymentMethod }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to process payment: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
   async processPaymentWithDetails(
-    applicationId: string, 
+    applicationId: string,
     method: string,
     providerName: string,
     referenceNumber: string,
@@ -189,7 +240,7 @@ class SchoolAidService {
     if (disbursedByName) {
       formData.append('disbursedByName', disbursedByName);
     }
-    
+
     if (receiptFile) {
       formData.append('receiptFile', receiptFile);
     }
@@ -199,11 +250,11 @@ class SchoolAidService {
       headers: this.buildAuthHeaders(),
       body: formData,
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to process payment with details: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
@@ -212,11 +263,11 @@ class SchoolAidService {
       method: 'POST',
       headers: this.buildAuthHeaders(),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to retry payment: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
@@ -230,7 +281,7 @@ class SchoolAidService {
     if (!response.ok) {
       throw new Error(`Failed to fetch payment records: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
@@ -266,7 +317,7 @@ class SchoolAidService {
     if (filters?.school_year) {
       params.append('school_year', filters.school_year);
     }
-    
+
     const url = `${API_BASE_URL}/school-aid/metrics${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await fetch(url, {
       headers: this.buildAuthHeaders(),
@@ -274,7 +325,7 @@ class SchoolAidService {
     if (!response.ok) {
       throw new Error(`Failed to fetch metrics: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
@@ -285,7 +336,7 @@ class SchoolAidService {
     if (!response.ok) {
       throw new Error(`Failed to fetch analytics data: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
@@ -296,7 +347,7 @@ class SchoolAidService {
     if (!response.ok) {
       throw new Error(`Failed to fetch school years: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data.school_years || [];
   }
@@ -309,7 +360,7 @@ class SchoolAidService {
     if (!response.ok) {
       throw new Error(`Failed to fetch settings: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
@@ -321,7 +372,7 @@ class SchoolAidService {
       }),
       body: JSON.stringify(settings),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to update settings: ${response.statusText}`);
     }
@@ -332,11 +383,11 @@ class SchoolAidService {
       method: 'POST',
       headers: this.buildAuthHeaders(),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to test configuration: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 
@@ -346,15 +397,15 @@ class SchoolAidService {
     if (schoolYear) {
       params.append('school_year', schoolYear);
     }
-    
+
     const response = await fetch(`${API_BASE_URL}/school-aid/budgets?${params.toString()}`, {
       headers: this.buildAuthHeaders(),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch budgets: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data.budgets || [];
   }
@@ -372,12 +423,12 @@ class SchoolAidService {
       }),
       body: JSON.stringify(budgetData),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || errorData.error || `Failed to save budget: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }
 

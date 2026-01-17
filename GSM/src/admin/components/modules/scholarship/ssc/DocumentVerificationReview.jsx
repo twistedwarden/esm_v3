@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../../../hooks/useToast';
+import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import { CheckCircle, XCircle, AlertCircle, FileText, User, Upload, Link as LinkIcon, Clock } from 'lucide-react';
 
 function DocumentVerificationReview() {
@@ -16,7 +16,7 @@ function DocumentVerificationReview() {
     verification_notes: '',
     compliance_issues: []
   });
-  const { showSuccess, showError } = useToast();
+  const { success: showSuccess, error: showError } = useToastContext();
 
   useEffect(() => {
     fetchApplications();
@@ -148,7 +148,7 @@ function DocumentVerificationReview() {
 
   const getSscStageStatus = (application) => {
     const stageStatus = application.ssc_stage_status || {};
-    
+
     return {
       document_verification: {
         label: 'Document Verification',

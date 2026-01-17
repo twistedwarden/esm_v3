@@ -963,44 +963,44 @@ class ScholarshipApiService {
     return response.data!.data!;
   }
 
-  async getAvailableSlots(date?: string, interviewType?: string): Promise<any[]> {
+  async getAvailableSlots(date?: string, interviewType?: string): Promise<any> {
     const params = new URLSearchParams();
     if (date) params.append('date', date);
     if (interviewType) params.append('type', interviewType);
 
-    const response = await this.makeRequest<{ data: any[] }>(
+    const response = await this.makeRequest<any>(
       `/api/interview-schedules/available-slots?${params.toString()}`
     );
-    return response.data!.data!;
+    return response.data;
   }
 
-  async getInterviewCalendar(): Promise<any[]> {
-    const response = await this.makeRequest<{ data: any[] }>(
+  async getInterviewCalendar(): Promise<any> {
+    const response = await this.makeRequest<any>(
       '/api/interview-schedules/calendar'
     );
-    return response.data!.data!;
+    return response.data?.interviews || {};
   }
 
   // Staff methods
   async getStaffInterviewers(): Promise<{ success: boolean; data: any[]; message: string }> {
-    const response = await this.makeRequest<{ success: boolean; data: any[]; message: string }>(
+    const response = await this.makeRequest<any[]>(
       '/api/staff/interviewers'
     );
-    return response;
+    return response as { success: boolean; data: any[]; message: string };
   }
 
   async getAllStaff(): Promise<{ success: boolean; data: any[]; message: string }> {
-    const response = await this.makeRequest<{ success: boolean; data: any[]; message: string }>(
+    const response = await this.makeRequest<any[]>(
       '/api/staff'
     );
-    return response.data!;
+    return response as { success: boolean; data: any[]; message: string };
   }
 
   async getStaffById(id: number): Promise<{ success: boolean; data: any; message: string }> {
-    const response = await this.makeRequest<{ success: boolean; data: any; message: string }>(
+    const response = await this.makeRequest<any>(
       `/api/staff/${id}`
     );
-    return response.data!;
+    return response as { success: boolean; data: any; message: string };
   }
 
   // Interview Evaluation Methods

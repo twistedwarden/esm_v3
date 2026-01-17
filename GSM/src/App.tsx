@@ -15,6 +15,7 @@ import AdminApp from './admin/App';
 import PartnerSchoolApp from './partner-school/PartnerSchoolApp';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { SessionTimeoutWrapper } from './components/SessionTimeoutWrapper';
+import { ToastProvider } from './components/providers/ToastProvider';
 
 function PortalLayoutWrapper() {
 	return (
@@ -48,9 +49,9 @@ function RequireAdmin({ children }: { children?: React.ReactNode }) {
 	}
 
 	// Check role-based access
-	const isAuthorized = 
-		currentUser.role === 'admin' || 
-		currentUser.role === 'ssc' || 
+	const isAuthorized =
+		currentUser.role === 'admin' ||
+		currentUser.role === 'ssc' ||
 		String(currentUser.role).startsWith('ssc') ||
 		(currentUser.role === 'staff' && currentUser.system_role);
 
@@ -69,7 +70,7 @@ function RequireAdmin({ children }: { children?: React.ReactNode }) {
 						<p className="text-sm text-gray-500 mb-4">
 							You need to be registered as staff in the scholarship system to access this dashboard. Please contact your administrator.
 						</p>
-						<button 
+						<button
 							onClick={() => window.location.href = '/'}
 							className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4"
 						>
@@ -97,58 +98,60 @@ function App() {
 		<LanguageProvider>
 			<Router basename={import.meta.env.BASE_URL}>
 				<SessionTimeoutWrapper>
-					<Routes>
-						{/* Login page as entry point */}
-						<Route path="/" element={<GatewayLogin />} />
+					<ToastProvider>
+						<Routes>
+							{/* Login page as entry point */}
+							<Route path="/" element={<GatewayLogin />} />
 
-						{/* Portal routes - accessible only after login */}
-						<Route element={<ProtectedRoute><PortalLayoutWrapper /></ProtectedRoute>}>
-							<Route path="/portal" element={<Portal />} />
+							{/* Portal routes - accessible only after login */}
+							<Route element={<ProtectedRoute><PortalLayoutWrapper /></ProtectedRoute>}>
+								<Route path="/portal" element={<Portal />} />
 
-							<Route path="/new-application" element={<NewApplicationForm />} />
-							<Route path="/renewal" element={<RenewalForm />} />
-							<Route path="/scholarship-dashboard" element={<ScholarshipDashboard />} />
-						</Route>
+								<Route path="/new-application" element={<NewApplicationForm />} />
+								<Route path="/renewal" element={<RenewalForm />} />
+								<Route path="/scholarship-dashboard" element={<ScholarshipDashboard />} />
+							</Route>
 
-						{/* Admin login and admin routes */}
-						<Route path="/admin-login" element={<Login />} />
-						
-						{/* Payment callback routes - accessible to authenticated admin users */}
-						<Route 
-							path="/admin/school-aid/payment/success" 
-							element={
-								<RequireAdmin>
-									<PaymentSuccess />
-								</RequireAdmin>
-							} 
-						/>
-						<Route 
-							path="/admin/school-aid/payment/cancel" 
-							element={
-								<RequireAdmin>
-									<PaymentCancel />
-								</RequireAdmin>
-							} 
-						/>
-						
-						<Route path="/admin/*" element={<RequireAdmin />} />
+							{/* Admin login and admin routes */}
+							<Route path="/admin-login" element={<Login />} />
 
-						{/* Partner School routes */}
-						<Route path="/partner-school" element={<PartnerSchoolApp />} />
+							{/* Payment callback routes - accessible to authenticated admin users */}
+							<Route
+								path="/admin/school-aid/payment/success"
+								element={
+									<RequireAdmin>
+										<PaymentSuccess />
+									</RequireAdmin>
+								}
+							/>
+							<Route
+								path="/admin/school-aid/payment/cancel"
+								element={
+									<RequireAdmin>
+										<PaymentCancel />
+									</RequireAdmin>
+								}
+							/>
 
-						{/* 404 */}
-						<Route path="*" element={
-							<div className="min-h-screen bg-gray-50 flex items-center justify-center">
-								<div className="text-center">
-									<h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-									<p className="text-gray-600 mb-8">Page not found</p>
-									<a href="/" className="text-orange-500 hover:text-orange-600 font-medium">
-										Return to Home
-									</a>
+							<Route path="/admin/*" element={<RequireAdmin />} />
+
+							{/* Partner School routes */}
+							<Route path="/partner-school" element={<PartnerSchoolApp />} />
+
+							{/* 404 */}
+							<Route path="*" element={
+								<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+									<div className="text-center">
+										<h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
+										<p className="text-gray-600 mb-8">Page not found</p>
+										<a href="/" className="text-orange-500 hover:text-orange-600 font-medium">
+											Return to Home
+										</a>
+									</div>
 								</div>
-							</div>
-						} />
-					</Routes>
+							} />
+						</Routes>
+					</ToastProvider>
 				</SessionTimeoutWrapper>
 			</Router>
 		</LanguageProvider>

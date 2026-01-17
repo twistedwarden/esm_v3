@@ -15,38 +15,52 @@ class PartnerSchoolRepresentativeSeeder extends Seeder
     {
         // First, ensure we have schools to assign representatives to
         $schools = School::all();
-        
+
         if ($schools->isEmpty()) {
             $this->command->warn('No schools found. Please run SchoolSeeder first.');
             return;
         }
 
         // Map citizen IDs to schools
-        // These citizen_ids should match the ones in auth_service PartnerSchoolSeeder
+        // These citizen_ids MUST match the ones in auth_service PartnerSchoolRepsSeeder
         $representatives = [
             [
-                'citizen_id' => 'PSREP-001',
+                'citizen_id' => 'PSR001',
+                'school_name' => 'Caloocan City University',
+                'campus' => 'Main Campus',
+            ],
+            [
+                'citizen_id' => 'PSR002',
                 'school_name' => 'Caloocan City Science High School',
             ],
             [
-                'citizen_id' => 'PSREP-002',
-                'school_name' => 'University of Caloocan',
+                'citizen_id' => 'PSR003',
+                'school_name' => 'Caloocan City Business High School',
             ],
             [
-                'citizen_id' => 'PSREP-003',
-                'school_name' => 'St. Mary\'s Academy',
+                'citizen_id' => 'PSR004',
+                'school_name' => 'Caloocan International Science and Technology High School',
             ],
         ];
 
         $created = 0;
         $skipped = 0;
 
+        // Optional: Cleanup logic if we want to ensure only these exist
+        // PartnerSchoolRepresentative::truncate(); 
+
         foreach ($representatives as $rep) {
-            // Try to find the school by name
-            $school = School::where('name', 'like', '%' . $rep['school_name'] . '%')->first();
-            
+            // Try to find the school by name and optionally campus
+            $query = School::where('name', 'like', '%' . $rep['school_name'] . '%');
+
+            if (isset($rep['campus'])) {
+                $query->where('campus', $rep['campus']);
+            }
+
+            $school = $query->first();
+
             if (!$school) {
-                $this->command->warn("School not found: {$rep['school_name']}. Skipping {$rep['citizen_id']}");
+                $this->command->warn("School not found: {$rep['school_name']} " . ($rep['campus'] ?? '') . ". Skipping {$rep['citizen_id']}");
                 $skipped++;
                 continue;
             }
@@ -72,4 +86,3 @@ class PartnerSchoolRepresentativeSeeder extends Seeder
         }
     }
 }
-

@@ -1,13 +1,13 @@
 // School Aid Distribution Types
 
-export type ApplicationStatus = 
-  | 'submitted' 
-  | 'under_review' 
-  | 'approved' 
+export type ApplicationStatus =
+  | 'submitted'
+  | 'under_review'
+  | 'approved'
   | 'pending_disbursement'
-  | 'grants_processing' 
-  | 'grants_disbursed' 
-  | 'payment_failed' 
+  | 'grants_processing'
+  | 'grants_disbursed'
+  | 'payment_failed'
   | 'disbursed'
   | 'received'
   | 'rejected';
@@ -74,8 +74,8 @@ export interface DisbursementHistoryRecord {
   accountNumber?: string | null;
   receiptPath: string;
   notes?: string | null;
-   disbursedByUserId?: string | null;
-   disbursedByName?: string | null;
+  disbursedByUserId?: string | null;
+  disbursedByName?: string | null;
   disbursedAt?: string | null;
 }
 
@@ -147,4 +147,33 @@ export interface ModalState {
   application: ScholarshipApplication | undefined;
   mode: 'view' | 'process' | 'edit';
   processingState?: PaymentProcessingState;
+}
+
+export interface PartnerSchoolBudget {
+  id: number;
+  source_budget_id?: number | null;
+  school_id: number;
+  school_name: string;
+  academic_year: string;
+  allocated_amount: number;
+  disbursed_amount: number;
+  available_amount: number;
+  status: 'active' | 'expired' | 'depleted';
+  allocation_date: string;
+  expiry_date: string | null;
+  notes?: string;
+}
+
+export interface PartnerSchoolBudgetWithdrawal {
+  id: number;
+  partner_school_budget_id: number;
+  school_id: number;
+  amount: number;
+  purpose: string;
+  notes?: string;
+  proof_document_path: string;
+  withdrawal_date: string;
+  recorded_by?: number;
+  created_at: string;
+  updated_at: string;
 }

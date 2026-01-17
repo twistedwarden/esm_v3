@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../../../hooks/useToast';
+import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import { CheckCircle, XCircle, Shield, User, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 
 function FinalApprovalReview() {
@@ -19,7 +19,7 @@ function FinalApprovalReview() {
     final_notes: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showSuccess, showError } = useToast();
+  const { success: showSuccess, error: showError } = useToastContext();
 
   useEffect(() => {
     fetchApplications();
@@ -42,7 +42,7 @@ function FinalApprovalReview() {
   const openReviewModal = async (application) => {
     setSelectedApplication(application);
     setShowReviewModal(true);
-    
+
     // Fetch complete review history
     try {
       const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
@@ -139,20 +139,20 @@ function FinalApprovalReview() {
     console.log('Getting recommended amount for application:', application.id);
     console.log('Application ssc_stage_status:', application.ssc_stage_status);
     console.log('Application ssc_reviews:', application.ssc_reviews);
-    
+
     // Check if there's a financial review in the ssc_stage_status
     const stageStatus = application.ssc_stage_status || {};
     const financialReview = stageStatus.financial_review;
-    
+
     if (financialReview && financialReview.review_data) {
       console.log('Found financial review in stage_status:', financialReview);
       // Try to get recommended_amount from review_data
-      const reviewData = typeof financialReview.review_data === 'string' 
-        ? JSON.parse(financialReview.review_data) 
+      const reviewData = typeof financialReview.review_data === 'string'
+        ? JSON.parse(financialReview.review_data)
         : financialReview.review_data;
-      
+
       console.log('Parsed review_data:', reviewData);
-      
+
       if (reviewData && reviewData.recommended_amount) {
         console.log('Found recommended_amount in stage_status:', reviewData.recommended_amount);
         return reviewData.recommended_amount.toString();
@@ -164,16 +164,16 @@ function FinalApprovalReview() {
       const financialReviewRecord = application.ssc_reviews.find(
         review => review.review_stage === 'financial_review' && review.status === 'approved'
       );
-      
+
       console.log('Found financial review record:', financialReviewRecord);
-      
+
       if (financialReviewRecord && financialReviewRecord.review_data) {
-        const reviewData = typeof financialReviewRecord.review_data === 'string' 
-          ? JSON.parse(financialReviewRecord.review_data) 
+        const reviewData = typeof financialReviewRecord.review_data === 'string'
+          ? JSON.parse(financialReviewRecord.review_data)
           : financialReviewRecord.review_data;
-        
+
         console.log('Parsed review_data from ssc_reviews:', reviewData);
-        
+
         if (reviewData && reviewData.recommended_amount) {
           console.log('Found recommended_amount in ssc_reviews:', reviewData.recommended_amount);
           return reviewData.recommended_amount.toString();
@@ -398,7 +398,7 @@ function FinalApprovalReview() {
               {/* Final Decision Form */}
               <div className="border-t border-gray-200 dark:border-slate-700 pt-6">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Chairperson's Final Decision</h4>
-                
+
                 {/* Approved Amount */}
                 <div className="mb-4">
                   <label className="block font-medium text-gray-900 dark:text-white mb-2">
@@ -409,8 +409,8 @@ function FinalApprovalReview() {
                     <input
                       type="number"
                       value={finalDecision.approved_amount}
-                      onChange={(e) => setFinalDecision(prev => ({ ...prev, approved_amount: e.target.value }))}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500"
+                      readOnly
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 dark:bg-slate-600 text-gray-900 dark:text-white cursor-not-allowed"
                       placeholder="0.00"
                     />
                   </div>

@@ -58,7 +58,7 @@ class SchoolAidController extends Controller
                             ->where('is_current', true)
                             ->orderBy('created_at', 'desc')
                             ->first();
-                        
+
                         if ($academicRecord && isset($academicRecord->school_year)) {
                             $schoolYear = $academicRecord->school_year;
                         }
@@ -66,14 +66,29 @@ class SchoolAidController extends Controller
                         // Fall through to default
                     }
                 }
-                
+
                 // Default to current school year if not found
                 if (!$schoolYear) {
                     $currentYear = date('Y');
                     $nextYear = date('Y') + 1;
                     $schoolYear = "{$currentYear}-{$nextYear}";
                 }
-                
+
+                // Extract payment method from digital_wallets
+                $digitalWallets = $app->digital_wallets ?? [];
+                $paymentMethod = null;
+                if (is_array($digitalWallets) && count($digitalWallets) > 0) {
+                    $paymentMethod = $digitalWallets[0];
+                } elseif (is_string($digitalWallets)) {
+                    // In case it's stored as JSON string
+                    $decoded = json_decode($digitalWallets, true);
+                    if (is_array($decoded) && count($decoded) > 0) {
+                        $paymentMethod = $decoded[0];
+                    } else {
+                        $paymentMethod = $digitalWallets;
+                    }
+                }
+
                 return [
                     'id' => (string) $app->id,
                     'studentName' => $app->student ? $app->student->full_name : 'Unknown Student',
@@ -85,7 +100,8 @@ class SchoolAidController extends Controller
                     'submittedDate' => $app->created_at ? $app->created_at->format('Y-m-d') : '',
                     'approvalDate' => $app->updated_at ? $app->updated_at->format('Y-m-d') : '',
                     'schoolYear' => $schoolYear,
-                    'digitalWallets' => $app->digital_wallets ?? [],
+                    'paymentMethod' => $paymentMethod,
+                    'digitalWallets' => $digitalWallets,
                     'walletAccountNumber' => $app->wallet_account_number ?? '',
                     'documents' => []
                 ];
@@ -227,7 +243,7 @@ class SchoolAidController extends Controller
                 $transaction = PaymentTransaction::where('provider_transaction_id', $checkoutSessionId)
                     ->orWhere('transaction_reference', $checkoutSessionId)
                     ->first();
-                
+
                 if ($transaction && $transaction->application_id) {
                     $application = ScholarshipApplication::find($transaction->application_id);
                 }
@@ -587,7 +603,7 @@ class SchoolAidController extends Controller
 
         $absolutePath = Storage::disk('public')->path($relativePath);
         $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '.html';
-        
+
         return Storage::disk('public')->download($relativePath, $filename, [
             'Content-Type' => 'text/html',
         ]);
@@ -632,7 +648,7 @@ class SchoolAidController extends Controller
             }
 
             // Helper function to get school year from application
-            $getSchoolYearFromApplication = function($application) {
+            $getSchoolYearFromApplication = function ($application) {
                 try {
                     if ($application->student_id) {
                         $academicRecord = DB::connection('scholarship_service')
@@ -641,7 +657,7 @@ class SchoolAidController extends Controller
                             ->where('is_current', true)
                             ->orderBy('created_at', 'desc')
                             ->first();
-                        
+
                         if ($academicRecord && isset($academicRecord->school_year)) {
                             return $academicRecord->school_year;
                         }
@@ -649,7 +665,7 @@ class SchoolAidController extends Controller
                 } catch (\Exception $e) {
                     // Fall through to default
                 }
-                
+
                 // Default to current school year
                 $currentYear = date('Y');
                 $nextYear = date('Y') + 1;
@@ -658,21 +674,21 @@ class SchoolAidController extends Controller
 
             // Get all approved applications and filter by school year
             $approvedApplications = ScholarshipApplication::where('status', 'approved')->get();
-            $needProcessing = $approvedApplications->filter(function($app) use ($schoolYear, $getSchoolYearFromApplication) {
+            $needProcessing = $approvedApplications->filter(function ($app) use ($schoolYear, $getSchoolYearFromApplication) {
                 $appSchoolYear = $getSchoolYearFromApplication($app);
                 return $appSchoolYear === $schoolYear;
             })->count();
 
             // Get all grants_processing applications and filter by school year
             $processingApplications = ScholarshipApplication::where('status', 'grants_processing')->get();
-            $needDisbursing = $processingApplications->filter(function($app) use ($schoolYear, $getSchoolYearFromApplication) {
+            $needDisbursing = $processingApplications->filter(function ($app) use ($schoolYear, $getSchoolYearFromApplication) {
                 $appSchoolYear = $getSchoolYearFromApplication($app);
                 return $appSchoolYear === $schoolYear;
             })->count();
 
             // Get all disbursed applications and filter by school year
             $disbursedApplications = ScholarshipApplication::where('status', 'grants_disbursed')->get();
-            $disbursedCount = $disbursedApplications->filter(function($app) use ($schoolYear, $getSchoolYearFromApplication) {
+            $disbursedCount = $disbursedApplications->filter(function ($app) use ($schoolYear, $getSchoolYearFromApplication) {
                 $appSchoolYear = $getSchoolYearFromApplication($app);
                 return $appSchoolYear === $schoolYear;
             })->count();
@@ -685,7 +701,7 @@ class SchoolAidController extends Controller
                 ->where('school_year', $schoolYear)
                 ->where('is_active', true)
                 ->first();
-            
+
             $scholarshipBenefitsBudget = BudgetAllocation::where('budget_type', 'scholarship_benefits')
                 ->where('school_year', $schoolYear)
                 ->where('is_active', true)
@@ -712,17 +728,17 @@ class SchoolAidController extends Controller
             $approvedApplications = ScholarshipApplication::where('status', 'approved')->count();
             $processingApplications = ScholarshipApplication::where('status', 'grants_processing')->count();
             $failedApplications = ScholarshipApplication::where('status', 'payment_failed')->count();
-            
+
             // Calculate pending amount (approved but not yet disbursed)
             $pendingAmount = ScholarshipApplication::whereIn('status', ['approved', 'grants_processing'])
                 ->sum('approved_amount') ?: 0;
-            
+
             // Calculate average processing time (from approved to disbursed)
             $avgProcessingTime = 0;
             $disbursedApps = ScholarshipApplication::where('status', 'grants_disbursed')
                 ->whereNotNull('approved_at')
                 ->get();
-            
+
             if ($disbursedApps->count() > 0) {
                 $processingTimes = [];
                 foreach ($disbursedApps as $app) {
@@ -731,13 +747,13 @@ class SchoolAidController extends Controller
                         ->first();
                     if ($disbursement && $app->approved_at) {
                         // Convert to Carbon if needed
-                        $approvedAt = is_string($app->approved_at) 
-                            ? \Carbon\Carbon::parse($app->approved_at) 
+                        $approvedAt = is_string($app->approved_at)
+                            ? \Carbon\Carbon::parse($app->approved_at)
                             : $app->approved_at;
-                        $disbursedAt = is_string($disbursement->disbursed_at) 
-                            ? \Carbon\Carbon::parse($disbursement->disbursed_at) 
+                        $disbursedAt = is_string($disbursement->disbursed_at)
+                            ? \Carbon\Carbon::parse($disbursement->disbursed_at)
                             : $disbursement->disbursed_at;
-                        
+
                         if ($approvedAt && $disbursedAt) {
                             $days = $approvedAt->diffInDays($disbursedAt);
                             $processingTimes[] = $days;
@@ -748,10 +764,10 @@ class SchoolAidController extends Controller
                     $avgProcessingTime = round(array_sum($processingTimes) / count($processingTimes), 1);
                 }
             }
-            
+
             // Calculate success rate
-            $successRate = $totalApplications > 0 
-                ? round(($disbursedCount / $totalApplications) * 100, 1) 
+            $successRate = $totalApplications > 0
+                ? round(($disbursedCount / $totalApplications) * 100, 1)
                 : 0;
 
             return response()->json([
@@ -799,18 +815,18 @@ class SchoolAidController extends Controller
     {
         try {
             $dateRange = $request->get('range', '30d');
-            
+
             // Calculate date range
-            $days = match($dateRange) {
+            $days = match ($dateRange) {
                 '7d' => 7,
                 '30d' => 30,
                 '90d' => 90,
                 '6m' => 180,
                 default => 30
             };
-            
+
             $startDate = now()->subDays($days);
-            
+
             switch ($type) {
                 case 'payments':
                     return $this->getPaymentsAnalytics($startDate);
@@ -868,7 +884,7 @@ class SchoolAidController extends Controller
             ->map(function ($item) {
                 $total = ScholarshipApplication::count();
                 $percentage = $total > 0 ? round(($item->count / $total) * 100, 1) : 0;
-                
+
                 $colors = [
                     'approved' => 'bg-blue-500',
                     'grants_processing' => 'bg-yellow-500',
@@ -877,7 +893,7 @@ class SchoolAidController extends Controller
                     'rejected' => 'bg-gray-500',
                     'submitted' => 'bg-purple-500',
                 ];
-                
+
                 return [
                     'status' => ucfirst(str_replace('_', ' ', $item->status)),
                     'count' => (int) $item->count,
@@ -904,13 +920,13 @@ class SchoolAidController extends Controller
                         $app = ScholarshipApplication::find($d->application_id);
                         if ($app && $app->approved_at && $d->disbursed_at) {
                             // Convert to Carbon if needed
-                            $approvedAt = is_string($app->approved_at) 
-                                ? \Carbon\Carbon::parse($app->approved_at) 
+                            $approvedAt = is_string($app->approved_at)
+                                ? \Carbon\Carbon::parse($app->approved_at)
                                 : $app->approved_at;
-                            $disbursedAt = is_string($d->disbursed_at) 
-                                ? \Carbon\Carbon::parse($d->disbursed_at) 
+                            $disbursedAt = is_string($d->disbursed_at)
+                                ? \Carbon\Carbon::parse($d->disbursed_at)
                                 : $d->disbursed_at;
-                            
+
                             if ($approvedAt && $disbursedAt) {
                                 return $approvedAt->diffInDays($disbursedAt);
                             }
@@ -919,7 +935,7 @@ class SchoolAidController extends Controller
                     })
                     ->filter()
                     ->avg();
-                
+
                 return [
                     'school' => $school ? $school->name : 'Unknown School',
                     'scholars' => (int) $item->scholars,
@@ -941,7 +957,7 @@ class SchoolAidController extends Controller
                 $amount = AidDisbursement::whereRaw('DATE_FORMAT(disbursed_at, "%Y-%m") = ?', [$item->month])
                     ->whereNotNull('disbursed_at')
                     ->sum('amount');
-                
+
                 return [
                     'month' => date('M Y', strtotime($item->month . '-01')),
                     'applications' => (int) $item->applications,
@@ -952,19 +968,19 @@ class SchoolAidController extends Controller
 
         // Get category distribution for disbursed applications
         $categoryDistribution = [];
-        
+
         // Get disbursements with their applications
         $disbursements = AidDisbursement::where('disbursed_at', '>=', $startDate)
             ->whereNotNull('disbursed_at')
             ->whereNotNull('application_id')
             ->get();
-        
+
         if ($disbursements->count() > 0) {
             $categoryGroups = [];
             foreach ($disbursements as $disbursement) {
                 $app = ScholarshipApplication::with('category')->find($disbursement->application_id);
                 $categoryName = 'Other';
-                
+
                 if ($app) {
                     if ($app->category) {
                         $categoryName = $app->category->name;
@@ -977,14 +993,14 @@ class SchoolAidController extends Controller
                         $categoryName = $category ? $category->name : 'Other';
                     }
                 }
-                
+
                 if (!isset($categoryGroups[$categoryName])) {
                     $categoryGroups[$categoryName] = ['count' => 0, 'amount' => 0];
                 }
                 $categoryGroups[$categoryName]['count']++;
                 $categoryGroups[$categoryName]['amount'] += $disbursement->amount;
             }
-            
+
             $categoryDistribution = array_map(function ($name, $data) {
                 return [
                     'name' => $name,
@@ -997,7 +1013,7 @@ class SchoolAidController extends Controller
             $applications = ScholarshipApplication::where('status', 'grants_disbursed')
                 ->whereNotNull('category_id')
                 ->get();
-            
+
             $categoryGroups = [];
             foreach ($applications as $app) {
                 $categoryName = 'Other';
@@ -1010,14 +1026,14 @@ class SchoolAidController extends Controller
                         ->first();
                     $categoryName = $category ? $category->name : 'Other';
                 }
-                
+
                 if (!isset($categoryGroups[$categoryName])) {
                     $categoryGroups[$categoryName] = ['count' => 0, 'amount' => 0];
                 }
                 $categoryGroups[$categoryName]['count']++;
                 $categoryGroups[$categoryName]['amount'] += $app->approved_amount ?: 0;
             }
-            
+
             $categoryDistribution = array_map(function ($name, $data) {
                 return [
                     'name' => $name,
@@ -1026,7 +1042,7 @@ class SchoolAidController extends Controller
                 ];
             }, array_keys($categoryGroups), $categoryGroups);
         }
-        
+
         // Calculate percentages
         $total = array_sum(array_column($categoryDistribution, 'value'));
         if ($total > 0) {
@@ -1072,7 +1088,7 @@ class SchoolAidController extends Controller
 
         $labels = [];
         $data = [];
-        
+
         for ($i = 0; $i < 4; $i++) {
             $week = now()->subWeeks(3 - $i)->format('W');
             $weekData = $weeklyData->firstWhere('week', $week);
@@ -1104,7 +1120,7 @@ class SchoolAidController extends Controller
 
         $labels = [];
         $data = [];
-        
+
         for ($i = 0; $i < 4; $i++) {
             $week = now()->subWeeks(3 - $i)->format('W');
             $weekData = $weeklyData->firstWhere('week', $week);
@@ -1147,7 +1163,7 @@ class SchoolAidController extends Controller
     {
         // Check subcategory type first, then category type
         $type = null;
-        
+
         if ($application->subcategory_id) {
             $subcategory = ScholarshipSubcategory::find($application->subcategory_id);
             if ($subcategory) {
@@ -1158,7 +1174,7 @@ class SchoolAidController extends Controller
                     ->value('type');
             }
         }
-        
+
         if (!$type && $application->category_id) {
             $type = DB::connection('scholarship_service')
                 ->table('scholarship_categories')
@@ -1226,7 +1242,7 @@ class SchoolAidController extends Controller
                     ->where('is_current', true)
                     ->orderBy('created_at', 'desc')
                     ->first();
-                
+
                 if ($academicRecord && isset($academicRecord->school_year)) {
                     return $academicRecord->school_year;
                 }
@@ -1234,7 +1250,7 @@ class SchoolAidController extends Controller
         } catch (\Exception $e) {
             // Fall through to default
         }
-        
+
         // Default to current school year
         $currentYear = date('Y');
         $nextYear = date('Y') + 1;
@@ -1251,14 +1267,14 @@ class SchoolAidController extends Controller
                 // Table doesn't exist yet - skip budget update
                 return;
             }
-            
+
             $budgetType = $this->getBudgetType($application);
-            
+
             $budgetAllocation = BudgetAllocation::where('budget_type', $budgetType)
                 ->where('school_year', $schoolYear)
                 ->where('is_active', true)
                 ->first();
-            
+
             if ($budgetAllocation) {
                 $budgetAllocation->incrementDisbursed($amount);
                 // Track who updated the budget
@@ -1281,13 +1297,13 @@ class SchoolAidController extends Controller
     {
         try {
             $schoolYear = $request->get('school_year');
-            
+
             $query = BudgetAllocation::query();
-            
+
             if ($schoolYear) {
                 $query->where('school_year', $schoolYear);
             }
-            
+
             $budgets = $query->orderBy('school_year', 'desc')
                 ->orderBy('budget_type', 'asc')
                 ->get()
@@ -1375,8 +1391,8 @@ class SchoolAidController extends Controller
                     'total_budget' => $budget->total_budget,
                     'disbursed_budget' => $budget->disbursed_budget,
                     'remaining_budget' => $budget->remaining_budget,
-                    'utilization_rate' => $budget->total_budget > 0 
-                        ? round(($budget->disbursed_budget / $budget->total_budget) * 100, 2) 
+                    'utilization_rate' => $budget->total_budget > 0
+                        ? round(($budget->disbursed_budget / $budget->total_budget) * 100, 2)
                         : 0,
                 ]
             ]);

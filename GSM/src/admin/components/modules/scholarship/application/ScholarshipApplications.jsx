@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { scholarshipApiService } from '../../../../../services/scholarshipApiService';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import { useNotifications } from '../../../../contexts/NotificationContext';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Eye, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Search,
+  Filter,
+  Download,
+  Eye,
+  CheckCircle,
+  XCircle,
   Clock,
   FileText,
   User,
@@ -53,16 +53,22 @@ import { LoadingApplications } from '../../../ui/LoadingSpinner';
 
 function ScholarshipApplications() {
   // Toast context
-  const { showSuccess, showError, showWarning, showInfo } = useToastContext();
-  
+  const { success, error: toastError, warning, info } = useToastContext();
+
+  // Wrapper functions to match existing usage (title, message)
+  const showSuccess = (title, message) => success(message ? `${title}: ${message}` : title);
+  const showError = (title, message) => toastError(message ? `${title}: ${message}` : title);
+  const showWarning = (title, message) => warning(message ? `${title}: ${message}` : title);
+  const showInfo = (title, message) => info(message ? `${title}: ${message}` : title);
+
   // Notification context
   const { triggerScholarshipNotification } = useNotifications();
-  
+
   // Core state
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Filtering and search state
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -76,7 +82,7 @@ function ScholarshipApplications() {
     maxGwa: '',
     priority: 'all'
   });
-  
+
   // UI state
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('date');
@@ -84,19 +90,19 @@ function ScholarshipApplications() {
   const [selectedApplications, setSelectedApplications] = useState([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  
+
   // Modal state
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [activeApplication, setActiveApplication] = useState(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [complianceReason, setComplianceReason] = useState('');
-  
+
   // Bulk action modal state
   const [isBulkActionModalOpen, setIsBulkActionModalOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState(''); // 'reviewed', 'compliance', 'reject'
   const [bulkActionReason, setBulkActionReason] = useState('');
-  
+
   // Quick action modal state
   const [isQuickActionModalOpen, setIsQuickActionModalOpen] = useState(false);
   const [quickActionType, setQuickActionType] = useState(''); // 'reject', 'compliance'
@@ -105,7 +111,7 @@ function ScholarshipApplications() {
   const [reviewAction, setReviewAction] = useState('reviewed'); // 'reviewed'
   const [reviewedConfirmation, setReviewedConfirmation] = useState('');
   const [docDownloadingId, setDocDownloadingId] = useState(null);
-  
+
   // Statistics
   const [stats, setStats] = useState({
     total: 0,
@@ -121,49 +127,49 @@ function ScholarshipApplications() {
   }, [filters, searchTerm]);
 
   const fetchApplications = async () => {
-      try {
-        setLoading(true);
-        setError('');
-      
-        const params = {};
-      if (filters.status !== 'all') params.status = filters.status;
-        if (searchTerm) params.search = searchTerm;
+    try {
+      setLoading(true);
+      setError('');
 
-        const resp = await scholarshipApiService.getApplications(params);
-        const list = Array.isArray(resp.data) ? resp.data : [];
-      
-        const mapped = list.map(a => ({
-          // Preserve the full application object for the modal
-          ...a,
-          // Add computed fields for display
-          name: `${a.student?.first_name ?? ''} ${a.student?.last_name ?? ''}`.trim() || 'Unknown',
-          studentId: a.student?.student_id_number || a.student_id || '',
-          email: a.student?.email_address || '',
-          phone: a.student?.contact_number || '',
-          scholarIdNumber: a.application_number || '',
-          schoolName: a.school?.name || '',
-          gradeYearLevel: a.student?.current_academic_record?.year_level || '',
-          generalWeightedAverage: a.student?.current_academic_record?.general_weighted_average || a.student?.current_academic_record?.gpa || '',
-          scholarshipCategory: a.category?.name || '',
-          scholarshipSubCategory: a.subcategory?.name || '',
-          currentEducationalLevel: a.student?.current_academic_record?.educational_level || '',
-          schoolYear: a.student?.current_academic_record?.school_year || '',
-          schoolTerm: a.student?.current_academic_record?.school_term || '',
-          submittedDate: a.submitted_at || a.created_at,
-          requestedAmount: a.requested_amount || 0,
-          approvedAmount: a.approved_amount || 0,
-          priority: a.priority || 'normal',
-          status: a.status || 'unknown' // Ensure status is never undefined
-        }));
-      
-        setApplications(mapped);
+      const params = {};
+      if (filters.status !== 'all') params.status = filters.status;
+      if (searchTerm) params.search = searchTerm;
+
+      const resp = await scholarshipApiService.getApplications(params);
+      const list = Array.isArray(resp.data) ? resp.data : [];
+
+      const mapped = list.map(a => ({
+        // Preserve the full application object for the modal
+        ...a,
+        // Add computed fields for display
+        name: `${a.student?.first_name ?? ''} ${a.student?.last_name ?? ''}`.trim() || 'Unknown',
+        studentId: a.student?.student_id_number || a.student_id || '',
+        email: a.student?.email_address || '',
+        phone: a.student?.contact_number || '',
+        scholarIdNumber: a.application_number || '',
+        schoolName: a.school?.name || '',
+        gradeYearLevel: a.student?.current_academic_record?.year_level || '',
+        generalWeightedAverage: a.student?.current_academic_record?.general_weighted_average || a.student?.current_academic_record?.gpa || '',
+        scholarshipCategory: a.category?.name || '',
+        scholarshipSubCategory: a.subcategory?.name || '',
+        currentEducationalLevel: a.student?.current_academic_record?.educational_level || '',
+        schoolYear: a.student?.current_academic_record?.school_year || '',
+        schoolTerm: a.student?.current_academic_record?.school_term || '',
+        submittedDate: a.submitted_at || a.created_at,
+        requestedAmount: a.requested_amount || 0,
+        approvedAmount: a.approved_amount || 0,
+        priority: a.priority || 'normal',
+        status: a.status || 'unknown' // Ensure status is never undefined
+      }));
+
+      setApplications(mapped);
       updateStats(mapped);
-      } catch (e) {
-        setError('Failed to load applications');
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (e) {
+      setError('Failed to load applications');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateStats = (apps) => {
     const newStats = {
@@ -183,35 +189,35 @@ function ScholarshipApplications() {
     if (!['draft', 'submitted', 'for_compliance'].includes(app.status)) {
       return false;
     }
-    
+
     const matchesStatus = filters.status === 'all' || app.status === filters.status;
     const matchesCategory = filters.category === 'all' || (app.scholarshipCategory || '').toLowerCase().includes(filters.category.toLowerCase());
     const matchesLevel = filters.level === 'all' || (app.currentEducationalLevel || '').toLowerCase().includes(filters.level.toLowerCase());
     const matchesSchool = filters.school === 'all' || (app.schoolName || '').toLowerCase().includes(filters.school.toLowerCase());
     const matchesPriority = filters.priority === 'all' || app.priority === filters.priority;
     const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (app.schoolName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (app.scholarshipCategory || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+      app.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (app.schoolName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (app.scholarshipCategory || '').toLowerCase().includes(searchTerm.toLowerCase());
+
     // Date range filter
     const appDate = new Date(app.submittedDate);
     const matchesDateFrom = !filters.dateFrom || appDate >= new Date(filters.dateFrom);
     const matchesDateTo = !filters.dateTo || appDate <= new Date(filters.dateTo);
-    
+
     // GWA range filter
     const gwa = parseFloat(app.generalWeightedAverage || 0);
     const matchesMinGwa = !filters.minGwa || gwa >= parseFloat(filters.minGwa);
     const matchesMaxGwa = !filters.maxGwa || gwa <= parseFloat(filters.maxGwa);
-    
-    return matchesStatus && matchesCategory && matchesLevel && matchesSchool && 
-           matchesPriority && matchesSearch && matchesDateFrom && matchesDateTo && 
-           matchesMinGwa && matchesMaxGwa;
+
+    return matchesStatus && matchesCategory && matchesLevel && matchesSchool &&
+      matchesPriority && matchesSearch && matchesDateFrom && matchesDateTo &&
+      matchesMinGwa && matchesMaxGwa;
   });
 
   const sortedApplications = [...filteredApplications].sort((a, b) => {
     let aValue, bValue;
-    
+
     switch (sortBy) {
       case 'name':
         aValue = a.name.toLowerCase();
@@ -277,7 +283,7 @@ function ScholarshipApplications() {
     if (!status) {
       return 'Unknown';
     }
-    
+
     switch (status) {
       case 'draft':
         return 'Draft';
@@ -351,8 +357,8 @@ function ScholarshipApplications() {
 
   // Selection handlers
   const handleSelectApplication = (id) => {
-    setSelectedApplications(prev => 
-      prev.includes(id) 
+    setSelectedApplications(prev =>
+      prev.includes(id)
         ? prev.filter(appId => appId !== id)
         : [...prev, id]
     );
@@ -401,7 +407,7 @@ function ScholarshipApplications() {
       console.log('Opening review modal for application:', app);
       setIsReviewModalOpen(true);
       setReviewAction('reviewed'); // Default to reviewed view
-      
+
       // Ensure we have a valid application object
       if (!app || !app.id) {
         console.error('Invalid application object:', app);
@@ -418,7 +424,7 @@ function ScholarshipApplications() {
         // Fallback to the application data we already have
         setActiveApplication(app);
       }
-      
+
       setRejectReason('');
       setComplianceReason('');
       setReviewedConfirmation('');
@@ -430,19 +436,19 @@ function ScholarshipApplications() {
 
   const handleMarkAsReviewed = async () => {
     if (!activeApplication) return;
-    
+
     // Validate application status
     if (activeApplication.status !== 'submitted') {
       showError('Invalid Status', 'Application must be in "Submitted" status to be marked as reviewed.');
       return;
     }
-    
+
     // Validate confirmation text
     if (reviewedConfirmation !== 'REVIEWED') {
       showWarning('Confirmation Required', 'Please type "REVIEWED" to confirm this action.');
       return;
     }
-    
+
     setReviewLoading(true);
     try {
       // Call API to mark application as reviewed and move to verification stage
@@ -451,7 +457,7 @@ function ScholarshipApplications() {
       setIsReviewModalOpen(false);
       setReviewedConfirmation(''); // Reset confirmation
       showSuccess('Application Reviewed', 'Application has been reviewed and approved. Student is now ready for interview scheduling.');
-      
+
       // Trigger notification
       triggerScholarshipNotification('application_review', {
         application: activeApplication,
@@ -478,7 +484,7 @@ function ScholarshipApplications() {
       await fetchApplications();
       setIsReviewModalOpen(false);
       showSuccess('Application Rejected', 'Application has been successfully rejected.');
-      
+
       // Trigger notification
       triggerScholarshipNotification('application_review', {
         application: activeApplication,
@@ -498,7 +504,7 @@ function ScholarshipApplications() {
       showWarning('Compliance Reason Required', 'Please enter a compliance reason.');
       return;
     }
-    
+
     setReviewLoading(true);
     try {
       // Call API to flag the application for compliance issues
@@ -506,11 +512,11 @@ function ScholarshipApplications() {
         activeApplication.id,
         complianceReason.trim()
       );
-      
+
       await fetchApplications();
       setIsReviewModalOpen(false);
       showSuccess('Application Flagged for Compliance', 'Application has been flagged for compliance review. Student will be notified to correct the information.');
-      
+
       // Trigger notification
       triggerScholarshipNotification('application_review', {
         application: activeApplication,
@@ -527,18 +533,18 @@ function ScholarshipApplications() {
   const handleViewDocument = async (docId, fileName) => {
     try {
       console.log('Viewing document:', docId, fileName);
-      
+
       // Get the view URL for the document
       const viewUrl = await scholarshipApiService.viewDocument(docId);
-      
+
       // Open the document in a new tab
       const newWindow = window.open(viewUrl, '_blank');
-      
+
       if (!newWindow) {
         showWarning('Popup Blocked', 'Please allow popups for this site to view documents.');
         return;
       }
-      
+
       showInfo('Document Viewer', `Opening document: ${fileName}`);
     } catch (error) {
       console.error('Failed to view document:', error);
@@ -549,17 +555,17 @@ function ScholarshipApplications() {
   // Quick action handlers for individual applications
   const handleQuickReviewed = async (application) => {
     if (!application) return;
-    
+
     // Validate application status
     if (application.status !== 'submitted') {
       showError('Invalid Status', `Application must be in "Submitted" status to be marked as reviewed. Current status: ${application.status}`);
       return;
     }
-    
+
     console.log('Quick review action triggered for application:', application.id);
     const confirmed = confirm(`Mark application ${application.applicationNumber} as reviewed?`);
     if (!confirmed) return;
-    
+
     setReviewLoading(true);
     try {
       console.log('Calling markAsReviewed API for application:', application.id);
@@ -578,7 +584,7 @@ function ScholarshipApplications() {
 
   const handleQuickCompliance = async (application) => {
     if (!application) return;
-    
+
     setQuickActionType('compliance');
     setQuickActionReason('');
     setQuickActionApplication(application);
@@ -587,7 +593,7 @@ function ScholarshipApplications() {
 
   const handleQuickReject = async (application) => {
     if (!application) return;
-    
+
     setQuickActionType('reject');
     setQuickActionReason('');
     setQuickActionApplication(application);
@@ -597,10 +603,10 @@ function ScholarshipApplications() {
   // Execute the quick action after modal confirmation
   const executeQuickAction = async () => {
     if (!quickActionApplication) return;
-    
+
     setReviewLoading(true);
     setIsQuickActionModalOpen(false);
-    
+
     try {
       switch (quickActionType) {
         case 'compliance':
@@ -641,7 +647,7 @@ function ScholarshipApplications() {
   // Bulk action handlers
   const handleBulkReviewed = async () => {
     if (selectedApplications.length === 0) return;
-    
+
     setBulkActionType('reviewed');
     setBulkActionReason('');
     setIsBulkActionModalOpen(true);
@@ -649,7 +655,7 @@ function ScholarshipApplications() {
 
   const handleBulkCompliance = async () => {
     if (selectedApplications.length === 0) return;
-    
+
     setBulkActionType('compliance');
     setBulkActionReason('');
     setIsBulkActionModalOpen(true);
@@ -657,7 +663,7 @@ function ScholarshipApplications() {
 
   const handleBulkReject = async () => {
     if (selectedApplications.length === 0) return;
-    
+
     setBulkActionType('reject');
     setBulkActionReason('');
     setIsBulkActionModalOpen(true);
@@ -666,17 +672,17 @@ function ScholarshipApplications() {
   // Execute the bulk action after modal confirmation
   const executeBulkAction = async () => {
     if (selectedApplications.length === 0) return;
-    
+
     const count = selectedApplications.length;
     setReviewLoading(true);
     setIsBulkActionModalOpen(false);
-    
+
     try {
       let promises = [];
-      
+
       switch (bulkActionType) {
         case 'reviewed':
-          promises = selectedApplications.map(appId => 
+          promises = selectedApplications.map(appId =>
             scholarshipApiService.markAsReviewed(appId)
           );
           break;
@@ -686,7 +692,7 @@ function ScholarshipApplications() {
             setReviewLoading(false);
             return;
           }
-          promises = selectedApplications.map(appId => 
+          promises = selectedApplications.map(appId =>
             scholarshipApiService.flagForCompliance(appId, bulkActionReason.trim())
           );
           break;
@@ -696,24 +702,24 @@ function ScholarshipApplications() {
             setReviewLoading(false);
             return;
           }
-          promises = selectedApplications.map(appId => 
+          promises = selectedApplications.map(appId =>
             scholarshipApiService.rejectApplication(appId, bulkActionReason.trim())
           );
           break;
         default:
           throw new Error('Invalid bulk action type');
       }
-      
+
       await Promise.all(promises);
       await fetchApplications();
       setSelectedApplications([]);
-      
+
       // Trigger notification for bulk action
       triggerScholarshipNotification('bulk_action', {
         action: bulkActionType,
         count: count
       });
-      
+
       // Show success message based on action type
       switch (bulkActionType) {
         case 'reviewed':
@@ -741,24 +747,24 @@ function ScholarshipApplications() {
     setDocDownloadingId(docId);
     try {
       console.log('Downloading document:', docId, fileName);
-      
+
       // Download the document blob
       const blob = await scholarshipApiService.downloadDocument(docId);
-      
+
       // Create a download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = fileName;
-      
+
       // Trigger the download
       document.body.appendChild(link);
       link.click();
-      
+
       // Clean up
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       showSuccess('Download Complete', `Successfully downloaded: ${fileName}`);
     } catch (error) {
       console.error('Download failed:', error);
@@ -771,9 +777,8 @@ function ScholarshipApplications() {
 
   // Application Card Component
   const ApplicationCard = ({ application }) => (
-    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 group ${
-      viewMode === 'list' ? 'rounded-lg' : 'rounded-xl'
-    }`}>
+    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 group ${viewMode === 'list' ? 'rounded-lg' : 'rounded-xl'
+      }`}>
       <div className={viewMode === 'list' ? 'p-3 sm:p-4' : 'p-4 sm:p-6'}>
         {/* Header */}
         <div className={`flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:space-y-0 ${viewMode === 'list' ? 'mb-3' : 'mb-4'}`}>
@@ -823,11 +828,10 @@ function ScholarshipApplications() {
           </div>
 
           {/* Academic Info - Responsive Grid */}
-          <div className={`grid gap-3 ${
-            viewMode === 'list' 
-              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' 
-              : 'grid-cols-1 sm:grid-cols-2'
-          }`}>
+          <div className={`grid gap-3 ${viewMode === 'list'
+            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+            : 'grid-cols-1 sm:grid-cols-2'
+            }`}>
             <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
               <GraduationCap className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
               <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">GWA:</span>
@@ -906,27 +910,27 @@ function ScholarshipApplications() {
               {/* Status-specific quick actions */}
               {console.log('Application status for quick actions:', application.status, 'Application ID:', application.id)}
               {application.status === 'submitted' && (
-                <button 
+                <button
                   onClick={() => handleQuickReviewed(application)}
-                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`}
                   title="Mark as Reviewed"
                 >
                   <CheckCircle className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
                 </button>
               )}
               {application.status === 'for_compliance' && (
-                <button 
+                <button
                   onClick={() => handleQuickCompliance(application)}
-                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`}
                   title="Flag for Compliance"
                 >
                   <Flag className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
                 </button>
               )}
               {application.status === 'rejected' && (
-                <button 
+                <button
                   onClick={() => openReview(application)}
-                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`}
                   title="View Details"
                 >
                   <Eye className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
@@ -934,9 +938,9 @@ function ScholarshipApplications() {
               )}
               {/* Always show reject option for non-rejected applications */}
               {application.status !== 'rejected' && (
-                <button 
+                <button
                   onClick={() => handleQuickReject(application)}
-                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                  className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`}
                   title="Reject"
                 >
                   <XCircle className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
@@ -987,7 +991,7 @@ function ScholarshipApplications() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -999,7 +1003,7 @@ function ScholarshipApplications() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -1011,7 +1015,7 @@ function ScholarshipApplications() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -1023,7 +1027,7 @@ function ScholarshipApplications() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -1043,43 +1047,42 @@ function ScholarshipApplications() {
           {/* Search and Basic Filters */}
           <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
             <div className="relative flex-1 w-full sm:min-w-64">
-            <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search applications..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
-            />
-          </div>
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search applications..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
+              />
+            </div>
 
-          <select
+            <select
               value={filters.status}
               onChange={(e) => updateFilter('status', e.target.value)}
-            className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
-          >
-            <option value="all">All Status</option>
-            <option value="draft">Draft</option>
-            <option value="submitted">Submitted</option>
-            <option value="for_compliance">For Compliance</option>
-          </select>
+              className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
+            >
+              <option value="all">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="submitted">Submitted</option>
+              <option value="for_compliance">For Compliance</option>
+            </select>
           </div>
 
           {/* Controls */}
           <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm sm:text-base ${
-                showAdvancedFilters 
-                  ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
-                  : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-              }`}
+              className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm sm:text-base ${showAdvancedFilters
+                ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
+                : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
+                }`}
             >
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline">Advanced</span>
               <span className="sm:hidden">Filter</span>
             </button>
-            
+
             <div className="flex items-center border border-gray-300 dark:border-slate-600 rounded-lg">
               <button
                 onClick={() => setViewMode('grid')}
@@ -1094,25 +1097,25 @@ function ScholarshipApplications() {
                 <List className="w-4 h-4" />
               </button>
             </div>
-            
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-              className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
-          >
-            <option value="date">Sort by Date</option>
-            <option value="name">Sort by Name</option>
-            <option value="gwa">Sort by GWA</option>
-              <option value="amount">Sort by Amount</option>
-          </select>
 
-          <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
+            >
+              <option value="date">Sort by Date</option>
+              <option value="name">Sort by Name</option>
+              <option value="gwa">Sort by GWA</option>
+              <option value="amount">Sort by Amount</option>
+            </select>
+
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
               className="p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
-          >
+            >
               {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-          </button>
-        </div>
+            </button>
+          </div>
         </div>
 
         {/* Advanced Filters */}
@@ -1132,7 +1135,7 @@ function ScholarshipApplications() {
                   <option value="technical">Technical Vocational</option>
                   <option value="als">Alternative Learning System</option>
                 </select>
-      </div>
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Level</label>
@@ -1148,7 +1151,7 @@ function ScholarshipApplications() {
                   <option value="graduate">Graduate School</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
                 <select
@@ -1163,7 +1166,7 @@ function ScholarshipApplications() {
                   <option value="normal">Normal</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School</label>
                 <select
@@ -1177,10 +1180,10 @@ function ScholarshipApplications() {
                   <option value="high school">High School</option>
                 </select>
               </div>
-                </div>
-            
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                <div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date From</label>
                 <input
                   type="date"
@@ -1188,9 +1191,9 @@ function ScholarshipApplications() {
                   onChange={(e) => updateFilter('dateFrom', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
-                </div>
-              
-                <div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date To</label>
                 <input
                   type="date"
@@ -1198,9 +1201,9 @@ function ScholarshipApplications() {
                   onChange={(e) => updateFilter('dateTo', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
-                </div>
-              
-                <div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Min GWA</label>
                 <input
                   type="number"
@@ -1211,7 +1214,7 @@ function ScholarshipApplications() {
                   onChange={(e) => updateFilter('minGwa', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
-            </div>
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max GWA</label>
@@ -1224,10 +1227,10 @@ function ScholarshipApplications() {
                   onChange={(e) => updateFilter('maxGwa', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* Active Filter Chips */}
         {hasActiveFilters() && (
@@ -1264,7 +1267,7 @@ function ScholarshipApplications() {
                 </button>
               </span>
             )}
-                  </div>
+          </div>
         )}
 
         {/* Bulk Actions */}
@@ -1273,34 +1276,34 @@ function ScholarshipApplications() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-orange-800 dark:text-orange-200">
                 {selectedApplications.length} application(s) selected
-                    </span>
-                    <div className="flex space-x-2">
-                <button 
+              </span>
+              <div className="flex space-x-2">
+                <button
                   onClick={handleBulkReviewed}
                   disabled={reviewLoading}
                   className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                 >
                   {reviewLoading ? 'Processing...' : 'Reviewed'}
-                      </button>
-                <button 
+                </button>
+                <button
                   onClick={handleBulkCompliance}
                   disabled={reviewLoading}
                   className="bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                 >
                   {reviewLoading ? 'Processing...' : 'Compliance'}
-                      </button>
-                <button 
+                </button>
+                <button
                   onClick={handleBulkReject}
                   disabled={reviewLoading}
                   className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                 >
                   {reviewLoading ? 'Processing...' : 'Reject'}
-                      </button>
-                    </div>
-        </div>
-            </div>
-        )}
+                </button>
               </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Applications Grid/List */}
       {loading ? (
@@ -1309,7 +1312,7 @@ function ScholarshipApplications() {
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6 text-center">
           <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-red-500 mx-auto mb-4" />
           <p className="text-sm sm:text-base text-red-700 dark:text-red-300">{error}</p>
-          </div>
+        </div>
       ) : sortedApplications.length === 0 ? (
         <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-6 sm:p-12 text-center">
           <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
@@ -1321,7 +1324,7 @@ function ScholarshipApplications() {
           {sortedApplications.map((application) => (
             <ApplicationCard key={application.id} application={application} />
           ))}
-      </div>
+        </div>
       )}
 
       {/* Review Modal - Large Modal */}
@@ -1335,8 +1338,8 @@ function ScholarshipApplications() {
               <div className="p-6 border-b border-gray-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Review Application</h3>
-                  <button 
-                    onClick={() => setIsReviewModalOpen(false)} 
+                  <button
+                    onClick={() => setIsReviewModalOpen(false)}
                     className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
                   >
                     <X className="w-5 h-5" />
@@ -1348,11 +1351,10 @@ function ScholarshipApplications() {
               <div className="p-4 lg:p-6 space-y-2 lg:space-y-3">
                 <button
                   onClick={() => setReviewAction('reviewed')}
-                  className={`w-full p-3 lg:p-4 rounded-lg border-2 transition-all ${
-                    reviewAction === 'reviewed'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                      : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:border-blue-300'
-                  }`}
+                  className={`w-full p-3 lg:p-4 rounded-lg border-2 transition-all ${reviewAction === 'reviewed'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:border-blue-300'
+                    }`}
                 >
                   <div className="flex items-center space-x-2 lg:space-x-3">
                     <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -1366,11 +1368,10 @@ function ScholarshipApplications() {
 
                 <button
                   onClick={() => setReviewAction('compliance')}
-                  className={`w-full p-3 lg:p-4 rounded-lg border-2 transition-all ${
-                    reviewAction === 'compliance'
-                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
-                      : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:border-orange-300'
-                  }`}
+                  className={`w-full p-3 lg:p-4 rounded-lg border-2 transition-all ${reviewAction === 'compliance'
+                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
+                    : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:border-orange-300'
+                    }`}
                 >
                   <div className="flex items-center space-x-2 lg:space-x-3">
                     <Flag className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -1383,11 +1384,10 @@ function ScholarshipApplications() {
 
                 <button
                   onClick={() => setReviewAction('reject')}
-                  className={`w-full p-3 lg:p-4 rounded-lg border-2 transition-all ${
-                    reviewAction === 'reject'
-                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                      : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:border-red-300'
-                  }`}
+                  className={`w-full p-3 lg:p-4 rounded-lg border-2 transition-all ${reviewAction === 'reject'
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                    : 'border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:border-red-300'
+                    }`}
                 >
                   <div className="flex items-center space-x-2 lg:space-x-3">
                     <XCircle className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -1412,7 +1412,7 @@ function ScholarshipApplications() {
                               Invalid Status
                             </h4>
                             <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                              This application is currently in <span className="font-semibold">{getStatusText(activeApplication?.status)}</span> status. 
+                              This application is currently in <span className="font-semibold">{getStatusText(activeApplication?.status)}</span> status.
                               Applications must be in <span className="font-semibold">Submitted</span> status to be marked as reviewed.
                             </p>
                           </div>
@@ -1503,7 +1503,7 @@ function ScholarshipApplications() {
                     </div>
                   </div>
                 )}
-                
+
                 {!reviewLoading && activeApplication ? (
                   <div className="space-y-8">
                     {console.log('Rendering application details for:', activeApplication)}
@@ -1693,11 +1693,10 @@ function ScholarshipApplications() {
                                 <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">{doc.document_type?.name || '—'}</td>
                                 <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{doc.file_name}</td>
                                 <td className="px-4 py-2">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                    doc.status === 'verified' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${doc.status === 'verified' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                                     doc.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                  }`}>
+                                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                    }`}>
                                     {doc.status}
                                   </span>
                                 </td>
@@ -1815,18 +1814,17 @@ function ScholarshipApplications() {
               <button
                 onClick={executeBulkAction}
                 disabled={reviewLoading || (bulkActionType !== 'reviewed' && !bulkActionReason?.trim())}
-                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  bulkActionType === 'reviewed' 
-                    ? 'bg-blue-500 hover:bg-blue-600' 
-                    : bulkActionType === 'compliance'
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${bulkActionType === 'reviewed'
+                  ? 'bg-blue-500 hover:bg-blue-600'
+                  : bulkActionType === 'compliance'
                     ? 'bg-yellow-500 hover:bg-yellow-600'
                     : 'bg-red-500 hover:bg-red-600'
-                }`}
+                  }`}
               >
-                {reviewLoading ? 'Processing...' : 
+                {reviewLoading ? 'Processing...' :
                   bulkActionType === 'reviewed' ? 'Mark as Reviewed' :
-                  bulkActionType === 'compliance' ? 'Flag for Compliance' :
-                  'Reject Applications'
+                    bulkActionType === 'compliance' ? 'Flag for Compliance' :
+                      'Reject Applications'
                 }
               </button>
             </div>
@@ -1895,15 +1893,14 @@ function ScholarshipApplications() {
               <button
                 onClick={executeQuickAction}
                 disabled={reviewLoading || !quickActionReason?.trim()}
-                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  quickActionType === 'reject' 
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-yellow-500 hover:bg-yellow-600'
-                }`}
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${quickActionType === 'reject'
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : 'bg-yellow-500 hover:bg-yellow-600'
+                  }`}
               >
-                {reviewLoading ? 'Processing...' : 
+                {reviewLoading ? 'Processing...' :
                   quickActionType === 'reject' ? 'Reject Application' :
-                  'Flag for Compliance'
+                    'Flag for Compliance'
                 }
               </button>
             </div>

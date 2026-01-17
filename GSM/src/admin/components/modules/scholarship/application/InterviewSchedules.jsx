@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
+import {
+  Calendar,
+  Clock,
+  Users,
   MapPin,
   Phone,
   Mail,
@@ -34,7 +34,7 @@ import { scholarshipApiService } from '../../../../../services/scholarshipApiSer
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function InterviewSchedules() {
-  const { showSuccess, showError, showWarning, showInfo } = useToastContext();
+  const { success: showSuccess, error: showError, warning: showWarning, info: showInfo } = useToastContext();
   const [schedules, setSchedules] = useState([]);
   const [pendingApplications, setPendingApplications] = useState([]);
   const [eligibleApplications, setEligibleApplications] = useState([]);
@@ -63,7 +63,7 @@ function InterviewSchedules() {
   const [isBulkScheduleModalOpen, setIsBulkScheduleModalOpen] = useState(false);
   const [activeSchedule, setActiveSchedule] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  
+
   // Create modal form state
   const [createFormData, setCreateFormData] = useState({
     interviewType: 'online',
@@ -121,12 +121,12 @@ function InterviewSchedules() {
   const fetchPendingApplications = async () => {
     try {
       // Fetch applications with status 'documents_reviewed' to show as pending
-      const response = await scholarshipApiService.getApplications({ 
+      const response = await scholarshipApiService.getApplications({
         status: 'documents_reviewed',
         per_page: 100,
         with: 'student,category,subcategory' // Include related data
       });
-      
+
       setPendingApplications(response.data || []);
     } catch (e) {
       console.error('Error loading pending applications:', e);
@@ -137,11 +137,11 @@ function InterviewSchedules() {
   const fetchEligibleApplications = async () => {
     try {
       // Fetch applications with status 'documents_reviewed'
-      const response = await scholarshipApiService.getApplications({ 
+      const response = await scholarshipApiService.getApplications({
         status: 'documents_reviewed',
         per_page: 100 // Get more applications to have a good selection
       });
-      
+
       setEligibleApplications(response.data || []);
     } catch (e) {
       console.error('Error loading eligible applications:', e);
@@ -153,9 +153,9 @@ function InterviewSchedules() {
     try {
       setLoading(true);
       setError('');
-      
+
       const response = await scholarshipApiService.getInterviewSchedules();
-      
+
       // Transform the API response to match the expected format
       const transformedSchedules = response.map(schedule => ({
         id: schedule.id,
@@ -182,7 +182,7 @@ function InterviewSchedules() {
         interviewResult: schedule.interview_result,
         completedAt: schedule.completed_at
       }));
-      
+
       setSchedules(transformedSchedules);
     } catch (e) {
       console.error('Error loading interview schedules:', e);
@@ -196,13 +196,13 @@ function InterviewSchedules() {
     try {
       const response = await scholarshipApiService.getStaffInterviewers();
       console.log('Staff interviewers API response:', response);
-      
+
       if (response && response.success && Array.isArray(response.data)) {
         // Filter out any empty or invalid objects
-        const validStaff = response.data.filter(staff => 
+        const validStaff = response.data.filter(staff =>
           staff && staff.id && (staff.name || staff.user_id)
         );
-        
+
         if (validStaff.length > 0) {
           setStaffMembers(validStaff);
         } else {
@@ -272,11 +272,11 @@ function InterviewSchedules() {
   const handleCompleteInterview = async (scheduleId, result, notes = '') => {
     try {
       await scholarshipApiService.completeInterview(scheduleId, result, notes);
-      
+
       // Refresh the schedules to get updated data
       await fetchSchedules();
-      
-        showToast(`✅ Interview completed successfully!\n\n📝 Result: ${result}\n📅 Completed at: ${new Date().toLocaleString()}`, 'success', 'Interview Completed');
+
+      showToast(`✅ Interview completed successfully!\n\n📝 Result: ${result}\n📅 Completed at: ${new Date().toLocaleString()}`, 'success', 'Interview Completed');
     } catch (e) {
       console.error('Error completing interview:', e);
       showToast(`❌ Failed to complete interview:\n\n${e.message || 'Unknown error'}\n\nPlease try again.`, 'error', 'Interview Completion Failed');
@@ -287,11 +287,11 @@ function InterviewSchedules() {
   const handleCancelInterview = async (scheduleId, reason = '') => {
     try {
       await scholarshipApiService.cancelInterview(scheduleId, reason);
-      
+
       // Refresh the schedules to get updated data
       await fetchSchedules();
-      
-        showToast(`✅ Interview cancelled successfully!\n\n📅 Cancelled at: ${new Date().toLocaleString()}`, 'success');
+
+      showToast(`✅ Interview cancelled successfully!\n\n📅 Cancelled at: ${new Date().toLocaleString()}`, 'success');
     } catch (e) {
       console.error('Error cancelling interview:', e);
       showToast(`❌ Failed to cancel interview:\n\n${e.message || 'Unknown error'}\n\nPlease try again.`, 'error');
@@ -303,11 +303,11 @@ function InterviewSchedules() {
       // Note: The API service doesn't have a markNoShow method yet, so we'll use completeInterview with a special result
       // This should be updated when the API service adds the markNoShow method
       await scholarshipApiService.completeInterview(scheduleId, 'failed', `No show: ${notes}`);
-      
+
       // Refresh the schedules to get updated data
       await fetchSchedules();
-      
-        showToast(`✅ Interview marked as no show!\n\n📝 Notes: ${notes || 'No additional notes'}\n📅 Marked at: ${new Date().toLocaleString()}`, 'success');
+
+      showToast(`✅ Interview marked as no show!\n\n📝 Notes: ${notes || 'No additional notes'}\n📅 Marked at: ${new Date().toLocaleString()}`, 'success');
     } catch (e) {
       console.error('Error marking as no show:', e);
       showToast(`❌ Failed to mark as no show:\n\n${e.message || 'Unknown error'}\n\nPlease try again.`, 'error');
@@ -317,10 +317,10 @@ function InterviewSchedules() {
   const handleScheduleInterview = async (applicationId, interviewData) => {
     try {
       await scholarshipApiService.scheduleInterview(applicationId, interviewData);
-      
+
       // Refresh the schedules to get updated data
       await fetchSchedules();
-      
+
       alert('Interview scheduled successfully');
     } catch (e) {
       console.error('Error scheduling interview:', e);
@@ -349,11 +349,11 @@ function InterviewSchedules() {
   const handleAutoScheduleInterview = async (applicationId) => {
     try {
       await scholarshipApiService.scheduleInterviewAuto(applicationId);
-      
+
       // Refresh the schedules to get updated data
       await fetchSchedules();
-      
-        showToast(`✅ Interview scheduled automatically!\n\n📅 Scheduled for next available slot`, 'success');
+
+      showToast(`✅ Interview scheduled automatically!\n\n📅 Scheduled for next available slot`, 'success');
     } catch (e) {
       console.error('Error auto-scheduling interview:', e);
       showToast(`❌ Failed to auto-schedule interview:\n\n${e.message || 'Unknown error'}\n\nPlease try manual scheduling.`, 'error');
@@ -362,7 +362,7 @@ function InterviewSchedules() {
 
   // Bulk Operations
   const handleUnselectAll = () => {
-      setSelectedSchedules([]);
+    setSelectedSchedules([]);
   };
 
   const handleSelectAll = () => {
@@ -374,17 +374,17 @@ function InterviewSchedules() {
     // Check if all selected schedules are pending applications
     const selectedItems = getAllItems().filter(item => selectedSchedules.includes(item.id));
     const pendingItems = selectedItems.filter(item => item.status === 'pending' && item.type === 'pending');
-    
+
     if (pendingItems.length !== selectedItems.length) {
       alert('Only pending applications (awaiting interview scheduling) can be bulk scheduled.');
       return;
     }
-    
+
     if (pendingItems.length === 0) {
       alert('No pending applications selected for scheduling.');
       return;
     }
-    
+
     // Reset form and open modal
     setBulkFormData({
       interviewType: 'online',
@@ -405,7 +405,7 @@ function InterviewSchedules() {
   // Combine schedules and pending applications for display
   const getAllItems = () => {
     const allItems = [];
-    
+
     // Add existing schedules
     schedules.forEach(schedule => {
       allItems.push({
@@ -413,7 +413,7 @@ function InterviewSchedules() {
         type: 'schedule'
       });
     });
-    
+
     // Add pending applications
     pendingApplications.forEach(application => {
       allItems.push({
@@ -441,18 +441,18 @@ function InterviewSchedules() {
         subcategory: application.subcategory
       });
     });
-    
+
     return allItems;
   };
 
   const filteredSchedules = getAllItems().filter(item => {
     const matchesSearch = item.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.interviewer.toLowerCase().includes(searchTerm.toLowerCase());
-    
+      item.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.interviewer.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesStatus = filters.status === 'all' || item.status === filters.status;
     const matchesInterviewer = filters.interviewer === 'all' || item.interviewer === filters.interviewer;
-    
+
     // Date range filter (only applies to scheduled interviews)
     let matchesDateFrom = true;
     let matchesDateTo = true;
@@ -461,13 +461,13 @@ function InterviewSchedules() {
       matchesDateFrom = !filters.dateFrom || scheduleDate >= new Date(filters.dateFrom);
       matchesDateTo = !filters.dateTo || scheduleDate <= new Date(filters.dateTo);
     }
-    
+
     return matchesSearch && matchesStatus && matchesInterviewer && matchesDateFrom && matchesDateTo;
   });
 
   const sortedSchedules = [...filteredSchedules].sort((a, b) => {
     let aValue, bValue;
-    
+
     switch (sortBy) {
       case 'student':
         aValue = a.studentName.toLowerCase();
@@ -492,9 +492,8 @@ function InterviewSchedules() {
   });
 
   const ScheduleCard = ({ schedule }) => (
-    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 group ${
-      viewMode === 'list' ? 'rounded-lg' : 'rounded-xl'
-    }`}>
+    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 group ${viewMode === 'list' ? 'rounded-lg' : 'rounded-xl'
+      }`}>
       <div className={viewMode === 'list' ? 'p-4' : 'p-6'}>
         {/* Header */}
         <div className={`flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 ${viewMode === 'list' ? 'mb-3' : 'mb-4'}`}>
@@ -544,11 +543,10 @@ function InterviewSchedules() {
           </div>
 
           {/* Interview Info */}
-          <div className={`grid gap-3 ${
-            viewMode === 'list' 
-              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' 
+          <div className={`grid gap-3 ${viewMode === 'list'
+              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
               : 'grid-cols-1 sm:grid-cols-2'
-          }`}>
+            }`}>
             <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
               <Users className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
               <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Interviewer:</span>
@@ -633,20 +631,20 @@ function InterviewSchedules() {
                   <span>Schedule Interview</span>
                 </button>
               ) : schedule.status !== 'completed' ? (
-                  <button
-                    onClick={() => handleJoinMeeting(schedule)}
-                    className={`flex items-center space-x-2 ${viewMode === 'list' ? 'px-4 py-2 text-sm font-semibold' : 'px-3 py-1.5 text-sm'} bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
-                  >
-                    <Video className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
-                    <span>Join Meeting</span>
-                  </button>
+                <button
+                  onClick={() => handleJoinMeeting(schedule)}
+                  className={`flex items-center space-x-2 ${viewMode === 'list' ? 'px-4 py-2 text-sm font-semibold' : 'px-3 py-1.5 text-sm'} bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
+                >
+                  <Video className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
+                  <span>Join Meeting</span>
+                </button>
               ) : null}
             </div>
             <div className="flex items-center space-x-2 flex-shrink-0">
               {schedule.status !== 'pending' && schedule.status !== 'completed' && (
-                <button 
+                <button
                   onClick={() => handleRescheduleInterview(schedule)}
-                  className={`${viewMode === 'list' ? 'px-3 py-2 text-sm' : 'px-3 py-1.5 text-sm'} bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center space-x-1`} 
+                  className={`${viewMode === 'list' ? 'px-3 py-2 text-sm' : 'px-3 py-1.5 text-sm'} bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex items-center space-x-1`}
                   title="Reschedule"
                 >
                   <Calendar className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
@@ -661,8 +659,8 @@ function InterviewSchedules() {
   );
 
   const handleSelectSchedule = (id) => {
-    setSelectedSchedules(prev => 
-      prev.includes(id) 
+    setSelectedSchedules(prev =>
+      prev.includes(id)
         ? prev.filter(scheduleId => scheduleId !== id)
         : [...prev, id]
     );
@@ -720,27 +718,27 @@ function InterviewSchedules() {
       interviewer: schedule.interviewer || '',
       notes: schedule.notes || ''
     });
-    
+
     setActiveSchedule(schedule);
     setIsCreateModalOpen(true);
   };
 
   const confirmDeleteSchedule = async () => {
     if (!activeSchedule) return;
-    
+
     setActionLoading(true);
     try {
       // Note: The API doesn't have a delete endpoint for interview schedules
       // This would need to be implemented in the backend
       // For now, we'll cancel the interview instead
       await scholarshipApiService.cancelInterview(activeSchedule.id, 'Deleted by administrator');
-      
+
       // Refresh the schedules to get updated data
       await fetchSchedules();
-      
+
       setIsDeleteModalOpen(false);
       setActiveSchedule(null);
-      
+
       // Show success message
       alert('Interview schedule cancelled successfully!');
     } catch (error) {
@@ -754,7 +752,7 @@ function InterviewSchedules() {
   const handleJoinMeeting = (schedule) => {
     // If no meeting link exists, generate one or use a default meeting platform
     let meetingLink = schedule.meetingLink;
-    
+
     if (!meetingLink) {
       // Generate a meeting link based on interview type
       if (schedule.type === 'online') {
@@ -777,20 +775,20 @@ function InterviewSchedules() {
     }
 
     setActiveSchedule({ ...schedule, meetingLink });
-      // Pre-populate evaluation form with schedule data
-      setEvaluationFormData({
-        applicantId: schedule.studentId,
+    // Pre-populate evaluation form with schedule data
+    setEvaluationFormData({
+      applicantId: schedule.studentId,
       applicationId: schedule.application?.id || schedule.applicationId || 'N/A',
-        interviewerName: schedule.interviewer,
+      interviewerName: schedule.interviewer,
       interviewDate: formatDateForDisplay(schedule.interviewDate),
-        academicMotivationScore: '',
-        leadershipInvolvementScore: '',
-        financialNeedScore: '',
-        characterValuesScore: '',
-        overallRecommendation: '',
-        remarks: ''
-      });
-      setIsJoinMeetingModalOpen(true);
+      academicMotivationScore: '',
+      leadershipInvolvementScore: '',
+      financialNeedScore: '',
+      characterValuesScore: '',
+      overallRecommendation: '',
+      remarks: ''
+    });
+    setIsJoinMeetingModalOpen(true);
   };
 
   // Form handling functions
@@ -804,7 +802,7 @@ function InterviewSchedules() {
 
   const validateCreateForm = () => {
     const errors = {};
-    
+
     if (!createFormData.studentId) {
       errors.studentId = 'Please select a student with documents reviewed status';
     }
@@ -815,7 +813,7 @@ function InterviewSchedules() {
       const selectedDate = new Date(createFormData.interviewDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
-      
+
       if (selectedDate < today) {
         errors.interviewDate = 'Interview date must be today or in the future';
       }
@@ -829,7 +827,7 @@ function InterviewSchedules() {
     if (!createFormData.meetingLink) {
       errors.meetingLink = 'Please enter meeting link';
     }
-    
+
     // Additional validation: check if selected application is eligible
     if (createFormData.studentId) {
       const selectedApplication = eligibleApplications.find(app => app.id.toString() === createFormData.studentId);
@@ -839,7 +837,7 @@ function InterviewSchedules() {
         errors.studentId = 'Selected application must have documents reviewed status';
       }
     }
-    
+
     // Check for interviewer time conflicts
     if (createFormData.staffId && createFormData.interviewDate && createFormData.interviewTime) {
       const selectedStaff = staffMembers.find(staff => staff.id.toString() === createFormData.staffId);
@@ -852,93 +850,93 @@ function InterviewSchedules() {
           null,
           createFormData.staffId
         );
-      
-      if (conflicts.length > 0) {
-        const conflictDetails = conflicts.map(conflict => 
-          `${conflict.studentName} (${conflict.displayStartTime} - ${conflict.displayEndTime})`
-        ).join(', ');
-        
-        errors.interviewTime = `Time conflict detected! ${selectedStaff.name} already has interview(s) at this time: ${conflictDetails}`;
+
+        if (conflicts.length > 0) {
+          const conflictDetails = conflicts.map(conflict =>
+            `${conflict.studentName} (${conflict.displayStartTime} - ${conflict.displayEndTime})`
+          ).join(', ');
+
+          errors.interviewTime = `Time conflict detected! ${selectedStaff.name} already has interview(s) at this time: ${conflictDetails}`;
         }
       }
     }
-    
+
     setCreateFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateCreateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       // Prepare the interview data for the API
-          const selectedStaff = staffMembers.find(staff => staff.id.toString() === createFormData.staffId);
-          if (!selectedStaff) {
-            throw new Error('Selected interviewer not found');
-          }
-          
-          if (!selectedStaff.user_id) {
-            throw new Error('Selected interviewer is missing user ID. Please refresh the page and try again.');
-          }
+      const selectedStaff = staffMembers.find(staff => staff.id.toString() === createFormData.staffId);
+      if (!selectedStaff) {
+        throw new Error('Selected interviewer not found');
+      }
+
+      if (!selectedStaff.user_id) {
+        throw new Error('Selected interviewer is missing user ID. Please refresh the page and try again.');
+      }
 
       const interviewData = {
         interview_date: createFormData.interviewDate,
         interview_time: createFormData.interviewTime,
-            interview_location: 'Online',
-            interview_type: 'online',
-            meeting_link: createFormData.meetingLink,
-            staff_id: createFormData.staffId,
-            interviewer_id: selectedStaff.user_id,
-            interviewer_name: selectedStaff.name,
+        interview_location: 'Online',
+        interview_type: 'online',
+        meeting_link: createFormData.meetingLink,
+        staff_id: createFormData.staffId,
+        interviewer_id: selectedStaff.user_id,
+        interviewer_name: selectedStaff.name,
         scheduling_type: 'manual',
         interview_notes: createFormData.notes,
         duration: parseInt(createFormData.duration) || 30
       };
-      
+
       // Get the application ID from the selected student
       const applicationId = parseInt(createFormData.studentId);
-      
+
       if (!applicationId) {
         throw new Error('Invalid application selected');
       }
-      
+
       // Check if we're rescheduling an existing interview
       if (activeSchedule && activeSchedule.id) {
         // For rescheduling, we need to update the existing interview
         // Note: This would require an update endpoint in the API
         // For now, we'll create a new interview and mark the old one as cancelled
         await scholarshipApiService.scheduleInterview(applicationId, interviewData);
-        
+
         // Show reschedule success message
         const selectedStudent = eligibleApplications.find(app => app.id === parseInt(createFormData.studentId));
         const studentName = selectedStudent ? `${selectedStudent.student.first_name} ${selectedStudent.student.last_name}` : 'Student';
         const interviewerName = selectedStaff?.name || 'Interviewer';
         const scheduleTime = `${createFormData.interviewDate} at ${createFormData.interviewTime}`;
-        
+
         showToast(`✅ Interview rescheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`, 'success');
       } else {
         // Creating a new interview
         await scholarshipApiService.scheduleInterview(applicationId, interviewData);
-        
+
         // Show success message with details
         const selectedStudent = eligibleApplications.find(app => app.id === parseInt(createFormData.studentId));
         const studentName = selectedStudent ? `${selectedStudent.student.first_name} ${selectedStudent.student.last_name}` : 'Student';
         const interviewerName = selectedStaff?.name || 'Interviewer';
         const scheduleTime = `${createFormData.interviewDate} at ${createFormData.interviewTime}`;
-        
+
         showToast(`✅ Interview scheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`, 'success', 'Interview Scheduled');
       }
-      
+
       // Refresh the schedules, pending applications, and eligible applications to get updated data
       await fetchSchedules();
       await fetchPendingApplications();
       await fetchEligibleApplications();
-      
+
       setIsCreateModalOpen(false);
       setActiveSchedule(null);
       setCreateFormData({
@@ -949,37 +947,37 @@ function InterviewSchedules() {
         interviewDate: '',
         interviewTime: '',
         duration: '30',
-              staffId: '',
+        staffId: '',
         notes: ''
       });
       setCreateFormErrors({});
     } catch (error) {
       console.error('Error creating interview schedule:', error);
-      
+
       // Handle conflict errors specifically
       if (error.response?.status === 409 && error.response?.data?.conflicts) {
         const conflicts = error.response.data.conflicts;
-        const conflictDetails = conflicts.map(conflict => 
+        const conflictDetails = conflicts.map(conflict =>
           `• ${conflict.student_name} (${conflict.display_start_time} - ${conflict.display_end_time})`
         ).join('\n');
-        
+
         showToast(`❌ Cannot schedule interview due to conflicts!\n\n👤 ${selectedStaff?.name || 'The interviewer'} already has interview(s) at this time:\n\n${conflictDetails}\n\nPlease choose a different time slot.`, 'error');
         return;
       }
-      
+
       // Handle validation errors
       if (error.response?.status === 422 && error.response?.data?.errors) {
         const validationErrors = Object.values(error.response.data.errors).flat();
         showToast(`❌ Validation failed:\n\n${validationErrors.map(err => `• ${err}`).join('\n')}`, 'error');
         return;
       }
-      
+
       // Handle server errors
       if (error.response?.status >= 500) {
         showToast(`❌ Server error (${error.response?.status}):\n\n${error.response?.data?.message || error.message || 'Internal server error'}\n\nPlease try again or contact support.`, 'error');
         return;
       }
-      
+
       // Generic error
       showToast(`❌ Failed to create interview schedule:\n\n${error.message || 'Unknown error'}\n\nPlease check your input and try again.`, 'error');
     } finally {
@@ -1014,7 +1012,7 @@ function InterviewSchedules() {
 
   const validateBulkForm = () => {
     const errors = {};
-    
+
     if (!bulkFormData.interviewDate) {
       errors.interviewDate = 'Please select an interview date';
     }
@@ -1027,7 +1025,7 @@ function InterviewSchedules() {
     if (!bulkFormData.meetingLink) {
       errors.meetingLink = 'Please enter meeting link';
     }
-    
+
     // Check for interviewer time conflicts in bulk scheduling
     if (bulkFormData.staffId && bulkFormData.interviewDate && bulkFormData.interviewTime) {
       const selectedStaff = staffMembers.find(staff => staff.id.toString() === bulkFormData.staffId);
@@ -1040,20 +1038,20 @@ function InterviewSchedules() {
           null,
           bulkFormData.staffId
         );
-      
-      if (conflicts.length > 0) {
-        const conflictDetails = conflicts.map(conflict => 
-          `${conflict.studentName} (${conflict.displayStartTime} - ${conflict.displayEndTime})`
-        ).join(', ');
-        
-        errors.interviewTime = `Time conflict detected! ${selectedStaff.name} already has interview(s) at this time: ${conflictDetails}`;
+
+        if (conflicts.length > 0) {
+          const conflictDetails = conflicts.map(conflict =>
+            `${conflict.studentName} (${conflict.displayStartTime} - ${conflict.displayEndTime})`
+          ).join(', ');
+
+          errors.interviewTime = `Time conflict detected! ${selectedStaff.name} already has interview(s) at this time: ${conflictDetails}`;
         }
       }
-      
+
       // Also check if the bulk scheduling would create conflicts within itself
       const selectedItems = getAllItems().filter(item => selectedSchedules.includes(item.id));
       const pendingItems = selectedItems.filter(item => item.status === 'pending' && item.type === 'pending');
-      
+
       if (pendingItems.length > 1) {
         const interviewTimes = calculateConsecutiveTimes(
           bulkFormData.interviewTime,
@@ -1061,7 +1059,7 @@ function InterviewSchedules() {
           bulkFormData.gapTime,
           pendingItems.length
         );
-        
+
         // Check if any of the calculated consecutive times would conflict with existing schedules
         for (let i = 1; i < interviewTimes.length; i++) {
           const timeSlot = interviewTimes[i];
@@ -1071,7 +1069,7 @@ function InterviewSchedules() {
             timeSlot.startTime,
             bulkFormData.duration
           );
-          
+
           if (laterConflicts.length > 0) {
             errors.interviewTime = `Bulk scheduling would create conflicts later in the day. Consider starting earlier or increasing gap time.`;
             break;
@@ -1079,23 +1077,23 @@ function InterviewSchedules() {
         }
       }
     }
-    
+
     setBulkFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleBulkScheduleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateBulkForm()) {
       return;
     }
-    
+
     setIsSubmittingBulk(true);
     try {
       const selectedItems = getAllItems().filter(item => selectedSchedules.includes(item.id));
       const pendingItems = selectedItems.filter(item => item.status === 'pending' && item.type === 'pending');
-      
+
       // Calculate consecutive interview times
       const interviewTimes = calculateConsecutiveTimes(
         bulkFormData.interviewTime,
@@ -1103,78 +1101,78 @@ function InterviewSchedules() {
         bulkFormData.gapTime,
         pendingItems.length
       );
-      
-            const selectedStaff = staffMembers.find(staff => staff.id.toString() === bulkFormData.staffId);
-            if (!selectedStaff) {
-              throw new Error('Selected interviewer not found');
-            }
-            
-            if (!selectedStaff.user_id) {
-              throw new Error('Selected interviewer is missing user ID. Please refresh the page and try again.');
-            }
 
-            // Schedule interviews for all selected pending applications with consecutive times
-            const promises = pendingItems.map((item, index) => {
-              const timeSlot = interviewTimes[index];
-              const interviewData = {
-                interview_date: bulkFormData.interviewDate,
-                interview_time: timeSlot.startTime,
-                interview_location: 'Online',
-                interview_type: 'online',
-                meeting_link: bulkFormData.meetingLink,
-                staff_id: bulkFormData.staffId,
-                interviewer_id: selectedStaff.user_id,
-                interviewer_name: selectedStaff.name,
-                scheduling_type: 'manual',
-                interview_notes: `${bulkFormData.notes}\n\nScheduled Time: ${timeSlot.displayTime} - ${formatTimeForDisplay(timeSlot.endTime)}`,
-                duration: parseInt(bulkFormData.duration) || 30
-              };
-              
-              return scholarshipApiService.scheduleInterview(item.applicationId, interviewData);
-            });
+      const selectedStaff = staffMembers.find(staff => staff.id.toString() === bulkFormData.staffId);
+      if (!selectedStaff) {
+        throw new Error('Selected interviewer not found');
+      }
+
+      if (!selectedStaff.user_id) {
+        throw new Error('Selected interviewer is missing user ID. Please refresh the page and try again.');
+      }
+
+      // Schedule interviews for all selected pending applications with consecutive times
+      const promises = pendingItems.map((item, index) => {
+        const timeSlot = interviewTimes[index];
+        const interviewData = {
+          interview_date: bulkFormData.interviewDate,
+          interview_time: timeSlot.startTime,
+          interview_location: 'Online',
+          interview_type: 'online',
+          meeting_link: bulkFormData.meetingLink,
+          staff_id: bulkFormData.staffId,
+          interviewer_id: selectedStaff.user_id,
+          interviewer_name: selectedStaff.name,
+          scheduling_type: 'manual',
+          interview_notes: `${bulkFormData.notes}\n\nScheduled Time: ${timeSlot.displayTime} - ${formatTimeForDisplay(timeSlot.endTime)}`,
+          duration: parseInt(bulkFormData.duration) || 30
+        };
+
+        return scholarshipApiService.scheduleInterview(item.applicationId, interviewData);
+      });
 
       await Promise.all(promises);
-      
+
       // Refresh the schedules, pending applications, and eligible applications to get updated data
       await fetchSchedules();
       await fetchPendingApplications();
       await fetchEligibleApplications();
-      
-        setIsBulkScheduleModalOpen(false);
-        setSelectedSchedules([]);
-        setBulkFormData({
-          interviewType: 'online',
-          platform: 'zoom',
-          meetingLink: '',
-          interviewDate: '',
-          interviewTime: '',
-          duration: '30',
-          gapTime: '15',
-          staffId: '',
-          notes: ''
-        });
+
+      setIsBulkScheduleModalOpen(false);
+      setSelectedSchedules([]);
+      setBulkFormData({
+        interviewType: 'online',
+        platform: 'zoom',
+        meetingLink: '',
+        interviewDate: '',
+        interviewTime: '',
+        duration: '30',
+        gapTime: '15',
+        staffId: '',
+        notes: ''
+      });
       setBulkFormErrors({});
-      
+
       // Show detailed success message with scheduled times
-      const timeDetails = interviewTimes.map((time, index) => 
+      const timeDetails = interviewTimes.map((time, index) =>
         `${pendingItems[index].studentName}: ${time.displayTime} - ${formatTimeForDisplay(time.endTime)}`
       ).join('\n');
-      
+
       showToast(`✅ Successfully scheduled ${pendingItems.length} interview(s)!\n\n👤 Interviewer: ${selectedStaff?.name || 'Selected interviewer'}\n📅 Date: ${bulkFormData.interviewDate}\n⏱️ Duration: ${bulkFormData.duration} minutes each\n\n📋 Scheduled Times:\n${timeDetails}`, 'success');
     } catch (error) {
       console.error('Error bulk scheduling interviews:', error);
-      
+
       // Handle conflict errors specifically
       if (error.response?.status === 409 && error.response?.data?.conflicts) {
         const conflicts = error.response.data.conflicts;
-        const conflictDetails = conflicts.map(conflict => 
+        const conflictDetails = conflicts.map(conflict =>
           `${conflict.student_name} (${conflict.display_start_time} - ${conflict.display_end_time})`
         ).join(', ');
-        
+
         showToast(`Cannot schedule interviews due to conflicts!\n\n${selectedStaff?.name || 'The interviewer'} already has interview(s) at this time:\n${conflictDetails}`, 'error');
         return;
       }
-      
+
       showToast('Failed to schedule some interviews: ' + (error.message || 'Unknown error'), 'error');
     } finally {
       setIsSubmittingBulk(false);
@@ -1198,20 +1196,22 @@ function InterviewSchedules() {
 
   // Enhanced toast utility function
   const showToast = (message, type = 'success', title = null) => {
-    const toastTitle = title || (type === 'success' ? 'Success' : type === 'error' ? 'Error' : type === 'warning' ? 'Warning' : 'Info');
-    
+    // Combine title and message since the underlying toast component doesn't support titles
+    // and passing title as the second argument would be interpreted as duration
+    const displayMessage = title ? `${title}: ${message}` : message;
+
     switch (type) {
       case 'success':
-        showSuccess(message, toastTitle);
+        showSuccess(displayMessage);
         break;
       case 'error':
-        showError(message, toastTitle);
+        showError(displayMessage);
         break;
       case 'warning':
-        showWarning(message, toastTitle);
+        showWarning(displayMessage);
         break;
       default:
-        showInfo(message, toastTitle);
+        showInfo(displayMessage);
     }
   };
 
@@ -1250,12 +1250,12 @@ function InterviewSchedules() {
 
   const formatDateForDisplay = (dateString) => {
     if (!dateString) return 'Not specified';
-    
+
     try {
       // Handle ISO date strings
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return dateString; // Return original if invalid
-      
+
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -1269,18 +1269,18 @@ function InterviewSchedules() {
   const calculateConsecutiveTimes = (startTime, duration, gapTime, count) => {
     const times = [];
     let currentTime = startTime;
-    
+
     for (let i = 0; i < count; i++) {
       times.push({
         startTime: currentTime,
         endTime: addMinutesToTime(currentTime, parseInt(duration)),
         displayTime: formatTimeForDisplay(currentTime)
       });
-      
+
       // Calculate next interview time (current end time + gap)
       currentTime = addMinutesToTime(currentTime, parseInt(duration) + parseInt(gapTime));
     }
-    
+
     return times;
   };
 
@@ -1289,23 +1289,23 @@ function InterviewSchedules() {
     const conflicts = [];
     const newStartMinutes = timeToMinutes(time);
     const newEndMinutes = newStartMinutes + parseInt(duration);
-    
+
     // Check existing schedules for the same interviewer on the same date
     const existingSchedules = schedules.filter(schedule => {
-      const sameInterviewer = staffId ? 
-        schedule.staffId === staffId : 
+      const sameInterviewer = staffId ?
+        schedule.staffId === staffId :
         schedule.interviewer === interviewerName;
-      
+
       return sameInterviewer &&
         schedule.interviewDate === date &&
         schedule.status !== 'cancelled' &&
         schedule.id !== excludeScheduleId;
     });
-    
+
     existingSchedules.forEach(schedule => {
       const existingStartMinutes = timeToMinutes(schedule.interviewTime);
       const existingEndMinutes = existingStartMinutes + (schedule.duration || 30);
-      
+
       if (doTimeRangesOverlap(newStartMinutes, newEndMinutes, existingStartMinutes, existingEndMinutes)) {
         conflicts.push({
           scheduleId: schedule.id,
@@ -1317,7 +1317,7 @@ function InterviewSchedules() {
         });
       }
     });
-    
+
     return conflicts;
   };
 
@@ -1327,20 +1327,20 @@ function InterviewSchedules() {
     const workStartHour = 8; // 8:00 AM
     const workEndHour = 17; // 5:00 PM
     const slotDuration = parseInt(duration);
-    
+
     // Get existing schedules for the interviewer on the given date
-    const existingSchedules = schedules.filter(schedule => 
+    const existingSchedules = schedules.filter(schedule =>
       schedule.interviewer === interviewerName &&
       schedule.interviewDate === date &&
       schedule.status !== 'cancelled'
     ).sort((a, b) => timeToMinutes(a.interviewTime) - timeToMinutes(b.interviewTime));
-    
+
     let currentTime = workStartHour * 60; // Start at 8:00 AM in minutes
-    
+
     while (currentTime + slotDuration <= workEndHour * 60) {
       const currentTimeStr = minutesToTime(currentTime);
       const conflicts = checkInterviewerAvailability(interviewerName, date, currentTimeStr, duration);
-      
+
       if (conflicts.length === 0) {
         availableSlots.push({
           time: currentTimeStr,
@@ -1349,10 +1349,10 @@ function InterviewSchedules() {
           displayEndTime: formatTimeForDisplay(minutesToTime(currentTime + slotDuration))
         });
       }
-      
+
       currentTime += 30; // Check every 30 minutes
     }
-    
+
     return availableSlots;
   };
 
@@ -1367,7 +1367,7 @@ function InterviewSchedules() {
 
   const validateEvaluationForm = () => {
     const errors = {};
-    
+
     if (!evaluationFormData.academicMotivationScore) {
       errors.academicMotivationScore = 'Please provide academic motivation score';
     }
@@ -1386,24 +1386,24 @@ function InterviewSchedules() {
     if (!evaluationFormData.remarks) {
       errors.remarks = 'Please provide remarks';
     }
-    
+
     setEvaluationFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleEvaluationSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateEvaluationForm()) {
       return;
     }
-    
+
     setIsSubmittingEvaluation(true);
     try {
       if (!activeSchedule) {
         throw new Error('No active schedule selected');
       }
-      
+
       // Determine the interview result based on the overall recommendation
       let interviewResult = 'needs_followup';
       if (evaluationFormData.overallRecommendation === 'recommended') {
@@ -1411,7 +1411,7 @@ function InterviewSchedules() {
       } else if (evaluationFormData.overallRecommendation === 'not_recommended') {
         interviewResult = 'failed';
       }
-      
+
       // Send detailed evaluation data
       const evaluationData = {
         academic_motivation_score: parseInt(evaluationFormData.academicMotivationScore),
@@ -1424,17 +1424,17 @@ function InterviewSchedules() {
         interview_result: interviewResult,
         interview_notes: evaluationFormData.remarks
       };
-      
+
       await scholarshipApiService.completeInterview(
-        activeSchedule.id, 
-        interviewResult, 
+        activeSchedule.id,
+        interviewResult,
         evaluationFormData.remarks,
         evaluationData
       );
-      
+
       // Refresh the schedules to get updated data
       await fetchSchedules();
-      
+
       setIsJoinMeetingModalOpen(false);
       setActiveSchedule(null);
       setEvaluationFormData({
@@ -1450,7 +1450,7 @@ function InterviewSchedules() {
         remarks: ''
       });
       setEvaluationFormErrors({});
-      
+
       // Enhanced success message with evaluation details
       const evaluationSummary = `
 📊 Evaluation Summary:
@@ -1463,11 +1463,11 @@ function InterviewSchedules() {
 
 ✅ Interview evaluation has been successfully submitted and stored in the database.
       `.trim();
-      
+
       showToast(evaluationSummary, 'success', 'Interview Evaluation Submitted');
     } catch (error) {
       console.error('Error submitting evaluation:', error);
-      
+
       // Enhanced error message
       const errorMessage = `
 ❌ Failed to submit interview evaluation
@@ -1476,7 +1476,7 @@ ${error.response?.data?.message || error.message || 'Unknown error occurred'}
 
 Please check your internet connection and try again. If the problem persists, contact the system administrator.
       `.trim();
-      
+
       showToast(errorMessage, 'error', 'Evaluation Submission Failed');
     } finally {
       setIsSubmittingEvaluation(false);
@@ -1556,7 +1556,7 @@ Please check your internet connection and try again. If the problem persists, co
           {eligibleApplications.length === 0 && (
             <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
               <p className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200">
-                <strong>Note:</strong> No applications with "Documents Reviewed" status found. 
+                <strong>Note:</strong> No applications with "Documents Reviewed" status found.
                 Interviews can only be scheduled for applications that have passed document review.
               </p>
             </div>
@@ -1568,17 +1568,16 @@ Please check your internet connection and try again. If the problem persists, co
             <span className="hidden sm:inline">Export</span>
             <span className="sm:hidden">Export</span>
           </button>
-          <button 
+          <button
             onClick={() => {
               setActiveSchedule(null); // Clear any existing active schedule
               setIsCreateModalOpen(true);
             }}
             disabled={eligibleApplications.length === 0}
-            className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center text-sm sm:text-base ${
-              eligibleApplications.length === 0 
-                ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+            className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center text-sm sm:text-base ${eligibleApplications.length === 0
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                 : 'bg-orange-500 hover:bg-orange-600 text-white'
-            }`}
+              }`}
             title={eligibleApplications.length === 0 ? 'No eligible applications available' : 'Schedule new interview'}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -1623,17 +1622,16 @@ Please check your internet connection and try again. If the problem persists, co
             <div className="flex items-center space-x-2 sm:space-x-3">
               <button
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm sm:text-base ${
-                  showAdvancedFilters 
+                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg border transition-colors text-sm sm:text-base ${showAdvancedFilters
                     ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
                     : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-                }`}
+                  }`}
               >
                 <Filter className="w-4 h-4" />
                 <span className="hidden sm:inline">Advanced</span>
                 <span className="sm:hidden">Filter</span>
               </button>
-              
+
               <div className="flex items-center border border-gray-300 dark:border-slate-600 rounded-lg">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -1658,7 +1656,7 @@ Please check your internet connection and try again. If the problem persists, co
                 </button>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2 sm:space-x-3">
               <select
                 value={sortBy}
@@ -1755,7 +1753,7 @@ Please check your internet connection and try again. If the problem persists, co
                 {selectedSchedules.length} schedule(s) selected
               </span>
               <div className="flex space-x-2">
-                <button 
+                <button
                   onClick={handleBulkSchedule}
                   className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors flex items-center space-x-1"
                 >
@@ -1763,14 +1761,14 @@ Please check your internet connection and try again. If the problem persists, co
                   <span>Bulk Schedule</span>
                 </button>
                 {selectedSchedules.length > 0 && selectedSchedules.length < sortedSchedules.length && (
-                  <button 
+                  <button
                     onClick={handleSelectAll}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-                >
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                  >
                     Select All
-                </button>
+                  </button>
                 )}
-                <button 
+                <button
                   onClick={handleUnselectAll}
                   className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                 >
@@ -1820,14 +1818,14 @@ Please check your internet connection and try again. If the problem persists, co
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {activeSchedule && activeSchedule.id ? 'Reschedule Interview' : 'Schedule New Interview'}
               </h3>
-              <button 
-                onClick={() => setIsCreateModalOpen(false)} 
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <form onSubmit={handleCreateSubmit} className="space-y-6">
               {/* Interview Type - Online Only */}
               <div>
@@ -1836,70 +1834,68 @@ Please check your internet connection and try again. If the problem persists, co
                 </label>
                 <div className="flex items-center p-4 border-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <Video className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
-                      <div>
+                  <div>
                     <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Online Interview</div>
                     <div className="text-xs text-blue-600 dark:text-blue-300">Video conference meeting</div>
-                      </div>
+                  </div>
                 </div>
               </div>
 
               {/* Online Platform Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Online Platform
-                  </label>
-                  <select 
-                    value={createFormData.platform}
-                    onChange={(e) => handleCreateFormChange('platform', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="zoom">Zoom</option>
-                    <option value="teams">Microsoft Teams</option>
-                    <option value="meet">Google Meet</option>
-                    <option value="webex">Cisco Webex</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Online Platform
+                </label>
+                <select
+                  value={createFormData.platform}
+                  onChange={(e) => handleCreateFormChange('platform', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="zoom">Zoom</option>
+                  <option value="teams">Microsoft Teams</option>
+                  <option value="meet">Google Meet</option>
+                  <option value="webex">Cisco Webex</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
 
               {/* Meeting Link */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Meeting Link
-                  </label>
-                  <input
-                    type="url"
-                    value={createFormData.meetingLink}
-                    onChange={(e) => handleCreateFormChange('meetingLink', e.target.value)}
-                    placeholder="https://zoom.us/j/123456789"
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      createFormErrors.meetingLink ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Meeting Link
+                </label>
+                <input
+                  type="url"
+                  value={createFormData.meetingLink}
+                  onChange={(e) => handleCreateFormChange('meetingLink', e.target.value)}
+                  placeholder="https://zoom.us/j/123456789"
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.meetingLink ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
                     }`}
-                  />
-                  {createFormErrors.meetingLink && (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.meetingLink}</p>
-                  )}
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Enter the meeting URL that students will use to join the interview
-                  </p>
-                </div>
+                />
+                {createFormErrors.meetingLink && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.meetingLink}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Enter the meeting URL that students will use to join the interview
+                </p>
+              </div>
 
               {/* Student Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Select Student (Documents Reviewed Only)
                 </label>
-                <select 
+                <select
                   value={createFormData.studentId}
                   onChange={(e) => handleCreateFormChange('studentId', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    createFormErrors.studentId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.studentId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                    }`}
                 >
                   <option value="">Choose a student...</option>
                   {eligibleApplications.length > 0 ? (
                     eligibleApplications.map((application) => (
                       <option key={application.id} value={application.id}>
-                        {application.student ? `${application.student.first_name} ${application.student.last_name}` : 'Unknown Student'} 
+                        {application.student ? `${application.student.first_name} ${application.student.last_name}` : 'Unknown Student'}
                         ({application.application_number || `App-${application.id}`})
                       </option>
                     ))
@@ -1926,9 +1922,8 @@ Please check your internet connection and try again. If the problem persists, co
                     value={createFormData.interviewDate}
                     onChange={(e) => handleCreateFormChange('interviewDate', e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      createFormErrors.interviewDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.interviewDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                      }`}
                   />
                   {createFormErrors.interviewDate && (
                     <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.interviewDate}</p>
@@ -1942,9 +1937,8 @@ Please check your internet connection and try again. If the problem persists, co
                     type="time"
                     value={createFormData.interviewTime}
                     onChange={(e) => handleCreateFormChange('interviewTime', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      createFormErrors.interviewTime ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.interviewTime ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                      }`}
                   />
                   {createFormErrors.interviewTime && (
                     <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.interviewTime}</p>
@@ -1957,7 +1951,7 @@ Please check your internet connection and try again. If the problem persists, co
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Duration (minutes)
                 </label>
-                <select 
+                <select
                   value={createFormData.duration}
                   onChange={(e) => handleCreateFormChange('duration', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1977,9 +1971,8 @@ Please check your internet connection and try again. If the problem persists, co
                 <select
                   value={createFormData.staffId}
                   onChange={(e) => handleCreateFormChange('staffId', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    createFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                    }`}
                 >
                   <option value="">Select an interviewer</option>
                   {staffMembers.map((staff) => (
@@ -2006,7 +1999,7 @@ Please check your internet connection and try again. If the problem persists, co
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                 />
               </div>
-              
+
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
@@ -2019,7 +2012,7 @@ Please check your internet connection and try again. If the problem persists, co
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
@@ -2046,14 +2039,14 @@ Please check your internet connection and try again. If the problem persists, co
           <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Interview Details</h3>
-              <button 
-                onClick={() => setIsViewModalOpen(false)} 
+              <button
+                onClick={() => setIsViewModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="space-y-6">
               {/* Student Information */}
               <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
@@ -2122,9 +2115,9 @@ Please check your internet connection and try again. If the problem persists, co
                     {activeSchedule.meetingLink && (
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Meeting Link</p>
-                        <a 
-                          href={activeSchedule.meetingLink} 
-                          target="_blank" 
+                        <a
+                          href={activeSchedule.meetingLink}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="font-medium text-blue-600 dark:text-blue-400 hover:underline break-all"
                         >
@@ -2206,20 +2199,20 @@ Please check your internet connection and try again. If the problem persists, co
           <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Join Meeting & Interview Output</h3>
-              <button 
-                onClick={() => setIsJoinMeetingModalOpen(false)} 
+              <button
+                onClick={() => setIsJoinMeetingModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="space-y-6">
               {/* Meeting Link Section */}
               <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
                   <Video className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
-                  {(activeSchedule.type === 'online' || 
+                  {(activeSchedule.type === 'online' ||
                     activeSchedule.platform?.toLowerCase().includes('zoom') ||
                     activeSchedule.platform?.toLowerCase().includes('meet') ||
                     activeSchedule.platform?.toLowerCase().includes('teams') ||
@@ -2231,7 +2224,7 @@ Please check your internet connection and try again. If the problem persists, co
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {(activeSchedule.type === 'online' || 
+                      {(activeSchedule.type === 'online' ||
                         activeSchedule.platform?.toLowerCase().includes('zoom') ||
                         activeSchedule.platform?.toLowerCase().includes('meet') ||
                         activeSchedule.platform?.toLowerCase().includes('teams') ||
@@ -2241,20 +2234,20 @@ Please check your internet connection and try again. If the problem persists, co
                         activeSchedule.meetingLink?.startsWith('http')) ? 'Platform' : 'Type'}
                     </p>
                     <p className="font-medium text-gray-900 dark:text-white">
-                      {activeSchedule.platform || 
-                       ((activeSchedule.type === 'online' || 
-                         activeSchedule.platform?.toLowerCase().includes('zoom') ||
-                         activeSchedule.platform?.toLowerCase().includes('meet') ||
-                         activeSchedule.platform?.toLowerCase().includes('teams') ||
-                         activeSchedule.meetingLink?.includes('zoom') ||
-                         activeSchedule.meetingLink?.includes('meet') ||
-                         activeSchedule.meetingLink?.includes('teams') ||
-                         activeSchedule.meetingLink?.startsWith('http')) ? 'Google Meet' : 'In-Person Interview')}
+                      {activeSchedule.platform ||
+                        ((activeSchedule.type === 'online' ||
+                          activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                          activeSchedule.platform?.toLowerCase().includes('meet') ||
+                          activeSchedule.platform?.toLowerCase().includes('teams') ||
+                          activeSchedule.meetingLink?.includes('zoom') ||
+                          activeSchedule.meetingLink?.includes('meet') ||
+                          activeSchedule.meetingLink?.includes('teams') ||
+                          activeSchedule.meetingLink?.startsWith('http')) ? 'Google Meet' : 'In-Person Interview')}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {(activeSchedule.type === 'online' || 
+                      {(activeSchedule.type === 'online' ||
                         activeSchedule.platform?.toLowerCase().includes('zoom') ||
                         activeSchedule.platform?.toLowerCase().includes('meet') ||
                         activeSchedule.platform?.toLowerCase().includes('teams') ||
@@ -2265,7 +2258,7 @@ Please check your internet connection and try again. If the problem persists, co
                     </p>
                     <div className="flex items-center space-x-2">
                       {/* Check if it's an online meeting based on platform or meeting link */}
-                      {(activeSchedule.type === 'online' || 
+                      {(activeSchedule.type === 'online' ||
                         activeSchedule.platform?.toLowerCase().includes('zoom') ||
                         activeSchedule.platform?.toLowerCase().includes('meet') ||
                         activeSchedule.platform?.toLowerCase().includes('teams') ||
@@ -2276,26 +2269,26 @@ Please check your internet connection and try again. If the problem persists, co
                         <>
                           <div className="flex-1 p-3 bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
                             <p className="font-medium text-gray-900 dark:text-white break-all">
-                        {activeSchedule.meetingLink}
+                              {activeSchedule.meetingLink}
                             </p>
                           </div>
-                      {activeSchedule.status !== 'completed' && (
-                        <button
-                            onClick={() => {
-                              // Ensure the link has proper protocol
-                              let meetingUrl = activeSchedule.meetingLink;
-                              if (!meetingUrl.startsWith('http://') && !meetingUrl.startsWith('https://')) {
-                                meetingUrl = 'https://' + meetingUrl;
-                              }
-                              window.open(meetingUrl, '_blank');
-                            }}
-                            className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-1 flex-shrink-0"
-                            title="Join Meeting"
-                          >
-                            <Video className="w-4 h-4" />
-                            <span className="text-sm">Join Meeting</span>
-                        </button>
-                      )}
+                          {activeSchedule.status !== 'completed' && (
+                            <button
+                              onClick={() => {
+                                // Ensure the link has proper protocol
+                                let meetingUrl = activeSchedule.meetingLink;
+                                if (!meetingUrl.startsWith('http://') && !meetingUrl.startsWith('https://')) {
+                                  meetingUrl = 'https://' + meetingUrl;
+                                }
+                                window.open(meetingUrl, '_blank');
+                              }}
+                              className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-1 flex-shrink-0"
+                              title="Join Meeting"
+                            >
+                              <Video className="w-4 h-4" />
+                              <span className="text-sm">Join Meeting</span>
+                            </button>
+                          )}
                         </>
                       ) : (
                         <div className="flex-1 p-3 bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
@@ -2318,7 +2311,7 @@ Please check your internet connection and try again. If the problem persists, co
                   <ClipboardList className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
                   Interview Evaluation Record
                 </h4>
-                
+
                 <form onSubmit={handleEvaluationSubmit} className="space-y-4">
                   {/* Basic Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2371,7 +2364,7 @@ Please check your internet connection and try again. If the problem persists, co
                   {/* Scoring Section */}
                   <div className="space-y-4">
                     <h5 className="font-medium text-gray-900 dark:text-white">Scoring (1-5 scale)</h5>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -2380,9 +2373,8 @@ Please check your internet connection and try again. If the problem persists, co
                         <select
                           value={evaluationFormData.academicMotivationScore}
                           onChange={(e) => handleEvaluationFormChange('academicMotivationScore', e.target.value)}
-                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            evaluationFormErrors.academicMotivationScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                          }`}
+                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.academicMotivationScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                            }`}
                         >
                           <option value="">Select score...</option>
                           <option value="1">1 - Poor</option>
@@ -2403,9 +2395,8 @@ Please check your internet connection and try again. If the problem persists, co
                         <select
                           value={evaluationFormData.leadershipInvolvementScore}
                           onChange={(e) => handleEvaluationFormChange('leadershipInvolvementScore', e.target.value)}
-                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            evaluationFormErrors.leadershipInvolvementScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                          }`}
+                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.leadershipInvolvementScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                            }`}
                         >
                           <option value="">Select score...</option>
                           <option value="1">1 - Poor</option>
@@ -2426,9 +2417,8 @@ Please check your internet connection and try again. If the problem persists, co
                         <select
                           value={evaluationFormData.financialNeedScore}
                           onChange={(e) => handleEvaluationFormChange('financialNeedScore', e.target.value)}
-                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            evaluationFormErrors.financialNeedScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                          }`}
+                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.financialNeedScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                            }`}
                         >
                           <option value="">Select score...</option>
                           <option value="1">1 - Poor</option>
@@ -2449,9 +2439,8 @@ Please check your internet connection and try again. If the problem persists, co
                         <select
                           value={evaluationFormData.characterValuesScore}
                           onChange={(e) => handleEvaluationFormChange('characterValuesScore', e.target.value)}
-                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            evaluationFormErrors.characterValuesScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                          }`}
+                          className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.characterValuesScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                            }`}
                         >
                           <option value="">Select score...</option>
                           <option value="1">1 - Poor</option>
@@ -2475,9 +2464,8 @@ Please check your internet connection and try again. If the problem persists, co
                     <select
                       value={evaluationFormData.overallRecommendation}
                       onChange={(e) => handleEvaluationFormChange('overallRecommendation', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        evaluationFormErrors.overallRecommendation ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                      }`}
+                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.overallRecommendation ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                        }`}
                     >
                       <option value="">Select recommendation...</option>
                       <option value="recommended">✅ Recommended for SSC Review</option>
@@ -2499,9 +2487,8 @@ Please check your internet connection and try again. If the problem persists, co
                       value={evaluationFormData.remarks}
                       onChange={(e) => handleEvaluationFormChange('remarks', e.target.value)}
                       placeholder="Provide detailed feedback about the candidate's performance, strengths, areas for improvement, and any other relevant observations..."
-                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
-                        evaluationFormErrors.remarks ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                      }`}
+                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${evaluationFormErrors.remarks ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                        }`}
                     />
                     {evaluationFormErrors.remarks && (
                       <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.remarks}</p>
@@ -2548,14 +2535,14 @@ Please check your internet connection and try again. If the problem persists, co
           <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Interview Schedule</h3>
-              <button 
-                onClick={() => setIsDeleteModalOpen(false)} 
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="mb-6">
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Are you sure you want to delete the interview schedule for <strong>{activeSchedule.studentName}</strong>?
@@ -2604,20 +2591,20 @@ Please check your internet connection and try again. If the problem persists, co
           <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Bulk Schedule Interviews</h3>
-              <button 
-                onClick={() => setIsBulkScheduleModalOpen(false)} 
+              <button
+                onClick={() => setIsBulkScheduleModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
               <p className="text-sm text-orange-800 dark:text-orange-200">
                 <strong>Scheduling {selectedSchedules.length} pending application(s)</strong> with consecutive interview times.
               </p>
             </div>
-            
+
             {/* Schedule Preview */}
             {bulkFormData.interviewDate && bulkFormData.interviewTime && selectedSchedules.length > 0 && (
               <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -2634,7 +2621,7 @@ Please check your internet connection and try again. If the problem persists, co
                       bulkFormData.gapTime,
                       pendingItems.length
                     );
-                    
+
                     return pendingItems.map((item, index) => (
                       <div key={item.id} className="flex items-center justify-between text-sm">
                         <span className="text-blue-800 dark:text-blue-200 font-medium">
@@ -2650,8 +2637,8 @@ Please check your internet connection and try again. If the problem persists, co
                 <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
                   <p className="text-xs text-blue-600 dark:text-blue-400">
                     Total time: {(() => {
-                      const totalMinutes = selectedSchedules.length * parseInt(bulkFormData.duration) + 
-                                         (selectedSchedules.length - 1) * parseInt(bulkFormData.gapTime);
+                      const totalMinutes = selectedSchedules.length * parseInt(bulkFormData.duration) +
+                        (selectedSchedules.length - 1) * parseInt(bulkFormData.gapTime);
                       const hours = Math.floor(totalMinutes / 60);
                       const minutes = totalMinutes % 60;
                       return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
@@ -2660,7 +2647,7 @@ Please check your internet connection and try again. If the problem persists, co
                 </div>
               </div>
             )}
-            
+
             <form onSubmit={handleBulkScheduleSubmit} className="space-y-6">
               {/* Interview Type - Online Only */}
               <div>
@@ -2681,7 +2668,7 @@ Please check your internet connection and try again. If the problem persists, co
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Online Platform
                 </label>
-                <select 
+                <select
                   value={bulkFormData.platform}
                   onChange={(e) => handleBulkFormChange('platform', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -2704,9 +2691,8 @@ Please check your internet connection and try again. If the problem persists, co
                   value={bulkFormData.meetingLink}
                   onChange={(e) => handleBulkFormChange('meetingLink', e.target.value)}
                   placeholder="https://zoom.us/j/123456789"
-                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    bulkFormErrors.meetingLink ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${bulkFormErrors.meetingLink ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                    }`}
                 />
                 {bulkFormErrors.meetingLink && (
                   <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.meetingLink}</p>
@@ -2726,9 +2712,8 @@ Please check your internet connection and try again. If the problem persists, co
                     type="date"
                     value={bulkFormData.interviewDate}
                     onChange={(e) => handleBulkFormChange('interviewDate', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      bulkFormErrors.interviewDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${bulkFormErrors.interviewDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                      }`}
                   />
                   {bulkFormErrors.interviewDate && (
                     <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.interviewDate}</p>
@@ -2742,9 +2727,8 @@ Please check your internet connection and try again. If the problem persists, co
                     type="time"
                     value={bulkFormData.interviewTime}
                     onChange={(e) => handleBulkFormChange('interviewTime', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      bulkFormErrors.interviewTime ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${bulkFormErrors.interviewTime ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                      }`}
                   />
                   {bulkFormErrors.interviewTime && (
                     <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.interviewTime}</p>
@@ -2758,7 +2742,7 @@ Please check your internet connection and try again. If the problem persists, co
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Duration (minutes)
                   </label>
-                  <select 
+                  <select
                     value={bulkFormData.duration}
                     onChange={(e) => handleBulkFormChange('duration', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -2773,7 +2757,7 @@ Please check your internet connection and try again. If the problem persists, co
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Gap Between Interviews (minutes)
                   </label>
-                  <select 
+                  <select
                     value={bulkFormData.gapTime}
                     onChange={(e) => handleBulkFormChange('gapTime', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -2795,9 +2779,8 @@ Please check your internet connection and try again. If the problem persists, co
                 <select
                   value={bulkFormData.staffId}
                   onChange={(e) => handleBulkFormChange('staffId', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    bulkFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${bulkFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                    }`}
                 >
                   <option value="">Select an interviewer</option>
                   {staffMembers.map((staff) => (
@@ -2824,7 +2807,7 @@ Please check your internet connection and try again. If the problem persists, co
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                 />
               </div>
-              
+
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
@@ -2837,7 +2820,7 @@ Please check your internet connection and try again. If the problem persists, co
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   disabled={isSubmittingBulk}
                   className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
@@ -2867,7 +2850,7 @@ Please check your internet connection and try again. If the problem persists, co
 // Calendar View Component
 const CalendarView = ({ schedules }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  
+
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -2875,37 +2858,37 @@ const CalendarView = ({ schedules }) => {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
-    
+
     const days = [];
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
-    
+
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day));
     }
-    
+
     return days;
   };
-  
+
   const getSchedulesForDate = (date) => {
     if (!date) return [];
     const dateStr = date.toISOString().split('T')[0];
-    return schedules.filter(schedule => 
+    return schedules.filter(schedule =>
       schedule.interviewDate === dateStr
     );
   };
-  
+
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', { 
-      month: 'long', 
-      year: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric'
     });
   };
-  
+
   const navigateMonth = (direction) => {
     setCurrentDate(prev => {
       const newDate = new Date(prev);
@@ -2913,10 +2896,10 @@ const CalendarView = ({ schedules }) => {
       return newDate;
     });
   };
-  
+
   const days = getDaysInMonth(currentDate);
   const monthName = formatDate(currentDate);
-  
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden">
       <div className="p-6 border-b border-gray-200 dark:border-slate-700">
@@ -2946,7 +2929,7 @@ const CalendarView = ({ schedules }) => {
           </div>
         </div>
       </div>
-      
+
       <div className="p-6">
         <div className="grid grid-cols-7 gap-1 mb-4">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -2955,24 +2938,22 @@ const CalendarView = ({ schedules }) => {
             </div>
           ))}
         </div>
-        
+
         <div className="grid grid-cols-7 gap-1">
           {days.map((day, index) => {
             const daySchedules = getSchedulesForDate(day);
             const isToday = day && day.toDateString() === new Date().toDateString();
-            
+
             return (
               <div
                 key={index}
-                className={`min-h-[100px] p-2 border border-gray-200 dark:border-slate-700 ${
-                  day ? 'bg-white dark:bg-slate-800' : 'bg-gray-50 dark:bg-slate-900'
-                } ${isToday ? 'ring-2 ring-orange-500' : ''}`}
+                className={`min-h-[100px] p-2 border border-gray-200 dark:border-slate-700 ${day ? 'bg-white dark:bg-slate-800' : 'bg-gray-50 dark:bg-slate-900'
+                  } ${isToday ? 'ring-2 ring-orange-500' : ''}`}
               >
                 {day && (
                   <>
-                    <div className={`text-sm font-medium mb-1 ${
-                      isToday ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'
-                    }`}>
+                    <div className={`text-sm font-medium mb-1 ${isToday ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'
+                      }`}>
                       {day.getDate()}
                     </div>
                     <div className="space-y-1">

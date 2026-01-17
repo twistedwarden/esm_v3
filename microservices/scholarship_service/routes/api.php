@@ -288,6 +288,15 @@ Route::prefix('scholarship-categories')->group(function () {
     Route::delete('/{category}', [ScholarshipCategoryController::class, 'destroy'])->middleware(['auth.auth_service']);
 });
 
+// Scholarship Subcategory routes
+Route::prefix('scholarship-subcategories')->group(function () {
+    Route::get('/', [\App\Http\Controllers\ScholarshipSubcategoryController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\ScholarshipSubcategoryController::class, 'store'])->middleware(['auth.auth_service']);
+    Route::get('/{subcategory}', [\App\Http\Controllers\ScholarshipSubcategoryController::class, 'show']);
+    Route::put('/{subcategory}', [\App\Http\Controllers\ScholarshipSubcategoryController::class, 'update'])->middleware(['auth.auth_service']);
+    Route::delete('/{subcategory}', [\App\Http\Controllers\ScholarshipSubcategoryController::class, 'destroy'])->middleware(['auth.auth_service']);
+});
+
 
 // Enrollment Verification routes have been removed - automatic verification is disabled
 
@@ -615,21 +624,21 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
     Route::get('/flexible/students', [PartnerSchoolController::class, 'getFlexibleStudents']);
     Route::get('/student-population', [PartnerSchoolController::class, 'getStudentPopulation']);
     Route::get('/schools', [PartnerSchoolController::class, 'getSchools']);
-    
+
     // Get my application status (for partner school representatives)
     Route::get('/my-application', [PartnerSchoolApplicationController::class, 'getMyApplication']);
-    
+
     // Submit/Withdraw application (for partner school representatives)
     Route::post('/applications/{id}/submit', [PartnerSchoolApplicationController::class, 'submit']);
     Route::post('/applications/{id}/withdraw', [PartnerSchoolApplicationController::class, 'withdraw']);
-    
+
     // View/Download verification documents (for partner school representatives)
     Route::get('/applications/{id}/documents/{docId}/view', [PartnerSchoolApplicationController::class, 'viewDocument']);
     Route::get('/applications/{id}/documents/{docId}/download', [PartnerSchoolApplicationController::class, 'downloadDocument']);
-    
+
     // Update school information (for partner school representatives - applicants only)
     Route::put('/school-info', [PartnerSchoolController::class, 'updateSchoolInfo']);
-    
+
     // Download MOA template
     Route::get('/download-moa', [PartnerSchoolApplicationController::class, 'downloadMOA']);
 });
@@ -647,7 +656,7 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
     Route::put('/guidelines/{id}', [PartnerSchoolGuidelineController::class, 'update']);
     Route::delete('/guidelines/{id}', [PartnerSchoolGuidelineController::class, 'destroy']);
     Route::put('/guidelines/{id}/toggle-active', [PartnerSchoolGuidelineController::class, 'toggleActive']);
-    
+
     // Applications
     Route::get('/applications', [PartnerSchoolApplicationController::class, 'index']);
     Route::post('/applications', [PartnerSchoolApplicationController::class, 'store']);
@@ -658,7 +667,7 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
     Route::post('/applications/{id}/mark-under-review', [PartnerSchoolApplicationController::class, 'markUnderReview']);
     Route::post('/applications/{id}/approve', [PartnerSchoolApplicationController::class, 'approve']);
     Route::post('/applications/{id}/reject', [PartnerSchoolApplicationController::class, 'reject']);
-    
+
     // Documents (school can upload, admin can verify)
     Route::post('/applications/{id}/documents', [PartnerSchoolApplicationController::class, 'uploadDocument']);
     Route::get('/applications/{id}/documents', [PartnerSchoolApplicationController::class, 'getDocuments']);

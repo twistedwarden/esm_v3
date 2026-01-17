@@ -82,7 +82,7 @@ class UnifiedSchoolDataService
         // Handle additional_data field
         $additionalData = $data['additional_data'] ?? null;
         unset($data['additional_data']); // Remove from main data array
-        
+
         $insertData = array_merge($data, [
             'school_id' => $schoolId,
             'upload_batch_id' => $batchId ?? Str::uuid(),
@@ -91,12 +91,12 @@ class UnifiedSchoolDataService
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        
+
         // Add additional_data as JSON if present
         if ($additionalData) {
             $insertData['additional_data'] = json_encode($additionalData);
         }
-        
+
         return DB::table('unified_school_student_data')->insertGetId($insertData);
     }
 
@@ -105,25 +105,25 @@ class UnifiedSchoolDataService
         $perPage = $options['per_page'] ?? 15;
         $search = $options['search'] ?? null;
         $status = $options['status'] ?? 'all';
-        
+
         $query = DB::table('unified_school_student_data')
             ->where('school_id', $schoolId);
-        
+
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('student_id_number', 'like', "%{$search}%")
-                  ->orWhere('email_address', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('student_id_number', 'like', "%{$search}%")
+                    ->orWhere('email_address', 'like', "%{$search}%");
             });
         }
-        
+
         if ($status === 'enrolled') {
             $query->where('is_currently_enrolled', 'enrolled');
         }
-        
+
         $results = $query->orderBy('created_at', 'desc')->paginate($perPage);
-        
+
         // Decode additional_data for each record
         $results->getCollection()->transform(function ($item) {
             if ($item->additional_data) {
@@ -131,14 +131,14 @@ class UnifiedSchoolDataService
             }
             return $item;
         });
-        
+
         return $results;
     }
 
     private function getStatsFromUnifiedTable(int $schoolId): array
     {
         $baseQuery = DB::table('unified_school_student_data')->where('school_id', $schoolId);
-        
+
         return [
             'total_students' => $baseQuery->count(),
             'enrolled_students' => (clone $baseQuery)->where('is_currently_enrolled', 'enrolled')->count(),
@@ -178,9 +178,9 @@ class UnifiedSchoolDataService
     {
         $schoolTableService = app(SchoolSpecificTableService::class);
         return $schoolTableService->getSchoolData(
-            $schoolId, 
-            $options['per_page'] ?? 15, 
-            $options['search'] ?? null, 
+            $schoolId,
+            $options['per_page'] ?? 15,
+            $options['search'] ?? null,
             $options['status'] ?? 'all'
         );
     }

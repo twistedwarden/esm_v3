@@ -19,7 +19,7 @@ import { scholarshipApiService } from '../../../../../services/scholarshipApiSer
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function DecisionHistory() {
-  const { showSuccess, showError } = useToastContext();
+  const { success: showSuccess, error: showError } = useToastContext();
   const [decisions, setDecisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -63,8 +63,8 @@ function DecisionHistory() {
   const filteredDecisions = decisions.filter(decision => {
     const application = decision.application;
     const student = application?.student;
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       student?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       application?.application_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,23 +74,23 @@ function DecisionHistory() {
     const matchesStage = filters.stage === 'all' || decision.review_stage === filters.stage;
 
     const decisionDate = decision.approved_at || decision.reviewed_at || decision.created_at;
-    const matchesDateFrom = !filters.dateFrom || 
+    const matchesDateFrom = !filters.dateFrom ||
       new Date(decisionDate) >= new Date(filters.dateFrom);
 
-    const matchesDateTo = !filters.dateTo || 
+    const matchesDateTo = !filters.dateTo ||
       new Date(decisionDate) <= new Date(filters.dateTo);
 
     return matchesSearch && matchesDecision && matchesStage && matchesDateFrom && matchesDateTo;
   });
 
   const getDecisionColor = (status) => {
-    return status === 'approved' 
+    return status === 'approved'
       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
       : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
   };
 
   const getDecisionIcon = (status) => {
-    return status === 'approved' 
+    return status === 'approved'
       ? <CheckCircle className="w-4 h-4" />
       : <XCircle className="w-4 h-4" />;
   };
@@ -130,11 +130,11 @@ function DecisionHistory() {
   };
 
   const hasActiveFilters = () => {
-    return filters.decision !== 'all' || 
-           filters.stage !== 'all' ||
-           filters.dateFrom !== '' || 
-           filters.dateTo !== '' || 
-           searchTerm !== '';
+    return filters.decision !== 'all' ||
+      filters.stage !== 'all' ||
+      filters.dateFrom !== '' ||
+      filters.dateTo !== '' ||
+      searchTerm !== '';
   };
 
   const handleViewDetails = (decision) => {
@@ -150,7 +150,7 @@ function DecisionHistory() {
         const app = d.application;
         const student = app?.student;
         const studentName = `${student?.first_name || ''} ${student?.last_name || ''}`.trim();
-        
+
         return [
           d.id,
           app?.application_number || '',
@@ -230,11 +230,10 @@ function DecisionHistory() {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${
-                showAdvancedFilters 
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${showAdvancedFilters
                   ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
                   : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-              }`}
+                }`}
             >
               <Filter className="w-4 h-4" />
               <span>Advanced</span>
@@ -431,7 +430,7 @@ function DecisionHistory() {
                         <div className="flex items-center text-sm">
                           <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
                           <span className="font-medium text-gray-900 dark:text-white">
-                            {decision.review_data?.recommended_amount 
+                            {decision.review_data?.recommended_amount
                               ? `₱${decision.review_data.recommended_amount.toLocaleString()}`
                               : 'N/A'
                             }
@@ -470,22 +469,21 @@ function DecisionHistory() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Decision Details
               </h3>
-              <button 
-                onClick={() => setIsViewModalOpen(false)} 
+              <button
+                onClick={() => setIsViewModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               <div className="space-y-6">
                 {/* Decision Summary */}
-                <div className={`rounded-lg p-4 ${
-                  selectedDecision.status === 'approved'
+                <div className={`rounded-lg p-4 ${selectedDecision.status === 'approved'
                     ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
                     : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                }`}>
+                  }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       {selectedDecision.status === 'approved' ? (
@@ -494,18 +492,16 @@ function DecisionHistory() {
                         <XCircle className="h-8 w-8 text-red-600" />
                       )}
                       <div>
-                        <h4 className={`text-lg font-semibold ${
-                          selectedDecision.status === 'approved'
+                        <h4 className={`text-lg font-semibold ${selectedDecision.status === 'approved'
                             ? 'text-green-900 dark:text-green-100'
                             : 'text-red-900 dark:text-red-100'
-                        }`}>
+                          }`}>
                           {getStageLabel(selectedDecision.review_stage)} - {selectedDecision.status === 'approved' ? 'Approved' : 'Rejected'}
                         </h4>
-                        <p className={`text-sm ${
-                          selectedDecision.status === 'approved'
+                        <p className={`text-sm ${selectedDecision.status === 'approved'
                             ? 'text-green-700 dark:text-green-300'
                             : 'text-red-700 dark:text-red-300'
-                        }`}>
+                          }`}>
                           Decision made on {new Date(selectedDecision.approved_at || selectedDecision.reviewed_at || selectedDecision.created_at).toLocaleString()}
                         </p>
                       </div>

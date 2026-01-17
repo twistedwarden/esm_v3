@@ -78,7 +78,7 @@ Route::prefix('school-aid')->group(function () {
         // Filter by status
         $status = $request->get('status');
         if ($status) {
-            $payments = array_filter($payments, function($payment) use ($status) {
+            $payments = array_filter($payments, function ($payment) use ($status) {
                 return $payment['status'] === $status;
             });
         }
@@ -114,7 +114,7 @@ Route::prefix('school-aid')->group(function () {
 
     // Metrics
     Route::get('/metrics', [SchoolAidController::class, 'getMetrics']);
-    
+
     // Get available school years (only those with budgets)
     Route::get('/school-years', [SchoolAidController::class, 'getAvailableSchoolYears']);
 
@@ -169,6 +169,25 @@ Route::prefix('school-aid')->group(function () {
             'message' => $success ? 'Test successful' : 'Test failed - check configuration'
         ]);
     });
+});
+
+// Partner School Budget Management (Foundation Admin)
+Route::prefix('foundation')->group(function () {
+    Route::get('/partner-budgets', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'index']);
+    Route::post('/partner-budgets', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'store']);
+    Route::get('/partner-budgets/{id}', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'show']);
+    Route::put('/partner-budgets/{id}', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'update']);
+    Route::get('/schools/{schoolId}/budget', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'getSchoolBudget']);
+    Route::get('/schools/{schoolId}/check-budget', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'checkBudget']);
+});
+
+// Partner School Portal routes
+Route::prefix('partner-school')->group(function () {
+    Route::get('/withdrawals', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'getWithdrawals']);
+    Route::post('/withdrawals', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'recordWithdrawal']);
+    Route::get('/withdrawals/{id}', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'getWithdrawal']);
+    Route::get('/withdrawals/{id}/proof', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'downloadProof']);
+    Route::put('/withdrawals/{id}', [App\Http\Controllers\PartnerSchoolBudgetController::class, 'updateWithdrawal']);
 });
 
 // Payment Webhooks

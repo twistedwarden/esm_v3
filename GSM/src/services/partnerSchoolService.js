@@ -2,6 +2,7 @@ import { API_CONFIG } from '../config/api';
 
 const AUTH_API_BASE_URL = API_CONFIG.AUTH_SERVICE.BASE_URL;
 const SCHOLARSHIP_API_BASE_URL = API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL;
+const AID_API_BASE_URL = API_CONFIG.AID_SERVICE.BASE_URL;
 
 /**
  * Fetch school information for the current partner school representative
@@ -23,7 +24,7 @@ export const fetchPartnerSchoolInfo = async (token) => {
     }
 
     const userData = await userResponse.json();
-    
+
     if (!userData.success || !userData.data?.user?.assigned_school_id) {
       throw new Error('No school assigned to this user');
     }
@@ -43,7 +44,7 @@ export const fetchPartnerSchoolInfo = async (token) => {
     }
 
     const schoolData = await schoolResponse.json();
-    
+
     if (schoolData.success) {
       return {
         school: schoolData.data,
@@ -77,7 +78,7 @@ export const fetchPartnerSchoolStats = async (token) => {
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -109,7 +110,7 @@ export const fetchPartnerSchoolStudents = async (token, params = {}) => {
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -145,7 +146,7 @@ export const uploadEnrollmentData = async (token, csvData, updateMode = 'merge')
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -177,7 +178,7 @@ export const fetchEnrollmentData = async (token, params = {}) => {
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -194,7 +195,7 @@ export const uploadFlexibleData = async (token, csvData, headers, updateMode = '
   try {
     console.log('uploadFlexibleData called with:', { token, csvDataLength: csvData.length, headers, updateMode });
     console.log('SCHOLARSHIP_API_BASE_URL:', SCHOLARSHIP_API_BASE_URL);
-    
+
     const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/partner-school/flexible/upload`, {
       method: 'POST',
       headers: {
@@ -216,7 +217,7 @@ export const uploadFlexibleData = async (token, csvData, headers, updateMode = '
 
     const data = await response.json();
     console.log('Upload response:', data);
-    
+
     if (data.success) {
       return data;
     } else {
@@ -232,11 +233,11 @@ export const uploadFlexibleData = async (token, csvData, headers, updateMode = '
 export const fetchFlexibleStudents = async (token, params = {}) => {
   try {
     const queryParams = new URLSearchParams();
-    
+
     if (params.page) queryParams.append('page', params.page);
     queryParams.append('per_page', params.per_page || 1000); // Request up to 1000 records
     if (params.search) queryParams.append('search', params.search);
-    
+
     const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/partner-school/flexible/students?${queryParams}`, {
       method: 'GET',
       headers: {
@@ -250,7 +251,7 @@ export const fetchFlexibleStudents = async (token, params = {}) => {
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -258,6 +259,89 @@ export const fetchFlexibleStudents = async (token, params = {}) => {
     }
   } catch (error) {
     console.error('Error fetching flexible students:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch budget withdrawals for the partner school
+ */
+export const fetchWithdrawals = async (token, schoolId) => {
+  try {
+    const response = await fetch(`${AID_API_BASE_URL}/api/partner-school/withdrawals?school_id=${schoolId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching withdrawals:', error);
+    throw error;
+  }
+};
+
+// Legacy function name for backward compatibility
+export const fetchFundRequests = fetchWithdrawals;
+
+/**
+ * Record a new budget withdrawal
+ */
+export const recordWithdrawal = async (token, formData) => {
+  try {
+    const response = await fetch(`${AID_API_BASE_URL}/api/partner-school/withdrawals`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to record withdrawal');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error recording withdrawal:', error);
+    throw error;
+  }
+};
+
+// Legacy function name for backward compatibility
+export const submitFundRequest = recordWithdrawal;
+
+/**
+ * Update a withdrawal record
+ */
+export const updateWithdrawal = async (token, withdrawalId, formData) => {
+  try {
+    const response = await fetch(`${AID_API_BASE_URL}/api/partner-school/withdrawals/${withdrawalId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update withdrawal');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating withdrawal:', error);
     throw error;
   }
 };

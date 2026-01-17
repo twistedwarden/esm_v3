@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../../../hooks/useToast';
+import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import { CheckCircle, XCircle, GraduationCap, User, Clock, FileText, Link as LinkIcon } from 'lucide-react';
 
 function AcademicReview() {
@@ -14,7 +14,7 @@ function AcademicReview() {
     academic_assessment: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showSuccess, showError } = useToast();
+  const { success: showSuccess, error: showError } = useToastContext();
 
   useEffect(() => {
     fetchApplications();
@@ -106,7 +106,7 @@ function AcademicReview() {
 
   const getSscStageStatus = (application) => {
     const stageStatus = application.ssc_stage_status || {};
-    
+
     return {
       document_verification: {
         label: 'Document Verification',
@@ -133,10 +133,10 @@ function AcademicReview() {
 
   const getAcademicDocuments = (application) => {
     if (!application.documents) return [];
-    
+
     // Filter for academic-related documents
     const academicKeywords = ['transcript', 'grade', 'gpa', 'academic', 'record', 'certificate', 'diploma', 'degree'];
-    
+
     return application.documents.filter(doc => {
       const docName = (doc?.documentType?.name || doc?.document_type?.name || doc?.original_name || doc?.filename || '').toLowerCase();
       return academicKeywords.some(keyword => docName.includes(keyword));

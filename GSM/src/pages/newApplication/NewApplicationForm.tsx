@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { scholarshipApiService, type School, type ScholarshipCategory, type Student } from '../../services/scholarshipApiService';
 import { useAuthStore } from '../../store/v1authStore';
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton';
+import Toast from '../../components/ui/Toast';
 
 // Local storage key for form data
 const FORM_STORAGE_KEY = 'scholarship_application_form_data';
@@ -72,6 +73,7 @@ export const NewApplicationForm: React.FC = () => {
   const [existingApplication, setExistingApplication] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showReligionOther, setShowReligionOther] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
 
   const {
     control,
@@ -318,8 +320,29 @@ export const NewApplicationForm: React.FC = () => {
   };
 
   // Function to handle step navigation
-  const handleStepNavigation = (targetStep: number) => {
+  const handleStepNavigation = async (targetStep: number) => {
     console.log(`Navigating to step ${targetStep} from step ${currentStep}`);
+
+    // Always allow going back
+    if (targetStep < currentStep) {
+      setCurrentStep(targetStep);
+      return;
+    }
+
+    // If going forward, validate all steps up to the target
+    // For example, if on Step 1 and clicking Step 3, validate Step 1 and Step 2
+    for (let i = currentStep; i < targetStep; i++) {
+      const isValid = await validateCurrentStep(i);
+      if (!isValid) {
+        setToast({
+          message: `Please complete Step ${i} before proceeding.`,
+          type: 'error'
+        });
+        return;
+      }
+    }
+
+    // If all intermediate steps are valid, proceed
     setCurrentStep(targetStep);
   };
 
@@ -1158,7 +1181,13 @@ export const NewApplicationForm: React.FC = () => {
     } catch (error) {
       console.error(`Failed to ${isEditMode ? 'update' : 'save draft'}:`, error);
       const actionText = isEditMode ? 'update' : 'save draft';
-      setSubmitError(error instanceof Error ? error.message : `Failed to ${actionText}. Please try again.`);
+
+      const errorMessage = error instanceof Error ? error.message : `Failed to ${actionText}. Please try again.`;
+      setSubmitError(errorMessage);
+      setToast({
+        message: `Submission Error: ${errorMessage}`,
+        type: 'error'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -1265,6 +1294,13 @@ export const NewApplicationForm: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {toast && (
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              onClose={() => setToast(null)}
+            />
+          )}
           {/* Header */}
           <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
             <div className="flex justify-between items-center">
@@ -1312,28 +1348,17 @@ export const NewApplicationForm: React.FC = () => {
             <nav className="flex overflow-x-auto" aria-label="Progress Steps">
               <ol className="flex items-center space-x-2">
                 <li>
-                  {isEditMode ? (
-                    <button
-                      onClick={() => handleStepNavigation(1)}
-                      className={`text-sm whitespace-nowrap transition-colors ${currentStep === 1
-                        ? 'text-orange-600 font-semibold'
-                        : currentStep > 1
-                          ? 'text-green-600 font-medium hover:text-green-700'
-                          : 'text-gray-400 hover:text-gray-600'
-                        }`}
-                    >
-                      1. Personal Information
-                    </button>
-                  ) : (
-                    <span className={`text-sm whitespace-nowrap ${currentStep === 1
+                  <button
+                    onClick={() => handleStepNavigation(1)}
+                    className={`text-sm whitespace-nowrap transition-colors ${currentStep === 1
                       ? 'text-orange-600 font-semibold'
                       : currentStep > 1
-                        ? 'text-green-600 font-medium'
-                        : 'text-gray-400'
-                      }`}>
-                      1. Personal Information
-                    </span>
-                  )}
+                        ? 'text-green-600 font-medium hover:text-green-700'
+                        : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                  >
+                    1. Personal Information
+                  </button>
                 </li>
                 <li>
                   <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -1341,28 +1366,17 @@ export const NewApplicationForm: React.FC = () => {
                   </svg>
                 </li>
                 <li>
-                  {isEditMode ? (
-                    <button
-                      onClick={() => handleStepNavigation(2)}
-                      className={`text-sm whitespace-nowrap transition-colors ${currentStep === 2
-                        ? 'text-orange-600 font-semibold'
-                        : currentStep > 2
-                          ? 'text-green-600 font-medium hover:text-green-700'
-                          : 'text-gray-400 hover:text-gray-600'
-                        }`}
-                    >
-                      2. Family Information
-                    </button>
-                  ) : (
-                    <span className={`text-sm whitespace-nowrap ${currentStep === 2
+                  <button
+                    onClick={() => handleStepNavigation(2)}
+                    className={`text-sm whitespace-nowrap transition-colors ${currentStep === 2
                       ? 'text-orange-600 font-semibold'
                       : currentStep > 2
-                        ? 'text-green-600 font-medium'
-                        : 'text-gray-400'
-                      }`}>
-                      2. Family Information
-                    </span>
-                  )}
+                        ? 'text-green-600 font-medium hover:text-green-700'
+                        : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                  >
+                    2. Family Information
+                  </button>
                 </li>
                 <li>
                   <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -1370,28 +1384,17 @@ export const NewApplicationForm: React.FC = () => {
                   </svg>
                 </li>
                 <li>
-                  {isEditMode ? (
-                    <button
-                      onClick={() => handleStepNavigation(3)}
-                      className={`text-sm whitespace-nowrap transition-colors ${currentStep === 3
-                        ? 'text-orange-600 font-semibold'
-                        : currentStep > 3
-                          ? 'text-green-600 font-medium hover:text-green-700'
-                          : 'text-gray-400 hover:text-gray-600'
-                        }`}
-                    >
-                      3. Financial Information
-                    </button>
-                  ) : (
-                    <span className={`text-sm whitespace-nowrap ${currentStep === 3
+                  <button
+                    onClick={() => handleStepNavigation(3)}
+                    className={`text-sm whitespace-nowrap transition-colors ${currentStep === 3
                       ? 'text-orange-600 font-semibold'
                       : currentStep > 3
-                        ? 'text-green-600 font-medium'
-                        : 'text-gray-400'
-                      }`}>
-                      3. Financial Information
-                    </span>
-                  )}
+                        ? 'text-green-600 font-medium hover:text-green-700'
+                        : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                  >
+                    3. Financial Information
+                  </button>
                 </li>
                 <li>
                   <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -1399,28 +1402,17 @@ export const NewApplicationForm: React.FC = () => {
                   </svg>
                 </li>
                 <li>
-                  {isEditMode ? (
-                    <button
-                      onClick={() => handleStepNavigation(4)}
-                      className={`text-sm whitespace-nowrap transition-colors ${currentStep === 4
-                        ? 'text-orange-600 font-semibold'
-                        : currentStep > 4
-                          ? 'text-green-600 font-medium hover:text-green-700'
-                          : 'text-gray-400 hover:text-gray-600'
-                        }`}
-                    >
-                      4. Academic Information
-                    </button>
-                  ) : (
-                    <span className={`text-sm whitespace-nowrap ${currentStep === 4
+                  <button
+                    onClick={() => handleStepNavigation(4)}
+                    className={`text-sm whitespace-nowrap transition-colors ${currentStep === 4
                       ? 'text-orange-600 font-semibold'
                       : currentStep > 4
-                        ? 'text-green-600 font-medium'
-                        : 'text-gray-400'
-                      }`}>
-                      4. Academic Information
-                    </span>
-                  )}
+                        ? 'text-green-600 font-medium hover:text-green-700'
+                        : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                  >
+                    4. Academic Information
+                  </button>
                 </li>
               </ol>
             </nav>
@@ -1445,7 +1437,15 @@ export const NewApplicationForm: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="p-6">
+          <form onSubmit={handleSubmit(onSubmit, (errors) => {
+            const firstErrorKey = Object.keys(errors)[0];
+            const errorMessage = errors[firstErrorKey]?.message || 'Please check the form for errors.';
+            setToast({
+              message: `Validation Error: ${errorMessage}`,
+              type: 'error'
+            });
+            console.log('Form validation failed:', errors);
+          })} className="p-6">
             {/* Step 1: Personal Information */}
             {currentStep === 1 && (
               <div className="space-y-6">
@@ -3313,6 +3313,14 @@ export const NewApplicationForm: React.FC = () => {
                       setCurrentStep(currentStep + 1);
                     } else {
                       console.log('Validation failed, staying on step:', currentStep);
+                      const stepFieldNames = stepFields[currentStep as keyof typeof stepFields] || [];
+                      const errorField = stepFieldNames.find(field => errors[field]);
+                      const errorMessage = errorField ? errors[errorField]?.message : 'Please check the required fields.';
+
+                      setToast({
+                        message: `Validation Error: ${errorMessage}`,
+                        type: 'error'
+                      });
                     }
                   }}
                   className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"

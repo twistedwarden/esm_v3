@@ -30,14 +30,14 @@ class PartnerSchoolController extends Controller
     private function getUserFromAuthService(Request $request)
     {
         $token = $request->bearerToken();
-        
+
         if (!$token) {
             return null;
         }
 
         try {
             $authServiceUrl = env('AUTH_SERVICE_URL', 'http://localhost:8000');
-            
+
             $response = Http::timeout(10)
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $token,
@@ -64,7 +64,7 @@ class PartnerSchoolController extends Controller
         try {
             // Get the current user's assigned school from auth service
             $user = $this->getUserFromAuthService($request);
-            
+
             if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
                 return response()->json([
                     'success' => false,
@@ -73,7 +73,7 @@ class PartnerSchoolController extends Controller
             }
 
             $school = School::find($user['assigned_school_id']);
-            
+
             if (!$school) {
                 return response()->json([
                     'success' => false,
@@ -83,29 +83,29 @@ class PartnerSchoolController extends Controller
 
             // Get basic statistics
             $schoolId = $school->id;
-            
+
             // Get students through academic_records table
-            $totalStudents = Student::whereHas('academicRecords', function($query) use ($schoolId) {
+            $totalStudents = Student::whereHas('academicRecords', function ($query) use ($schoolId) {
                 $query->where('school_id', $schoolId);
             })->count();
-            
-            $activeStudents = Student::whereHas('academicRecords', function($query) use ($schoolId) {
+
+            $activeStudents = Student::whereHas('academicRecords', function ($query) use ($schoolId) {
                 $query->where('school_id', $schoolId);
             })->where('is_currently_enrolled', true)->count();
-            
-            $totalApplications = ScholarshipApplication::whereHas('student.academicRecords', function($query) use ($schoolId) {
+
+            $totalApplications = ScholarshipApplication::whereHas('student.academicRecords', function ($query) use ($schoolId) {
                 $query->where('school_id', $schoolId);
             })->count();
-            
-            $pendingApplications = ScholarshipApplication::whereHas('student.academicRecords', function($query) use ($schoolId) {
+
+            $pendingApplications = ScholarshipApplication::whereHas('student.academicRecords', function ($query) use ($schoolId) {
                 $query->where('school_id', $schoolId);
             })->where('status', 'pending')->count();
-            
-            $approvedApplications = ScholarshipApplication::whereHas('student.academicRecords', function($query) use ($schoolId) {
+
+            $approvedApplications = ScholarshipApplication::whereHas('student.academicRecords', function ($query) use ($schoolId) {
                 $query->where('school_id', $schoolId);
             })->where('status', 'approved')->count();
-            
-            $rejectedApplications = ScholarshipApplication::whereHas('student.academicRecords', function($query) use ($schoolId) {
+
+            $rejectedApplications = ScholarshipApplication::whereHas('student.academicRecords', function ($query) use ($schoolId) {
                 $query->where('school_id', $schoolId);
             })->where('status', 'rejected')->count();
 
@@ -129,16 +129,16 @@ class PartnerSchoolController extends Controller
                     'rejected' => $rejectedApplications,
                 ],
                 'recent_activity' => [
-                    'new_students_this_month' => Student::whereHas('academicRecords', function($query) use ($schoolId) {
+                    'new_students_this_month' => Student::whereHas('academicRecords', function ($query) use ($schoolId) {
                         $query->where('school_id', $schoolId);
                     })->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->count(),
-                    'new_applications_this_month' => ScholarshipApplication::whereHas('student.academicRecords', function($query) use ($schoolId) {
+                        ->whereYear('created_at', now()->year)
+                        ->count(),
+                    'new_applications_this_month' => ScholarshipApplication::whereHas('student.academicRecords', function ($query) use ($schoolId) {
                         $query->where('school_id', $schoolId);
                     })->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->count(),
+                        ->whereYear('created_at', now()->year)
+                        ->count(),
                 ]
             ];
 
@@ -150,7 +150,7 @@ class PartnerSchoolController extends Controller
         } catch (\Exception $e) {
             \Log::error('PartnerSchool getStats error: ' . $e->getMessage());
             \Log::error('PartnerSchool getStats error trace: ' . $e->getTraceAsString());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch partner school statistics: ' . $e->getMessage(),
@@ -170,7 +170,7 @@ class PartnerSchoolController extends Controller
     {
         try {
             $user = $this->getUserFromAuthService($request);
-            
+
             if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
                 return response()->json([
                     'success' => false,
@@ -181,21 +181,21 @@ class PartnerSchoolController extends Controller
             $perPage = $request->get('per_page', 100);
             $search = $request->get('search');
             $schoolId = $user['assigned_school_id'];
-            
+
             // Get students through academic_records table
-            $query = Student::whereHas('academicRecords', function($q) use ($schoolId) {
+            $query = Student::whereHas('academicRecords', function ($q) use ($schoolId) {
                 $q->where('school_id', $schoolId);
             });
-            
+
             if ($search) {
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('student_id_number', 'like', "%{$search}%")
-                      ->orWhere('email_address', 'like', "%{$search}%");
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('student_id_number', 'like', "%{$search}%")
+                        ->orWhere('email_address', 'like', "%{$search}%");
                 });
             }
-            
+
             $students = $query->paginate($perPage);
 
             return response()->json([
@@ -219,7 +219,7 @@ class PartnerSchoolController extends Controller
     {
         try {
             $user = $this->getUserFromAuthService($request);
-            
+
             if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
                 return response()->json([
                     'success' => false,
@@ -231,7 +231,7 @@ class PartnerSchoolController extends Controller
             $perPage = $request->get('per_page', 100);
             $search = $request->get('search');
             $status = $request->get('status', 'all');
-            
+
             \Log::info('Fetching enrollment data from school-specific table', [
                 'school_id' => $schoolId,
                 'per_page' => $perPage,
@@ -247,30 +247,32 @@ class PartnerSchoolController extends Controller
             ]);
 
             // Transform the data to match the expected format
-            $transformedStudents = $students->getCollection()->map(function($student) {
+            $transformedStudents = $students->getCollection()->map(function ($student) {
                 try {
                     \Log::info("Processing student from school table: {$student->student_id_number} - {$student->first_name} {$student->last_name}");
-                    
+
                     // Create enrollment data array (single record since it's all in one table now)
-                    $enrollmentData = [[
-                        'id' => $student->id,
-                        'school_id' => $schoolId ?? null,
-                        'educational_level' => $student->educational_level,
-                        'program' => $student->program,
-                        'major' => $student->major,
-                        'year_level' => $student->year_level,
-                        'school_year' => $student->school_year,
-                        'school_term' => $student->school_term,
-                        'units_enrolled' => $student->units_enrolled,
-                        'gpa' => $student->gpa,
-                        'is_current' => true,
-                        'is_graduating' => $student->is_graduating,
-                        'enrollment_date' => $student->enrollment_date,
-                        'graduation_date' => $student->graduation_date,
-                        'is_currently_enrolled' => $student->is_currently_enrolled,
-                        'created_at' => $student->created_at,
-                        'updated_at' => $student->updated_at,
-                    ]];
+                    $enrollmentData = [
+                        [
+                            'id' => $student->id,
+                            'school_id' => $schoolId ?? null,
+                            'educational_level' => $student->educational_level,
+                            'program' => $student->program,
+                            'major' => $student->major,
+                            'year_level' => $student->year_level,
+                            'school_year' => $student->school_year,
+                            'school_term' => $student->school_term,
+                            'units_enrolled' => $student->units_enrolled,
+                            'gpa' => $student->gpa,
+                            'is_current' => true,
+                            'is_graduating' => $student->is_graduating,
+                            'enrollment_date' => $student->enrollment_date,
+                            'graduation_date' => $student->graduation_date,
+                            'is_currently_enrolled' => $student->is_currently_enrolled,
+                            'created_at' => $student->created_at,
+                            'updated_at' => $student->updated_at,
+                        ]
+                    ];
 
                     return [
                         'id' => $student->id,
@@ -333,7 +335,7 @@ class PartnerSchoolController extends Controller
         } catch (\Exception $e) {
             \Log::error('PartnerSchool getEnrollmentData error: ' . $e->getMessage());
             \Log::error('PartnerSchool getEnrollmentData error trace: ' . $e->getTraceAsString());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch enrollment data: ' . $e->getMessage()
@@ -348,7 +350,7 @@ class PartnerSchoolController extends Controller
     {
         try {
             $user = $this->getUserFromAuthService($request);
-            
+
             if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
                 return response()->json([
                     'success' => false,
@@ -364,11 +366,11 @@ class PartnerSchoolController extends Controller
             $schoolId = $user['assigned_school_id'];
             $csvData = $validated['csv_data'];
             $updateMode = $validated['update_mode'];
-            
+
             // Generate a unique batch ID for this upload
             $batchId = \Str::uuid();
             $filename = $request->input('filename', 'uploaded_file.csv');
-            
+
             $processedCount = 0;
             $errors = [];
 
@@ -385,7 +387,7 @@ class PartnerSchoolController extends Controller
             foreach ($csvData as $index => $row) {
                 try {
                     \Log::info("Processing row {$index} for school {$schoolId}", ['row' => $row]);
-                    
+
                     // Prepare data for unified table - CAPTURE ALL FIELDS AS-IS
                     $studentData = [
                         'student_id_number' => $row['student_id_number'] ?? $row['citizen_id'] ?? $row['student_id'] ?? 'STU-' . time() . '-' . $index,
@@ -414,25 +416,45 @@ class PartnerSchoolController extends Controller
                         'enrollment_date' => $row['enrollment_date'] ?? now()->toDateString(),
                         'graduation_date' => $row['graduation_date'] ?? null,
                     ];
-                    
+
                     // Add ALL other fields from the CSV as-is (capture everything)
                     foreach ($row as $key => $value) {
                         // Skip fields we've already processed above
                         $processedFields = [
-                            'student_id_number', 'first_name', 'last_name', 'middle_name', 'extension_name',
-                            'citizen_id', 'sex', 'civil_status', 'nationality', 'birth_place', 'birth_date',
-                            'contact_number', 'email_address', 'is_currently_enrolled', 'is_graduating',
-                            'educational_level', 'program', 'major', 'year_level', 'school_year', 'school_term',
-                            'units_enrolled', 'gpa', 'enrollment_date', 'graduation_date'
+                            'student_id_number',
+                            'first_name',
+                            'last_name',
+                            'middle_name',
+                            'extension_name',
+                            'citizen_id',
+                            'sex',
+                            'civil_status',
+                            'nationality',
+                            'birth_place',
+                            'birth_date',
+                            'contact_number',
+                            'email_address',
+                            'is_currently_enrolled',
+                            'is_graduating',
+                            'educational_level',
+                            'program',
+                            'major',
+                            'year_level',
+                            'school_year',
+                            'school_term',
+                            'units_enrolled',
+                            'gpa',
+                            'enrollment_date',
+                            'graduation_date'
                         ];
-                        
+
                         if (!in_array($key, $processedFields) && !empty($value)) {
                             // Store additional fields as-is
                             $studentData['additional_data'] = $studentData['additional_data'] ?? [];
                             $studentData['additional_data'][$key] = $value;
                         }
                     }
-                    
+
                     // Insert into unified table (with fallback to school-specific tables)
                     $this->unifiedService->insertStudentData($schoolId, $studentData, $batchId, $filename);
 
@@ -458,7 +480,7 @@ class PartnerSchoolController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error('PartnerSchool uploadEnrollmentData error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload enrollment data: ' . $e->getMessage()
@@ -473,7 +495,7 @@ class PartnerSchoolController extends Controller
     {
         try {
             $user = $this->getUserFromAuthService($request);
-            
+
             if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
                 return response()->json([
                     'success' => false,
@@ -494,7 +516,7 @@ class PartnerSchoolController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error('PartnerSchool getSchoolStats error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch school statistics: ' . $e->getMessage()
@@ -509,7 +531,7 @@ class PartnerSchoolController extends Controller
     {
         try {
             $user = $this->getUserFromAuthService($request);
-            
+
             if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
                 return response()->json([
                     'success' => false,
@@ -530,7 +552,7 @@ class PartnerSchoolController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error('PartnerSchool deleteUploadBatch error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete upload batch: ' . $e->getMessage()
@@ -545,7 +567,7 @@ class PartnerSchoolController extends Controller
     {
         try {
             $user = $this->getUserFromAuthService($request);
-            
+
             if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
                 return response()->json([
                     'success' => false,
@@ -563,7 +585,7 @@ class PartnerSchoolController extends Controller
             $csvData = $validated['csv_data'];
             $headers = $validated['headers'];
             $updateMode = $validated['update_mode'];
-            
+
             $processedCount = 0;
             $errors = [];
 
@@ -595,7 +617,7 @@ class PartnerSchoolController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error('PartnerSchool uploadFlexibleData error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload flexible data: ' . $e->getMessage()
@@ -610,7 +632,7 @@ class PartnerSchoolController extends Controller
     {
         try {
             $user = $this->getUserFromAuthService($request);
-            
+
             if (!$user || !isset($user['assigned_school_id']) || !$user['assigned_school_id']) {
                 return response()->json([
                     'success' => false,
@@ -621,19 +643,19 @@ class PartnerSchoolController extends Controller
             $schoolId = $user['assigned_school_id'];
             $perPage = $request->get('per_page', 100);
             $search = $request->get('search');
-            
+
             $query = \DB::table('flexible_student_data')
                 ->where('school_id', $schoolId);
-            
+
             if ($search) {
                 $query->where('data', 'like', "%{$search}%");
             }
-            
+
             $total = $query->count();
             $flexibleData = $query->paginate($perPage);
-            
+
             // Parse the JSON data for each record
-            $parsedData = $flexibleData->map(function($record) {
+            $parsedData = $flexibleData->map(function ($record) {
                 $record->data = json_decode($record->data, true);
                 $record->headers = json_decode($record->headers, true);
                 return $record;
@@ -651,7 +673,7 @@ class PartnerSchoolController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error('PartnerSchool getFlexibleStudents error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch flexible students: ' . $e->getMessage()
@@ -667,42 +689,42 @@ class PartnerSchoolController extends Controller
         try {
             $schoolId = $request->query('school_id');
             $search = $request->query('search');
-            
+
             // Get all schools
             $query = \App\Models\School::query();
-            
+
             if ($schoolId && $schoolId !== 'all') {
                 $query->where('id', $schoolId);
             }
-            
+
             if ($search) {
                 $query->where('name', 'like', '%' . $search . '%');
             }
-            
+
             $schools = $query->get();
-            
+
             $populationData = $schools->map(function ($school) {
                 // Get students from unified table
                 $studentsQuery = \App\Models\UnifiedSchoolStudentData::where('school_id', $school->id);
                 $students = $studentsQuery->get();
-                
+
                 $totalStudents = $students->count();
-                
+
                 // Count by gender
                 $maleStudents = $students->where('sex', 'Male')->count();
                 $femaleStudents = $students->where('sex', 'Female')->count();
-                
+
                 // Get scholarship data from scholarship applications
                 $scholarshipApplications = \App\Models\ScholarshipApplication::where('school_id', $school->id)
                     ->where('status', 'approved')
                     ->get();
-                
+
                 $scholarshipRecipients = $scholarshipApplications->count();
                 $activeScholars = $scholarshipApplications->where('status', 'approved')->count();
                 $graduatedScholars = $scholarshipApplications->where('status', 'completed')->count();
-                
+
                 $scholarshipRate = $totalStudents > 0 ? round(($scholarshipRecipients / $totalStudents) * 100, 1) : 0;
-                
+
                 return [
                     'id' => $school->id,
                     'school_name' => $school->name,
@@ -725,28 +747,28 @@ class PartnerSchoolController extends Controller
                     ]
                 ];
             });
-            
+
             // Calculate totals
             $totals = [
                 'total_students' => $populationData->sum('total_students'),
                 'total_scholars' => $populationData->sum('scholarship_recipients'),
                 'active_scholars' => $populationData->sum('active_scholars'),
                 'graduated_scholars' => $populationData->sum('graduated_scholars'),
-                'scholarship_rate' => $populationData->sum('total_students') > 0 
-                    ? round(($populationData->sum('scholarship_recipients') / $populationData->sum('total_students')) * 100, 1) 
+                'scholarship_rate' => $populationData->sum('total_students') > 0
+                    ? round(($populationData->sum('scholarship_recipients') / $populationData->sum('total_students')) * 100, 1)
                     : 0
             ];
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $populationData,
                 'totals' => $totals,
                 'message' => 'Student population data retrieved successfully'
             ]);
-            
+
         } catch (\Exception $e) {
             \Log::error('PartnerSchool getStudentPopulation error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch student population data: ' . $e->getMessage()
@@ -763,16 +785,16 @@ class PartnerSchoolController extends Controller
             $schools = \App\Models\School::select('id', 'name')
                 ->orderBy('name')
                 ->get();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $schools,
                 'message' => 'Schools retrieved successfully'
             ]);
-            
+
         } catch (\Exception $e) {
             \Log::error('PartnerSchool getSchools error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch schools: ' . $e->getMessage()

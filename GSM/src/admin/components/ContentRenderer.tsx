@@ -132,6 +132,7 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 		case 'audit-logs':
 			return <div><AuditLog /></div>
 		// Security module routes
+		case 'security':
 		case 'security-dashboard':
 			return <div><DocumentSecurityDashboard activeItem="security-dashboard" /></div>
 		case 'security-threats':

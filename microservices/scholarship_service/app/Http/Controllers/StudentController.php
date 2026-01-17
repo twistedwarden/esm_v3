@@ -46,11 +46,11 @@ class StudentController extends Controller
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('student_id_number', 'like', "%{$search}%")
-                  ->orWhere('email_address', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('student_id_number', 'like', "%{$search}%")
+                    ->orWhere('email_address', 'like', "%{$search}%");
             });
         }
 
@@ -67,7 +67,7 @@ class StudentController extends Controller
         }
 
         $students = $query->orderBy('created_at', 'desc')
-                         ->paginate($request->get('per_page', 15));
+            ->paginate($request->get('per_page', 15));
 
         return response()->json([
             'success' => true,
@@ -176,13 +176,35 @@ class StudentController extends Controller
 
             // Create student
             $studentData = $request->only([
-                'citizen_id', 'user_id', 'student_id_number', 'first_name', 'last_name',
-                'middle_name', 'extension_name', 'sex', 'civil_status', 'nationality',
-                'birth_place', 'birth_date', 'is_pwd', 'pwd_specification', 'religion',
-                'height_cm', 'weight_kg', 'contact_number', 'email_address', 'is_employed',
-                'is_job_seeking', 'is_currently_enrolled', 'is_graduating', 'is_solo_parent',
-                'is_indigenous_group', 'is_registered_voter', 'voter_nationality',
-                'has_paymaya_account', 'preferred_mobile_number'
+                'citizen_id',
+                'user_id',
+                'student_id_number',
+                'first_name',
+                'last_name',
+                'middle_name',
+                'extension_name',
+                'sex',
+                'civil_status',
+                'nationality',
+                'birth_place',
+                'birth_date',
+                'is_pwd',
+                'pwd_specification',
+                'religion',
+                'height_cm',
+                'weight_kg',
+                'contact_number',
+                'email_address',
+                'is_employed',
+                'is_job_seeking',
+                'is_currently_enrolled',
+                'is_graduating',
+                'is_solo_parent',
+                'is_indigenous_group',
+                'is_registered_voter',
+                'voter_nationality',
+                'has_paymaya_account',
+                'preferred_mobile_number'
             ]);
 
             // Set user_id and citizen_id from authenticated user if not provided
@@ -198,7 +220,7 @@ class StudentController extends Controller
 
             // Check if student with this citizen_id already exists
             $existingStudent = Student::where('citizen_id', $studentData['citizen_id'])->first();
-            
+
             if ($existingStudent) {
                 // Update existing student record instead of creating new one
                 \Log::info("Updating existing student with citizen_id: {$studentData['citizen_id']}, ID: {$existingStudent->id}");
@@ -398,19 +420,40 @@ class StudentController extends Controller
 
             // Update basic student information
             $student->update($request->only([
-                'first_name', 'last_name', 'middle_name', 'extension_name', 'sex',
-                'civil_status', 'nationality', 'birth_place', 'birth_date', 'is_pwd',
-                'pwd_specification', 'religion', 'height_cm', 'weight_kg', 'contact_number',
-                'email_address', 'is_employed', 'is_job_seeking', 'is_currently_enrolled',
-                'is_graduating', 'is_solo_parent', 'is_indigenous_group', 'is_registered_voter',
-                'voter_nationality', 'has_paymaya_account', 'preferred_mobile_number', 'occupation'
+                'first_name',
+                'last_name',
+                'middle_name',
+                'extension_name',
+                'sex',
+                'civil_status',
+                'nationality',
+                'birth_place',
+                'birth_date',
+                'is_pwd',
+                'pwd_specification',
+                'religion',
+                'height_cm',
+                'weight_kg',
+                'contact_number',
+                'email_address',
+                'is_employed',
+                'is_job_seeking',
+                'is_currently_enrolled',
+                'is_graduating',
+                'is_solo_parent',
+                'is_indigenous_group',
+                'is_registered_voter',
+                'voter_nationality',
+                'has_paymaya_account',
+                'preferred_mobile_number',
+                'occupation'
             ]));
 
             // Update addresses
             if ($request->has('addresses')) {
                 // Delete existing addresses
                 $student->addresses()->delete();
-                
+
                 // Create new addresses
                 foreach ($request->addresses as $addressData) {
                     $addressData['student_id'] = $student->id;
@@ -422,7 +465,7 @@ class StudentController extends Controller
             if ($request->has('family_members')) {
                 // Delete existing family members
                 $student->familyMembers()->delete();
-                
+
                 // Create new family members
                 foreach ($request->family_members as $familyData) {
                     $familyData['student_id'] = $student->id;
@@ -434,7 +477,7 @@ class StudentController extends Controller
             if ($request->has('financial_information')) {
                 $financialData = $request->financial_information;
                 $financialData['student_id'] = $student->id;
-                
+
                 // Update or create financial information
                 if ($student->financialInformation) {
                     $student->financialInformation()->update($financialData);
@@ -447,7 +490,7 @@ class StudentController extends Controller
             if ($request->has('emergency_contacts')) {
                 // Delete existing emergency contacts
                 $student->emergencyContacts()->delete();
-                
+
                 // Create new emergency contacts
                 foreach ($request->emergency_contacts as $emergencyData) {
                     $emergencyData['student_id'] = $student->id;
@@ -545,7 +588,7 @@ class StudentController extends Controller
 
             // Check if student already exists for this application
             $existingStudent = Student::where('citizen_id', $application->student->citizen_id)->first();
-            
+
             if ($existingStudent) {
                 // Update existing student with scholarship information
                 $existingStudent->update([
@@ -746,7 +789,7 @@ class StudentController extends Controller
         try {
             $application = \App\Models\ScholarshipApplication::findOrFail($applicationId);
             $student = Student::where('citizen_id', $application->student->citizen_id)->first();
-            
+
             return response()->json([
                 'success' => true,
                 'exists' => $student !== null,
@@ -779,7 +822,7 @@ class StudentController extends Controller
                     'scholarshipRecords'
                 ])
                 ->first();
-            
+
             if (!$student) {
                 return response()->json([
                     'success' => false,
@@ -807,7 +850,7 @@ class StudentController extends Controller
     {
         try {
             $totalStudents = Student::count();
-            
+
             // Use only basic fields that definitely exist
             $studentsByStatus = [
                 'enrolled' => Student::where('is_currently_enrolled', true)->count(),
@@ -815,9 +858,9 @@ class StudentController extends Controller
                 'dropped' => Student::where('is_currently_enrolled', false)->where('is_graduating', false)->count(),
                 'transferred' => 0, // This would need a specific field
             ];
-            
+
             $recentRegistrations = Student::where('created_at', '>=', now()->subDays(30))->count();
-            
+
             // Try to get GPA if the field exists
             $averageGpa = 0;
             try {
@@ -826,7 +869,7 @@ class StudentController extends Controller
                 // GPA field might not exist
                 $averageGpa = 0;
             }
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -859,14 +902,14 @@ class StudentController extends Controller
     {
         try {
             $query = Student::query();
-            
+
             // Filter by scholarship status
             $query->where('scholarship_status', $status);
-            
+
             // Apply pagination
             $students = $query->orderBy('created_at', 'desc')
-                             ->paginate($request->get('per_page', 15));
-            
+                ->paginate($request->get('per_page', 15));
+
             return response()->json([
                 'success' => true,
                 'data' => $students
@@ -907,7 +950,7 @@ class StudentController extends Controller
             DB::beginTransaction();
 
             $ids = $request->uuids;
-            
+
             // Handle status update separately if it's 'archived' or 'active' (restore)
             if (isset($request->updates['status'])) {
                 $status = $request->updates['status'];
@@ -918,7 +961,7 @@ class StudentController extends Controller
                 }
                 unset($request->updates['status']);
             }
-            
+
             if (!empty($request->updates)) {
                 Student::whereIn('id', $ids)->update($request->updates);
             }
@@ -946,8 +989,8 @@ class StudentController extends Controller
     {
         try {
             $student = Student::findOrFail($id);
-            $student->delete(); 
-            
+            $student->delete();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Student archived successfully'
@@ -1024,10 +1067,10 @@ class StudentController extends Controller
         try {
             // Get unique programs from academic records
             $programs = \App\Models\AcademicRecord::distinct()->pluck('program')->filter()->values();
-            
+
             // Get schools
             $schools = \App\Models\School::select('id', 'name')->get();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [

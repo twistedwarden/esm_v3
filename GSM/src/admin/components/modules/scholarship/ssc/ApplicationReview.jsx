@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Award, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Award,
+  CheckCircle,
+  XCircle,
   Clock,
   FileText,
   Search,
@@ -29,7 +29,7 @@ import { scholarshipApiService } from '../../../../../services/scholarshipApiSer
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function ApplicationReview() {
-  const { showSuccess, showError } = useToastContext();
+  const { success: showSuccess, error: showError } = useToastContext();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -61,10 +61,10 @@ function ApplicationReview() {
   }, []);
 
   const fetchApplications = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        
+    try {
+      setLoading(true);
+      setError('');
+
       const response = await scholarshipApiService.getSscPendingApplications({
         per_page: 100,
         sort_by: sortBy,
@@ -99,7 +99,7 @@ function ApplicationReview() {
           endorsedDate: app.updated_at,
           submittedDate: app.submitted_at || app.created_at,
           financialNeed: app.financial_need_description || '',
-          
+
           // Interview-specific data
           interview: interview ? {
             id: interview.id,
@@ -128,26 +128,26 @@ function ApplicationReview() {
       console.error('Error fetching SSC pending applications:', e);
       setError('Failed to load applications ready for SSC review');
       setApplications([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredApplications = applications.filter(app => {
     const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.scholarshipCategory.toLowerCase().includes(searchTerm.toLowerCase());
-    
+      app.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.scholarshipCategory.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesCategory = filters.category === 'all' || app.scholarshipCategory === filters.category;
     const matchesSchool = filters.school === 'all' || app.schoolType === filters.school;
-    
+
     return matchesSearch && matchesCategory && matchesSchool;
   });
 
   const sortedApplications = [...filteredApplications].sort((a, b) => {
     let aValue, bValue;
-    
+
     switch (sortBy) {
       case 'name':
         aValue = a.name.toLowerCase();
@@ -176,9 +176,8 @@ function ApplicationReview() {
   });
 
   const ApplicationCard = ({ application }) => (
-    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 ${
-      viewMode === 'list' ? 'rounded-lg' : 'rounded-xl'
-    }`}>
+    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 ${viewMode === 'list' ? 'rounded-lg' : 'rounded-xl'
+      }`}>
       <div className={viewMode === 'list' ? 'p-4' : 'p-6'}>
         {/* Header */}
         <div className={`flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 ${viewMode === 'list' ? 'mb-3' : 'mb-4'}`}>
@@ -216,11 +215,10 @@ function ApplicationReview() {
           </div>
 
           {/* Academic Info */}
-          <div className={`grid gap-3 ${
-            viewMode === 'list' 
-              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' 
+          <div className={`grid gap-3 ${viewMode === 'list'
+              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
               : 'grid-cols-1 sm:grid-cols-2'
-          }`}>
+            }`}>
             <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
               <GraduationCap className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
               <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">GWA:</span>
@@ -259,20 +257,19 @@ function ApplicationReview() {
                   <MessageSquare className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-blue-600`} />
                   <span className="font-medium text-blue-900 dark:text-blue-100">Interview Evaluation</span>
                 </div>
-                
+
                 {/* Evaluation Scores */}
                 <div className={`grid ${viewMode === 'list' ? 'grid-cols-1 gap-1' : 'grid-cols-1 gap-2'} ${viewMode === 'list' ? 'text-xs' : 'text-sm'}`}>
                   <div className="flex items-center space-x-2 min-w-0">
                     <span className="text-blue-700 dark:text-blue-300 flex-shrink-0 w-20">Academic:</span>
                     <div className="flex items-center space-x-0.5 flex-shrink-0">
                       {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${
-                            i < (application.interview.evaluation.academicMotivationScore || 0)
-                              ? 'text-yellow-400 fill-current' 
+                        <Star
+                          key={i}
+                          className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${i < (application.interview.evaluation.academicMotivationScore || 0)
+                              ? 'text-yellow-400 fill-current'
                               : 'text-gray-300'
-                          }`} 
+                            }`}
                         />
                       ))}
                       <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium text-xs">
@@ -284,13 +281,12 @@ function ApplicationReview() {
                     <span className="text-blue-700 dark:text-blue-300 flex-shrink-0 w-20">Leadership:</span>
                     <div className="flex items-center space-x-0.5 flex-shrink-0">
                       {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${
-                            i < (application.interview.evaluation.leadershipInvolvementScore || 0)
-                              ? 'text-yellow-400 fill-current' 
+                        <Star
+                          key={i}
+                          className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${i < (application.interview.evaluation.leadershipInvolvementScore || 0)
+                              ? 'text-yellow-400 fill-current'
                               : 'text-gray-300'
-                          }`} 
+                            }`}
                         />
                       ))}
                       <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium text-xs">
@@ -302,13 +298,12 @@ function ApplicationReview() {
                     <span className="text-blue-700 dark:text-blue-300 flex-shrink-0 w-20">Financial:</span>
                     <div className="flex items-center space-x-0.5 flex-shrink-0">
                       {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${
-                            i < (application.interview.evaluation.financialNeedScore || 0)
-                              ? 'text-yellow-400 fill-current' 
+                        <Star
+                          key={i}
+                          className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${i < (application.interview.evaluation.financialNeedScore || 0)
+                              ? 'text-yellow-400 fill-current'
                               : 'text-gray-300'
-                          }`} 
+                            }`}
                         />
                       ))}
                       <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium text-xs">
@@ -320,13 +315,12 @@ function ApplicationReview() {
                     <span className="text-blue-700 dark:text-blue-300 flex-shrink-0 w-20">Character:</span>
                     <div className="flex items-center space-x-0.5 flex-shrink-0">
                       {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${
-                            i < (application.interview.evaluation.characterValuesScore || 0)
-                              ? 'text-yellow-400 fill-current' 
+                        <Star
+                          key={i}
+                          className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${i < (application.interview.evaluation.characterValuesScore || 0)
+                              ? 'text-yellow-400 fill-current'
                               : 'text-gray-300'
-                          }`} 
+                            }`}
                         />
                       ))}
                       <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium text-xs">
@@ -336,17 +330,16 @@ function ApplicationReview() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Recommendation Status */}
               <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'}`}>
                 <span className="text-gray-600 dark:text-gray-400">Recommendation:</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  application.interview.evaluation.overallRecommendation === 'recommended'
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${application.interview.evaluation.overallRecommendation === 'recommended'
                     ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                     : application.interview.evaluation.overallRecommendation === 'needs_followup'
-                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                }`}>
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                  }`}>
                   {application.interview.evaluation.overallRecommendation === 'recommended' && '✅ Recommended'}
                   {application.interview.evaluation.overallRecommendation === 'needs_followup' && '⚠️ Conditional'}
                   {application.interview.evaluation.overallRecommendation === 'not_recommended' && '❌ Not Recommended'}
@@ -376,9 +369,9 @@ function ApplicationReview() {
               </button>
             </div>
             <div className="flex items-center space-x-2 flex-shrink-0">
-              <button 
+              <button
                 onClick={() => openViewModal(application)}
-                className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`} 
+                className={`${viewMode === 'list' ? 'p-2' : 'p-1.5'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`}
                 title="View Details"
               >
                 <Eye className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
@@ -391,8 +384,8 @@ function ApplicationReview() {
   );
 
   const handleSelectApplication = (id) => {
-    setSelectedApplications(prev => 
-      prev.includes(id) 
+    setSelectedApplications(prev =>
+      prev.includes(id)
         ? prev.filter(appId => appId !== id)
         : [...prev, id]
     );
@@ -426,7 +419,7 @@ function ApplicationReview() {
 
   const handleApprove = async () => {
     if (!activeApplication) return;
-    
+
     if (!approveAmount || parseFloat(approveAmount) <= 0) {
       showError('Please enter a valid approved amount.', 'Invalid Amount');
       return;
@@ -438,7 +431,7 @@ function ApplicationReview() {
         parseFloat(approveAmount),
         approveNotes
       );
-      
+
       setApplications(prev => prev.filter(app => app.id !== activeApplication.id));
       setIsApproveModalOpen(false);
       showSuccess('Application approved successfully!', 'Approval Successful');
@@ -453,13 +446,13 @@ function ApplicationReview() {
       showError('Please provide a reason for rejection.', 'Rejection Reason Required');
       return;
     }
-    
+
     try {
       await scholarshipApiService.sscRejectApplication(
         activeApplication.id,
         rejectReason.trim()
       );
-      
+
       setApplications(prev => prev.filter(app => app.id !== activeApplication.id));
       setIsRejectModalOpen(false);
       setRejectReason('');
@@ -478,13 +471,13 @@ function ApplicationReview() {
         selectedApplications,
         bulkNotes
       );
-      
+
       setApplications(prev => prev.filter(app => !selectedApplications.includes(app.id)));
       setSelectedApplications([]);
       setIsBulkApproveModalOpen(false);
       setBulkNotes('');
       showSuccess(
-        `Successfully approved ${result.approved_count} application(s)!`, 
+        `Successfully approved ${result.approved_count} application(s)!`,
         'Bulk Approval Successful'
       );
     } catch (error) {
@@ -506,13 +499,13 @@ function ApplicationReview() {
         selectedApplications,
         bulkRejectReason.trim()
       );
-      
+
       setApplications(prev => prev.filter(app => !selectedApplications.includes(app.id)));
       setSelectedApplications([]);
       setIsBulkRejectModalOpen(false);
       setBulkRejectReason('');
       showSuccess(
-        `Successfully rejected ${result.rejected_count} application(s)!`, 
+        `Successfully rejected ${result.rejected_count} application(s)!`,
         'Bulk Rejection Successful'
       );
     } catch (error) {
@@ -556,21 +549,20 @@ function ApplicationReview() {
               />
             </div>
           </div>
-          
+
           {/* Controls */}
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${
-                showAdvancedFilters 
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${showAdvancedFilters
                   ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
                   : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-              }`}
+                }`}
             >
               <Filter className="w-4 h-4" />
               <span>Advanced</span>
             </button>
-            
+
             <div className="flex items-center border border-gray-300 dark:border-slate-600 rounded-lg">
               <button
                 onClick={() => setViewMode('grid')}
@@ -585,7 +577,7 @@ function ApplicationReview() {
                 <List className="w-4 h-4" />
               </button>
             </div>
-            
+
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -610,9 +602,9 @@ function ApplicationReview() {
         {showAdvancedFilters && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-            <select
+                <select
                   value={filters.category}
                   onChange={(e) => updateFilter('category', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -621,12 +613,12 @@ function ApplicationReview() {
                   <option value="Academic Excellence">Academic Excellence</option>
                   <option value="Financial Need">Financial Need</option>
                   <option value="Special Programs">Special Programs</option>
-            </select>
-          </div>
+                </select>
+              </div>
 
-          <div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School Type</label>
-            <select
+                <select
                   value={filters.school}
                   onChange={(e) => updateFilter('school', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -635,8 +627,8 @@ function ApplicationReview() {
                   <option value="State University">State University</option>
                   <option value="Private University">Private University</option>
                   <option value="College">College</option>
-            </select>
-          </div>
+                </select>
+              </div>
             </div>
           </div>
         )}
@@ -666,19 +658,19 @@ function ApplicationReview() {
                 {selectedApplications.length} application(s) selected
               </span>
               <div className="flex space-x-2">
-                <button 
+                <button
                   onClick={() => setIsBulkApproveModalOpen(true)}
                   className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                 >
                   Bulk Approve
                 </button>
-                <button 
+                <button
                   onClick={() => setIsBulkRejectModalOpen(true)}
                   className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
                 >
                   Bulk Reject
                 </button>
-        </div>
+              </div>
             </div>
           </div>
         )}
@@ -708,14 +700,14 @@ function ApplicationReview() {
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               {sortedApplications.length} Application{sortedApplications.length !== 1 ? 's' : ''}
-          </h3>
+            </h3>
             <button
               onClick={handleSelectAll}
               className="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium"
             >
               {selectedApplications.length === sortedApplications.length ? 'Deselect All' : 'Select All'}
             </button>
-        </div>
+          </div>
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-3'}>
             {sortedApplications.map((application) => (
               <ApplicationCard key={application.id} application={application} />
@@ -734,14 +726,14 @@ function ApplicationReview() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Approve Application
               </h3>
-              <button 
-                onClick={() => setIsApproveModalOpen(false)} 
+              <button
+                onClick={() => setIsApproveModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
-                    </div>
-            
+            </div>
+
             <div className="p-6">
               <div className="mb-4">
                 <p className="text-gray-600 dark:text-gray-400 mb-2">
@@ -754,9 +746,9 @@ function ApplicationReview() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {activeApplication.studentId} • {activeApplication.schoolName}
                   </p>
-                    </div>
+                </div>
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Approved Amount *
@@ -778,7 +770,7 @@ function ApplicationReview() {
                   Requested: ₱{activeApplication.requestedAmount.toLocaleString()}
                 </p>
               </div>
-              
+
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Notes (Optional)
@@ -794,21 +786,21 @@ function ApplicationReview() {
             </div>
 
             <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-slate-700">
-                      <button
+              <button
                 onClick={() => setIsApproveModalOpen(false)}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                      >
+              >
                 Cancel
-                      </button>
-                      <button
+              </button>
+              <button
                 onClick={handleApprove}
                 className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center"
-                      >
+              >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Approve Application
-                      </button>
-                    </div>
-        </div>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -821,14 +813,14 @@ function ApplicationReview() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Reject Application
               </h3>
-              <button 
-                onClick={() => setIsRejectModalOpen(false)} 
+              <button
+                onClick={() => setIsRejectModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6">
               <div className="mb-4">
                 <p className="text-gray-600 dark:text-gray-400 mb-2">
@@ -840,9 +832,9 @@ function ApplicationReview() {
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {activeApplication.studentId} • {activeApplication.schoolName}
-            </p>
-          </div>
-      </div>
+                  </p>
+                </div>
+              </div>
 
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -869,7 +861,7 @@ function ApplicationReview() {
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleReject}
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center"
               >
@@ -891,18 +883,18 @@ function ApplicationReview() {
                 Bulk Approve Applications
               </h3>
               <button
-                onClick={() => setIsBulkApproveModalOpen(false)} 
+                onClick={() => setIsBulkApproveModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6">
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 You are about to approve {selectedApplications.length} application(s). Each will be approved with their requested amount.
               </p>
-              
+
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Notes (Optional)
@@ -914,9 +906,9 @@ function ApplicationReview() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                   rows={3}
                 />
-                </div>
               </div>
-              
+            </div>
+
             <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-slate-700">
               <button
                 onClick={() => setIsBulkApproveModalOpen(false)}
@@ -924,7 +916,7 @@ function ApplicationReview() {
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleBulkApprove}
                 className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center"
               >
@@ -945,19 +937,19 @@ function ApplicationReview() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Bulk Reject Applications
               </h3>
-              <button 
-                onClick={() => setIsBulkRejectModalOpen(false)} 
+              <button
+                onClick={() => setIsBulkRejectModalOpen(false)}
                 className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6">
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 You are about to reject {selectedApplications.length} application(s).
               </p>
-              
+
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Reason for Rejection *
@@ -975,7 +967,7 @@ function ApplicationReview() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-slate-700">
               <button
                 onClick={() => setIsBulkRejectModalOpen(false)}
@@ -1015,14 +1007,14 @@ function ApplicationReview() {
                 <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-6" style={{ minHeight: 0 }}>
               <div className="space-y-6">
                 {/* Student Information */}
                 <div className="bg-gray-50 dark:bg-gray-900/20 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Student Information</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
+                    <div>
                       <span className="text-gray-700 dark:text-gray-300">Full Name:</span>
                       <span className="ml-2 text-gray-900 dark:text-gray-100 font-medium">
                         {activeApplication.name}
@@ -1071,13 +1063,13 @@ function ApplicationReview() {
                       </span>
                     </div>
                   </div>
-              </div>
-              
+                </div>
+
                 {/* Scholarship Information */}
                 <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
                   <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-3">Scholarship Information</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
+                    <div>
                       <span className="text-purple-700 dark:text-purple-300">Category:</span>
                       <span className="ml-2 text-purple-900 dark:text-purple-100 font-medium">
                         {activeApplication.scholarshipCategory}
@@ -1096,15 +1088,15 @@ function ApplicationReview() {
                       </span>
                     </div>
                   </div>
-              </div>
-              
+                </div>
+
                 {/* Interview Evaluation */}
                 {activeApplication.interview && activeApplication.interview.evaluation && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                     <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">Interview Evaluation</h4>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
-              <div>
+                      <div>
                         <span className="text-blue-700 dark:text-blue-300">Interview Date:</span>
                         <span className="ml-2 text-blue-900 dark:text-blue-100 font-medium">
                           {new Date(activeApplication.interview.date).toLocaleDateString()}
@@ -1126,13 +1118,12 @@ function ApplicationReview() {
                           <span className="text-blue-700 dark:text-blue-300">Academic Motivation:</span>
                           <div className="flex items-center space-x-1">
                             {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`w-3 h-3 ${
-                                  i < (activeApplication.interview.evaluation?.academicMotivationScore || 0)
-                                    ? 'text-yellow-400 fill-current' 
+                              <Star
+                                key={i}
+                                className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.academicMotivationScore || 0)
+                                    ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300 dark:text-gray-600'
-                                }`} 
+                                  }`}
                               />
                             ))}
                             <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
@@ -1144,13 +1135,12 @@ function ApplicationReview() {
                           <span className="text-blue-700 dark:text-blue-300">Leadership & Involvement:</span>
                           <div className="flex items-center space-x-1">
                             {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`w-3 h-3 ${
-                                  i < (activeApplication.interview.evaluation?.leadershipInvolvementScore || 0)
-                                    ? 'text-yellow-400 fill-current' 
+                              <Star
+                                key={i}
+                                className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.leadershipInvolvementScore || 0)
+                                    ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300 dark:text-gray-600'
-                                }`} 
+                                  }`}
                               />
                             ))}
                             <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
@@ -1162,13 +1152,12 @@ function ApplicationReview() {
                           <span className="text-blue-700 dark:text-blue-300">Financial Need:</span>
                           <div className="flex items-center space-x-1">
                             {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`w-3 h-3 ${
-                                  i < (activeApplication.interview.evaluation?.financialNeedScore || 0)
-                                    ? 'text-yellow-400 fill-current' 
+                              <Star
+                                key={i}
+                                className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.financialNeedScore || 0)
+                                    ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300 dark:text-gray-600'
-                                }`} 
+                                  }`}
                               />
                             ))}
                             <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
@@ -1180,13 +1169,12 @@ function ApplicationReview() {
                           <span className="text-blue-700 dark:text-blue-300">Character & Values:</span>
                           <div className="flex items-center space-x-1">
                             {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`w-3 h-3 ${
-                                  i < (activeApplication.interview.evaluation?.characterValuesScore || 0)
-                                    ? 'text-yellow-400 fill-current' 
+                              <Star
+                                key={i}
+                                className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.characterValuesScore || 0)
+                                    ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300 dark:text-gray-600'
-                                }`} 
+                                  }`}
                               />
                             ))}
                             <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
@@ -1194,19 +1182,18 @@ function ApplicationReview() {
                             </span>
                           </div>
                         </div>
-              </div>
-            </div>
-            
+                      </div>
+                    </div>
+
                     {/* Overall Recommendation */}
                     <div className="mt-4">
                       <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Overall Recommendation:</h5>
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        activeApplication.interview.evaluation?.overallRecommendation === 'recommended'
+                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${activeApplication.interview.evaluation?.overallRecommendation === 'recommended'
                           ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                           : activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
                         {activeApplication.interview.evaluation?.overallRecommendation === 'recommended' && (
                           <CheckCircle className="w-4 h-4 mr-1" />
                         )}
@@ -1273,7 +1260,7 @@ function ApplicationReview() {
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Approve
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setIsViewModalOpen(false);
                   openRejectModal(activeApplication);

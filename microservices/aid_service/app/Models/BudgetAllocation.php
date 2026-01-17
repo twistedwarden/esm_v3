@@ -31,6 +31,14 @@ class BudgetAllocation extends Model
     ];
 
     /**
+     * Get partner school budgets allocated from this main budget
+     */
+    public function partnerBudgets()
+    {
+        return $this->hasMany(PartnerSchoolBudget::class, 'source_budget_id');
+    }
+
+    /**
      * Get remaining budget (total - disbursed)
      */
     public function getRemainingBudgetAttribute(): float

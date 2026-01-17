@@ -62,7 +62,7 @@ class ScholarshipCategoryController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'type' => 'required|in:merit,need_based,special,renewal',
+            'type' => 'required|in:merit,need_based,special,renewal,field_specific,service',
             'is_active' => 'boolean',
         ]);
 
@@ -116,7 +116,7 @@ class ScholarshipCategoryController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'type' => 'sometimes|required|in:merit,need_based,special,renewal',
+            'type' => 'sometimes|required|in:merit,need_based,special,renewal,field_specific,service',
             'is_active' => 'boolean',
         ]);
 

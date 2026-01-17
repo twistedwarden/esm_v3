@@ -2,12 +2,14 @@ import { useState } from 'react';
 import {
   FileText,
   LayoutDashboard,
-  DollarSign
+  DollarSign,
+  Wallet
 } from 'lucide-react';
 import { TabConfig, ScholarshipApplication } from './types';
 import SADOverview from './SADOverview';
 import ApplicationsTab from './tabs/ApplicationsTab';
 import BudgetTab from './tabs/BudgetTab';
+import PartnerSchoolBudgets from './PartnerSchoolBudgets';
 import ManualDisbursementModal from './components/disbursement/ManualDisbursementModal';
 import ApplicationViewModal from './components/ApplicationViewModal';
 import { schoolAidService } from './services/schoolAidService';
@@ -48,6 +50,13 @@ const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}
       label: 'Yearly School Budget',
       icon: DollarSign,
       component: BudgetTab,
+      submodules: []
+    },
+    {
+      id: 'partner-budgets',
+      label: 'Partner Budgets',
+      icon: Wallet,
+      component: PartnerSchoolBudgets,
       submodules: []
     }
   ];
@@ -143,7 +152,7 @@ const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}
     try {
       // Process grant using the dedicated API endpoint
       const result = await schoolAidService.processGrant(application.id);
-      
+
       // Check if payment URL is returned (PayMongo redirect)
       if (result.success && result.payment_url && result.redirect) {
         // Redirect to PayMongo checkout page
@@ -202,7 +211,7 @@ const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}
         onApproveApplication={handleApproveApplication}
         onRejectApplication={handleRejectApplication}
         lastUpdated={lastUpdated}
-        onPageChange={activeTab === 'overview' ? handleOverviewPageChange : (onPageChange || (() => {}))}
+        onPageChange={activeTab === 'overview' ? handleOverviewPageChange : (onPageChange || (() => { }))}
         onTabChange={handleTabChange}
       />
     );

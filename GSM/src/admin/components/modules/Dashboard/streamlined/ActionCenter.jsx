@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Clock, ChevronRight, FileX } from 'lucide-react';
+import { AlertCircle, Clock, ChevronRight, FileX, CheckCircle } from 'lucide-react';
 
 const ActionCenter = ({ items = [] }) => {
     // Filter for high priority items (mock logic for now if real data lacks priority flag)

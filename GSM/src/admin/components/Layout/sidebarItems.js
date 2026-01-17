@@ -5,13 +5,13 @@ import translationService from '../../../services/translationService';
 const allSidebarItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     {
-         id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
-         subItems: [
-             { id: 'scholarship-applications', label: 'Applications' },
-             { id: 'scholarship-programs', label: 'Programs' },
-             { id: 'scholarship-ssc', label: 'SSC Management' }
-         ]
-     },
+        id: 'scholarship', icon: GraduationCap, label: 'Scholarship',
+        subItems: [
+            { id: 'scholarship-applications', label: 'Applications' },
+            { id: 'scholarship-programs', label: 'Programs' },
+            { id: 'scholarship-ssc', label: 'SSC Management' }
+        ]
+    },
     {
         id: 'sad', icon: HandCoins, label: 'School Aid Distribution',
         subItems: [
@@ -51,15 +51,7 @@ const allSidebarItems = [
     },
     { id: 'user-management', icon: Users, label: 'User Management' },
     { id: 'audit-logs', icon: Shield, label: 'Audit Logs' },
-    { 
-        id: 'security', icon: ShieldCheck, label: 'Security',
-        subItems: [
-            { id: 'security-dashboard', label: 'Document Security' },
-            { id: 'security-threats', label: 'Threat Monitoring' },
-            { id: 'security-quarantine', label: 'Quarantine' },
-            { id: 'security-settings', label: 'Security Settings' }
-        ]
-    },
+    { id: 'security', icon: ShieldCheck, label: 'Security' },
     { id: 'settings', icon: Settings, label: 'Settings' },
     { id: 'archived', icon: Archive, label: 'Archived Data' }
 ];
@@ -72,7 +64,7 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
             // Ensure translations are loaded before using
             translationService.ensureTranslationsLoaded();
             t = translationService.t.bind(translationService);
-            
+
             // Debug logging
             const status = translationService.getStatus();
             console.log('Sidebar translation status:', status);
@@ -95,7 +87,7 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
             { id: 'settings', icon: Settings, label: t('Settings') }
         ];
     }
-    
+
     // Staff users are restricted - they must have a system_role from scholarship service
     if (userRole === 'staff') {
         // If no system_role, deny all access
@@ -104,7 +96,7 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
                 { id: 'access-denied', icon: Shield, label: t('Access Denied') }
             ];
         }
-        
+
         // Staff with interviewer system role see only interview-related modules
         if (userSystemRole === 'interviewer') {
             return [
@@ -120,7 +112,7 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
                 { id: 'settings', icon: Settings, label: t('Settings') }
             ];
         }
-        
+
         // Staff with other system roles see limited modules based on their role
         if (userSystemRole === 'reviewer') {
             return [
@@ -134,7 +126,7 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
                 { id: 'settings', icon: Settings, label: t('Settings') }
             ];
         }
-        
+
         if (userSystemRole === 'coordinator') {
             return [
                 { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
@@ -155,14 +147,14 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
                 { id: 'settings', icon: Settings, label: t('Settings') }
             ];
         }
-        
+
         // For any other system_role, show limited access
         return [
             { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
             { id: 'settings', icon: Settings, label: t('Settings') }
         ];
     }
-    
+
     // Admin users see all modules
     if (userRole === 'admin') {
         return allSidebarItems.map(item => ({
@@ -174,7 +166,7 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
             })) : undefined
         }));
     }
-    
+
     // Default: no access
     return [
         { id: 'access-denied', icon: Shield, label: t('Access Denied') }

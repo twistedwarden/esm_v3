@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../../../hooks/useToast';
+import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function MyQueue() {
   const [applications, setApplications] = useState([]);
@@ -16,7 +16,7 @@ function MyQueue() {
     total: 0,
     last_page: 1
   });
-  const { showToast } = useToast();
+  const { showToast } = useToastContext();
 
   // Fetch my assigned applications
   const fetchMyApplications = async (page = 1) => {
@@ -67,8 +67,8 @@ function MyQueue() {
   };
 
   const handleSelectApplication = (applicationId) => {
-    setSelectedApplications(prev => 
-      prev.includes(applicationId) 
+    setSelectedApplications(prev =>
+      prev.includes(applicationId)
         ? prev.filter(id => id !== applicationId)
         : [...prev, applicationId]
     );
@@ -93,7 +93,7 @@ function MyQueue() {
     const stage = stageMapping[status];
     // Show content when stage is available
     if (!stage) {
-        return null;
+      return null;
     }
 
     return (
@@ -112,22 +112,20 @@ function MyQueue() {
     ];
 
     const currentIndex = stages.findIndex(stage => stage.key === application.status);
-    
+
     return (
       <div className="flex items-center space-x-2">
         {stages.map((stage, index) => (
           <div key={stage.key} className="flex items-center">
-            <div className={`w-3 h-3 rounded-full ${
-              index <= currentIndex 
-                ? 'bg-orange-500' 
+            <div className={`w-3 h-3 rounded-full ${index <= currentIndex
+                ? 'bg-orange-500'
                 : 'bg-gray-200'
-            }`} />
-            {index < stages.length - 1 && (
-              <div className={`w-8 h-0.5 ${
-                index < currentIndex 
-                  ? 'bg-orange-500' 
-                  : 'bg-gray-200'
               }`} />
+            {index < stages.length - 1 && (
+              <div className={`w-8 h-0.5 ${index < currentIndex
+                  ? 'bg-orange-500'
+                  : 'bg-gray-200'
+                }`} />
             )}
           </div>
         ))}
@@ -371,7 +369,7 @@ function MyQueue() {
             {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of{' '}
             {pagination.total} results
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <button
               onClick={() => fetchMyApplications(pagination.current_page - 1)}
@@ -380,11 +378,11 @@ function MyQueue() {
             >
               Previous
             </button>
-            
+
             <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
               Page {pagination.current_page} of {pagination.last_page}
             </span>
-            
+
             <button
               onClick={() => fetchMyApplications(pagination.current_page + 1)}
               disabled={pagination.current_page === pagination.last_page}

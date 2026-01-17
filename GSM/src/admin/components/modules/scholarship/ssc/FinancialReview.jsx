@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../../../hooks/useToast';
+import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import { CheckCircle, XCircle, DollarSign, TrendingUp, User, ChevronDown, ChevronUp, FileText, Link as LinkIcon, Clock } from 'lucide-react';
 
 function FinancialReview() {
@@ -13,7 +13,7 @@ function FinancialReview() {
     recommended_amount: '',
     financial_assessment: ''
   });
-  const { showSuccess, showError } = useToast();
+  const { success: showSuccess, error: showError } = useToastContext();
 
   // Helper to safely extract an income-related documents list
   const getIncomeDocuments = (application) => {
@@ -54,7 +54,7 @@ function FinancialReview() {
   // Helper to get SSC stage status for parallel workflow
   const getSscStageStatus = (application) => {
     const stageStatus = application.ssc_stage_status || {};
-    
+
     return {
       document_verification: {
         label: 'Document Verification',
@@ -108,7 +108,7 @@ function FinancialReview() {
   const openReviewModal = async (application) => {
     setSelectedApplication(application);
     setShowReviewModal(true);
-    
+
     // Pre-fill with requested amount
     setReviewForm({
       income_verified: false,
@@ -250,7 +250,7 @@ function FinancialReview() {
                     <div>
                       <span className="text-gray-500 dark:text-gray-400">Family Income:</span>
                       <span className="ml-2 text-gray-900 dark:text-white">
-                        {application.student?.financial_information?.family_monthly_income_range 
+                        {application.student?.financial_information?.family_monthly_income_range
                           ? application.student.financial_information.family_monthly_income_range
                           : 'Not provided'}
                       </span>
@@ -334,7 +334,7 @@ function FinancialReview() {
                   <div>
                     <span className="text-gray-600 dark:text-gray-400">Family Income:</span>
                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {selectedApplication.student?.financial_information?.family_monthly_income_range 
+                      {selectedApplication.student?.financial_information?.family_monthly_income_range
                         ? selectedApplication.student.financial_information.family_monthly_income_range
                         : 'Not provided'}
                     </p>

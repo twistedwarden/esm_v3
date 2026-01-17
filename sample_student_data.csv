@@ -1,4 +1,3 @@
-citizen_id,first_name,last_name,middle_name,sex,civil_status,nationality,birth_place,birth_date,contact_number,email_address,educational_level,program,major,year_level,school_year,school_term,units_enrolled,gpa,is_currently_enrolled,is_graduating
-STU001,John,Doe,Michael,Male,Single,Filipino,Manila,2000-01-15,+639123456789,john.doe@email.com,TERTIARY/COLLEGE,Computer Science,Software Engineering,2nd Year,2024-2025,1st Semester,18,3.5,true,false
-STU002,Jane,Smith,Marie,Female,Single,Filipino,Cebu,2001-03-22,+639987654321,jane.smith@email.com,TERTIARY/COLLEGE,Information Technology,Web Development,1st Year,2024-2025,1st Semester,15,3.2,true,false
-STU003,Mike,Johnson,David,Male,Single,Filipino,Davao,1999-11-08,+639555123456,mike.johnson@email.com,TERTIARY/COLLEGE,Engineering,Mechanical Engineering,3rd Year,2024-2025,1st Semester,20,3.8,true,false
+Student ID,First Name,Last Name,Academic Year,Semester,Currently Enrolled,Enrollment Date,Program,Year Level
+2024-00123,Juan,Dela Cruz,2024-2025,1st Semester,true,2024-08-15,Bachelor of Science in Computer Science,1st Year
+2024-00124,Maria,Santos,2024-2025,1st Semester,true,2024-08-16,Bachelor of Science in Business Administration,2nd Year

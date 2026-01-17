@@ -27,7 +27,7 @@ function ScholarshipPrograms() {
   const [viewMode, setViewMode] = useState('grid');
 
   // Toast Context
-  const { showSuccess, showError } = useToastContext();
+  const { success: showSuccess, error: showError } = useToastContext();
 
   // Track expanded categories in grid view
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -716,6 +716,8 @@ function ScholarshipPrograms() {
                     <option value="need_based">Need-based</option>
                     <option value="field_specific">Field-specific</option>
                     <option value="service">Service-based</option>
+                    <option value="special">Special</option>
+                    <option value="renewal">Renewal</option>
                   </select>
                 </div>
 

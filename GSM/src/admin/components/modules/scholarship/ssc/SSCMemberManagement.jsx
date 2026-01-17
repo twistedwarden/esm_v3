@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../../../hooks/useToast';
+import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function SSCMemberManagement() {
   const [members, setMembers] = useState([]);
@@ -8,7 +8,7 @@ function SSCMemberManagement() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const { showToast } = useToast();
+  const { showToast } = useToastContext();
 
   // Real SSC member data - will be fetched from API
   const [sscMembers, setSscMembers] = useState([]);
@@ -43,10 +43,10 @@ function SSCMemberManagement() {
 
       const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
       const response = await scholarshipApiService.getSscMemberAssignments();
-      
+
       // Handle API response structure - could be array or object with data property
       const members = Array.isArray(response) ? response : (response?.data || []);
-      
+
       setMembers(members);
       setSscMembers(members);
     } catch (err) {
@@ -66,8 +66,8 @@ function SSCMemberManagement() {
   const handleActivateMember = async (memberId) => {
     try {
       // API call would go here
-      setMembers(prev => prev.map(member => 
-        member.id === memberId 
+      setMembers(prev => prev.map(member =>
+        member.id === memberId
           ? { ...member, is_active: true }
           : member
       ));
@@ -80,8 +80,8 @@ function SSCMemberManagement() {
   const handleDeactivateMember = async (memberId) => {
     try {
       // API call would go here
-      setMembers(prev => prev.map(member => 
-        member.id === memberId 
+      setMembers(prev => prev.map(member =>
+        member.id === memberId
           ? { ...member, is_active: false }
           : member
       ));
@@ -100,8 +100,8 @@ function SSCMemberManagement() {
     try {
       // API call would go here
       if (selectedMember) {
-        setMembers(prev => prev.map(member => 
-          member.id === selectedMember.id 
+        setMembers(prev => prev.map(member =>
+          member.id === selectedMember.id
             ? { ...member, ...memberData }
             : member
         ));
@@ -296,11 +296,10 @@ function SSCMemberManagement() {
                       {member.review_count}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        member.is_active 
-                          ? 'bg-green-100 text-green-800' 
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${member.is_active
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
+                        }`}>
                         {member.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
@@ -348,7 +347,7 @@ function SSCMemberManagement() {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 {selectedMember ? 'Edit SSC Member' : 'Add SSC Member'}
               </h3>
-              
+
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);

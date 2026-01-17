@@ -2595,112 +2595,97 @@ class ScholarshipApplicationController extends Controller
             ], 422);
         }
 
-        if ($application->status !== 'ssc_financial_review') {
+        // For parallel workflow, allow applications in endorsed_to_ssc or ssc_final_approval status
+        if (!in_array($application->status, ['endorsed_to_ssc', 'ssc_final_approval'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Application is not in financial review stage'
+                'message' => 'Application is not in SSC review stage'
             ], 400);
         }
 
         try {
-            DB::beginTransaction();
-
             $authUser = $request->get('auth_user');
             $reviewerId = $authUser['id'] ?? null;
             $previousStatus = $application->status;
-            $reviewerRole = $authUser['role'] ?? 'unknown';
-
-            // Create review record
-            $review = \App\Models\SscReview::createForApplication(
-                $application,
-                'financial_review',
-                $reviewerId,
-                $reviewerRole
-            );
+            $previousStageStatus = $application->ssc_stage_status ?? null;
 
             if ($request->feasible) {
-                // Approve and advance to next stage
-                $review->approve($request->notes, [
-                    'recommended_amount' => $request->recommended_amount,
-                    'budget_period' => $request->budget_period,
-                    'financial_assessment_score' => $request->financial_assessment_score,
-                    'reviewed_at' => now(),
-                ]);
-
-                $application->advanceToNextSscStage($reviewerId, $request->notes);
-
-                DB::commit();
-
-                AuditLogService::logAction(
-                    'SSC_FINANCIAL_REVIEW_APPROVED',
-                    'Financial review stage approved',
-                    'ScholarshipApplication',
-                    (string) $application->id,
+                // Use parallel workflow - approve the financial review stage
+                $success = $application->approveStage(
+                    'financial_review',
+                    $reviewerId,
+                    $request->notes,
                     [
-                        'status' => $previousStatus,
-                    ],
-                    [
-                        'status' => $application->status,
                         'recommended_amount' => $request->recommended_amount,
                         'budget_period' => $request->budget_period,
                         'financial_assessment_score' => $request->financial_assessment_score,
-                    ],
-                    [
-                        'application_number' => $application->application_number,
-                        'review_stage' => 'financial_review',
-                        'reviewed_by' => $reviewerId,
-                        'notes' => $request->notes,
-                        'feasible' => true,
+                        'reviewed_at' => now(),
                     ]
                 );
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Financial review completed. Application advanced to academic review.',
-                    'data' => $application->fresh()
-                ]);
+                if ($success) {
+                    AuditLogService::logAction(
+                        'SSC_FINANCIAL_REVIEW_APPROVED',
+                        'Financial review stage approved',
+                        'ScholarshipApplication',
+                        (string) $application->id,
+                        [
+                            'status' => $previousStatus,
+                            'ssc_stage_status' => $previousStageStatus,
+                        ],
+                        [
+                            'status' => $application->status,
+                            'ssc_stage_status' => $application->ssc_stage_status,
+                            'recommended_amount' => $request->recommended_amount,
+                        ],
+                        [
+                            'application_number' => $application->application_number,
+                            'review_stage' => 'financial_review',
+                            'reviewed_by' => $reviewerId,
+                            'notes' => $request->notes,
+                            'feasible' => true,
+                        ]
+                    );
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Financial review approved successfully.',
+                        'data' => $application->fresh()
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to approve financial review stage'
+                    ], 500);
+                }
             } else {
-                // Reject
-                $review->reject($request->notes, [
-                    'recommended_amount' => $request->recommended_amount,
-                    'budget_period' => $request->budget_period,
-                    'financial_assessment_score' => $request->financial_assessment_score,
-                    'rejected_at' => now(),
-                ]);
-
-                // Create final decision record
-                \App\Models\SscDecision::create([
-                    'application_id' => $application->id,
-                    'decision' => 'rejected',
-                    'rejection_reason' => 'Financial review: ' . $request->notes,
-                    'decided_by' => $reviewerId,
-                    'decided_at' => now(),
-                    'review_stage' => 'financial_review',
-                ]);
-
-                $application->update(['status' => 'rejected']);
-                $application->statusHistory()->create([
+                // For parallel workflow, we still mark the stage as not approved but don't change overall status
+                // The application remains in SSC review for other stages to continue
+                $stageStatus = $application->ssc_stage_status ?? [];
+                $stageStatus['financial_review'] = [
                     'status' => 'rejected',
-                    'notes' => 'Rejected at financial review: ' . $request->notes,
-                    'changed_by' => $reviewerId,
-                    'changed_at' => now(),
-                ]);
+                    'reviewed_by' => $reviewerId,
+                    'reviewed_at' => now(),
+                    'notes' => $request->notes,
+                    'recommended_amount' => $request->recommended_amount,
+                ];
 
-                DB::commit();
+                $application->update([
+                    'ssc_stage_status' => $stageStatus,
+                ]);
 
                 AuditLogService::logAction(
-                    'SSC_FINANCIAL_REVIEW_REJECTED',
-                    'Application rejected at financial review stage',
+                    'SSC_FINANCIAL_REVIEW_REVISION_REQUESTED',
+                    'Financial review stage marked as needing revision',
                     'ScholarshipApplication',
                     (string) $application->id,
                     [
                         'status' => $previousStatus,
+                        'ssc_stage_status' => $previousStageStatus,
                     ],
                     [
                         'status' => $application->status,
-                        'recommended_amount' => $request->recommended_amount,
-                        'budget_period' => $request->budget_period,
-                        'financial_assessment_score' => $request->financial_assessment_score,
+                        'ssc_stage_status' => $stageStatus,
                     ],
                     [
                         'application_number' => $application->application_number,
@@ -2713,13 +2698,12 @@ class ScholarshipApplicationController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Application rejected at financial review stage.',
+                    'message' => 'Financial review stage marked as needing revision.',
                     'data' => $application->fresh()
                 ]);
             }
 
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Failed to submit financial review', [
                 'exception' => $e->getMessage(),
                 'application_id' => $application->id,
