@@ -2,7 +2,7 @@
 export const API_CONFIG = {
     AUTH_SERVICE: {
         // Local auth service
-        BASE_URL: 'https://auth.educ.goserveph.com',
+        BASE_URL: 'http://auth.educ.goserveph.com',
         ENDPOINTS: {
             LOGIN: '/api/login',
             LOGOUT: '/api/logout',
