@@ -42,7 +42,7 @@ class AnalyticsController extends Controller
     public function getDashboardMetrics()
     {
         $cacheKey = 'dashboard_metrics_' . now()->format('Y-m-d-H');
-        
+
         $data = Cache::remember($cacheKey, 300, function () {
             $today = Carbon::today();
             $weekAgo = Carbon::today()->subDays(7);
@@ -254,7 +254,7 @@ class AnalyticsController extends Controller
         $startDate = Carbon::today()->subDays($days);
 
         $query = AnalyticsFinancialDaily::where('snapshot_date', '>=', $startDate);
-        
+
         if ($schoolYear) {
             $query->where('school_year', $schoolYear);
         }
@@ -459,7 +459,7 @@ class AnalyticsController extends Controller
     {
         $alert = AnalyticsAlert::findOrFail($id);
         $userId = $request->input('auth_user.id', 0);
-        
+
         $alert->acknowledge($userId);
 
         return response()->json([
@@ -545,8 +545,12 @@ class AnalyticsController extends Controller
                 'school_years' => $schoolYears,
                 'date_range' => $dateRange,
                 'available_metrics' => [
-                    'applications', 'financial', 'ssc_reviews', 
-                    'interviews', 'demographics', 'system'
+                    'applications',
+                    'financial',
+                    'ssc_reviews',
+                    'interviews',
+                    'demographics',
+                    'system'
                 ],
             ]
         ]);
@@ -579,7 +583,7 @@ class AnalyticsController extends Controller
             foreach ($rawData as $item) {
                 $date = $item->snapshot_date->format('Y-m-d');
                 $group = $item->{$groupBy};
-                
+
                 if (!isset($groupedByDate[$date])) {
                     $groupedByDate[$date] = [];
                 }
@@ -706,21 +710,31 @@ class AnalyticsController extends Controller
 
     /**
      * Get academic performance data with real student data from scholarship service
+     * Supports filtering by GPA range, school, program, year level, risk level
      */
     public function getAcademicPerformance(Request $request)
     {
         try {
             $scholarshipServiceUrl = config('services.scholarship.url', 'http://localhost:8001');
             $token = $request->bearerToken();
-            
+
+            // Get filter parameters
+            $minGpa = $request->get('min_gpa');
+            $maxGpa = $request->get('max_gpa');
+            $schoolId = $request->get('school_id');
+            $program = $request->get('program');
+            $yearLevel = $request->get('year_level');
+            $riskLevel = $request->get('risk_level'); // high, medium, low
+            $hasGrades = $request->get('has_grades'); // true/false
+
             // Fetch students from scholarship service
             $client = new \GuzzleHttp\Client(['timeout' => 30]);
-            
+
             // First, get all students (with pagination if needed)
             $allStudents = [];
             $page = 1;
             $perPage = 100;
-            
+
             do {
                 $response = $client->get("{$scholarshipServiceUrl}/api/students", [
                     'headers' => [
@@ -734,29 +748,37 @@ class AnalyticsController extends Controller
                 ]);
 
                 $data = json_decode($response->getBody()->getContents(), true);
-                
+
                 if (!isset($data['success']) || !$data['success']) {
                     break;
                 }
 
                 $students = $data['data']['data'] ?? [];
                 $allStudents = array_merge($allStudents, $students);
-                
+
                 $hasMore = isset($data['data']['next_page_url']) && $data['data']['next_page_url'] !== null;
                 $page++;
-                
+
                 // Limit to prevent infinite loops
-                if ($page > 50) break;
-                
+                if ($page > 50)
+                    break;
+
             } while ($hasMore && !empty($students));
-            
+
             if (empty($allStudents)) {
                 return response()->json([
                     'success' => true,
-                    'data' => []
+                    'data' => [],
+                    'summary' => [
+                        'total_students' => 0,
+                        'with_grades' => 0,
+                        'average_gpa' => 0,
+                        'at_risk' => 0,
+                        'top_performers' => 0,
+                    ]
                 ]);
             }
-            
+
             // Fetch academic records for each student
             $transformedStudents = [];
             foreach ($allStudents as $student) {
@@ -768,38 +790,44 @@ class AnalyticsController extends Controller
                             'Accept' => 'application/json',
                         ],
                     ]);
-                    
+
                     $academicData = json_decode($academicResponse->getBody()->getContents(), true);
                     $academicRecords = $academicData['data'] ?? [];
-                    
+
                     // Get current academic record
-                    $currentRecord = collect($academicRecords)->firstWhere('is_current', true) 
+                    $currentRecord = collect($academicRecords)->firstWhere('is_current', true)
                         ?? collect($academicRecords)->sortByDesc('school_year')->first();
-                    
+
                     // Calculate GPA from academic records
                     $gpa = null;
                     if ($currentRecord) {
                         $gpa = $currentRecord['gpa'] ?? $currentRecord['general_weighted_average'] ?? null;
                     }
-                    
+
                     // If no GPA from current record, calculate average from all records
                     if ($gpa === null && !empty($academicRecords)) {
-                        $gpas = array_filter(array_map(function($record) {
+                        $gpas = array_filter(array_map(function ($record) {
                             return $record['gpa'] ?? $record['general_weighted_average'] ?? null;
                         }, $academicRecords));
-                        
+
                         if (!empty($gpas)) {
                             $gpa = array_sum($gpas) / count($gpas);
                         }
                     }
 
-                    // Create grades array from academic records for compatibility
-                    $grades = [];
+                    // Calculate risk level based on GPA (Philippine 5-point scale: 1.0 best, 5.0 worst, 3.0 passing)
+                    $calculatedRiskLevel = 'low';
                     if ($gpa !== null) {
-                        $grades[] = ['grade' => $gpa];
+                        if ($gpa > 3.0) {
+                            $calculatedRiskLevel = 'high'; // Failing
+                        } elseif ($gpa > 2.5) {
+                            $calculatedRiskLevel = 'medium'; // At risk
+                        }
+                        // else low = good standing (< 2.5)
                     }
-                    
-                    // Also add individual grades from records
+
+                    // Create grades array from academic records
+                    $grades = [];
                     foreach ($academicRecords as $record) {
                         $recordGpa = $record['gpa'] ?? $record['general_weighted_average'] ?? null;
                         if ($recordGpa !== null) {
@@ -807,50 +835,135 @@ class AnalyticsController extends Controller
                                 'grade' => $recordGpa,
                                 'term' => $record['school_term'] ?? '',
                                 'year' => $record['school_year'] ?? '',
+                                'updated_at' => $record['updated_at'] ?? null,
                             ];
                         }
                     }
 
-                    $transformedStudents[] = [
+                    // Get school name if school_id exists
+                    $schoolName = null;
+                    if ($currentRecord && isset($currentRecord['school_id'])) {
+                        try {
+                            $schoolResponse = $client->get("{$scholarshipServiceUrl}/api/schools/{$currentRecord['school_id']}", [
+                                'headers' => [
+                                    'Authorization' => $token ? "Bearer {$token}" : '',
+                                    'Accept' => 'application/json',
+                                ],
+                            ]);
+                            $schoolData = json_decode($schoolResponse->getBody()->getContents(), true);
+                            $schoolName = $schoolData['data']['name'] ?? null;
+                        } catch (\Exception $e) {
+                            \Log::warning("Failed to fetch school for student {$student['id']}: " . $e->getMessage());
+                        }
+                    }
+
+                    $studentData = [
                         'id' => $student['id'] ?? null,
                         'first_name' => $student['first_name'] ?? '',
+                        'middle_name' => $student['middle_name'] ?? '',
                         'last_name' => $student['last_name'] ?? '',
                         'student_id_number' => $student['student_id_number'] ?? '',
+                        'email' => $student['email'] ?? '',
                         'program' => $currentRecord['program'] ?? $student['program'] ?? 'Unknown',
                         'year_level' => $currentRecord['year_level'] ?? $student['year_level'] ?? 'Unknown',
-                        'gpa' => $gpa,
+                        'school_id' => $currentRecord['school_id'] ?? $student['school_id'] ?? null,
+                        'school_name' => $schoolName,
+                        'gpa' => $gpa ? round($gpa, 2) : null,
+                        'risk_level' => $calculatedRiskLevel,
                         'grades' => $grades,
+                        'grades_count' => count($grades),
+                        'last_grade_submission' => !empty($grades) ? ($grades[0]['updated_at'] ?? null) : null,
                         'status' => ($student['is_currently_enrolled'] ?? false) ? 'active' : 'inactive',
                         'academic_records' => $academicRecords,
                     ];
+
+                    // Apply filters
+                    $include = true;
+
+                    if ($minGpa !== null && ($gpa === null || $gpa < $minGpa)) {
+                        $include = false;
+                    }
+
+                    if ($maxGpa !== null && ($gpa === null || $gpa > $maxGpa)) {
+                        $include = false;
+                    }
+
+                    if ($schoolId !== null && $studentData['school_id'] != $schoolId) {
+                        $include = false;
+                    }
+
+                    if ($program !== null && stripos($studentData['program'], $program) === false) {
+                        $include = false;
+                    }
+
+                    if ($yearLevel !== null && $studentData['year_level'] != $yearLevel) {
+                        $include = false;
+                    }
+
+                    if ($riskLevel !== null && $calculatedRiskLevel !== $riskLevel) {
+                        $include = false;
+                    }
+
+                    if ($hasGrades === 'true' && empty($grades)) {
+                        $include = false;
+                    } elseif ($hasGrades === 'false' && !empty($grades)) {
+                        $include = false;
+                    }
+
+                    if ($include) {
+                        $transformedStudents[] = $studentData;
+                    }
+
                 } catch (\Exception $e) {
                     // If we can't fetch academic records for a student, still include them with basic info
                     \Log::warning("Failed to fetch academic records for student {$student['id']}: " . $e->getMessage());
-                    
-                    $transformedStudents[] = [
-                        'id' => $student['id'] ?? null,
-                        'first_name' => $student['first_name'] ?? '',
-                        'last_name' => $student['last_name'] ?? '',
-                        'student_id_number' => $student['student_id_number'] ?? '',
-                        'program' => $student['program'] ?? 'Unknown',
-                        'year_level' => $student['year_level'] ?? 'Unknown',
-                        'gpa' => null,
-                        'grades' => [],
-                        'status' => ($student['is_currently_enrolled'] ?? false) ? 'active' : 'inactive',
-                        'academic_records' => [],
-                    ];
+
+                    if ($hasGrades !== 'true') { // Only include if not filtering for students with grades
+                        $transformedStudents[] = [
+                            'id' => $student['id'] ?? null,
+                            'first_name' => $student['first_name'] ?? '',
+                            'middle_name' => $student['middle_name'] ?? '',
+                            'last_name' => $student['last_name'] ?? '',
+                            'student_id_number' => $student['student_id_number'] ?? '',
+                            'email' => $student['email'] ?? '',
+                            'program' => $student['program'] ?? 'Unknown',
+                            'year_level' => $student['year_level'] ?? 'Unknown',
+                            'school_id' => $student['school_id'] ?? null,
+                            'gpa' => null,
+                            'risk_level' => 'low',
+                            'grades' => [],
+                            'grades_count' => 0,
+                            'last_grade_submission' => null,
+                            'status' => ($student['is_currently_enrolled'] ?? false) ? 'active' : 'inactive',
+                            'academic_records' => [],
+                        ];
+                    }
                 }
             }
 
+            // Calculate summary statistics (5-point scale: 1.0 best, 5.0 worst)
+            $gpas = array_filter(array_column($transformedStudents, 'gpa'));
+            $avgGpa = !empty($gpas) ? array_sum($gpas) / count($gpas) : 0;
+            $withGrades = count(array_filter($transformedStudents, fn($s) => $s['grades_count'] > 0));
+            $atRisk = count(array_filter($transformedStudents, fn($s) => $s['risk_level'] === 'high'));
+            $topPerformers = count(array_filter($transformedStudents, fn($s) => $s['gpa'] !== null && $s['gpa'] <= 1.5)); // Excellent grade
+
             return response()->json([
                 'success' => true,
-                'data' => $transformedStudents
+                'data' => $transformedStudents,
+                'summary' => [
+                    'total_students' => count($transformedStudents),
+                    'with_grades' => $withGrades,
+                    'average_gpa' => round($avgGpa, 2),
+                    'at_risk' => $atRisk,
+                    'top_performers' => $topPerformers,
+                ]
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Error fetching academic performance data: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load student data: ' . $e->getMessage(),
@@ -867,15 +980,15 @@ class AnalyticsController extends Controller
         try {
             $scholarshipServiceUrl = config('services.scholarship.url', 'http://localhost:8001');
             $token = $request->bearerToken();
-            
+
             // Fetch students from scholarship service
             $client = new \GuzzleHttp\Client(['timeout' => 30]);
-            
+
             // Get all students (with pagination if needed)
             $allStudents = [];
             $page = 1;
             $perPage = 100;
-            
+
             do {
                 $response = $client->get("{$scholarshipServiceUrl}/api/students", [
                     'headers' => [
@@ -889,29 +1002,30 @@ class AnalyticsController extends Controller
                 ]);
 
                 $data = json_decode($response->getBody()->getContents(), true);
-                
+
                 if (!isset($data['success']) || !$data['success']) {
                     break;
                 }
 
                 $students = $data['data']['data'] ?? [];
                 $allStudents = array_merge($allStudents, $students);
-                
+
                 $hasMore = isset($data['data']['next_page_url']) && $data['data']['next_page_url'] !== null;
                 $page++;
-                
+
                 // Limit to prevent infinite loops
-                if ($page > 50) break;
-                
+                if ($page > 50)
+                    break;
+
             } while ($hasMore && !empty($students));
-            
+
             if (empty($allStudents)) {
                 return response()->json([
                     'success' => true,
                     'data' => []
                 ]);
             }
-            
+
             // Transform the data to match frontend expectations
             $transformedStudents = [];
             foreach ($allStudents as $student) {
@@ -923,26 +1037,26 @@ class AnalyticsController extends Controller
                             'Accept' => 'application/json',
                         ],
                     ]);
-                    
+
                     $academicData = json_decode($academicResponse->getBody()->getContents(), true);
                     $academicRecords = $academicData['data'] ?? [];
-                    
+
                     // Get current academic record
-                    $currentRecord = collect($academicRecords)->firstWhere('is_current', true) 
+                    $currentRecord = collect($academicRecords)->firstWhere('is_current', true)
                         ?? collect($academicRecords)->sortByDesc('school_year')->first();
-                    
+
                     // Calculate GPA from academic records
                     $gpa = null;
                     if ($currentRecord) {
                         $gpa = $currentRecord['gpa'] ?? $currentRecord['general_weighted_average'] ?? null;
                     }
-                    
+
                     // If no GPA from current record, calculate average from all records
                     if ($gpa === null && !empty($academicRecords)) {
-                        $gpas = array_filter(array_map(function($record) {
+                        $gpas = array_filter(array_map(function ($record) {
                             return $record['gpa'] ?? $record['general_weighted_average'] ?? null;
                         }, $academicRecords));
-                        
+
                         if (!empty($gpas)) {
                             $gpa = array_sum($gpas) / count($gpas);
                         }
@@ -962,14 +1076,14 @@ class AnalyticsController extends Controller
                             ];
                         }
                     }
-                    
+
                     // Build student name
                     $name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
                     if (isset($student['extension_name']) && $student['extension_name']) {
                         $name .= ' ' . $student['extension_name'];
                     }
                     $name = trim($name) ?: 'Unknown';
-                    
+
                     $transformedStudents[] = [
                         'id' => $student['id'] ?? null,
                         'student_id' => $student['id'] ?? null,
@@ -986,13 +1100,13 @@ class AnalyticsController extends Controller
                 } catch (\Exception $e) {
                     // If we can't fetch academic records, still include basic student info
                     \Log::warning("Failed to fetch academic records for student {$student['id']}: " . $e->getMessage());
-                    
+
                     $name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
                     if (isset($student['extension_name']) && $student['extension_name']) {
                         $name .= ' ' . $student['extension_name'];
                     }
                     $name = trim($name) ?: 'Unknown';
-                    
+
                     $transformedStudents[] = [
                         'id' => $student['id'] ?? null,
                         'student_id' => $student['id'] ?? null,
@@ -1017,7 +1131,7 @@ class AnalyticsController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error fetching student progress data: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load student progress data: ' . $e->getMessage(),
@@ -1034,15 +1148,15 @@ class AnalyticsController extends Controller
         try {
             $scholarshipServiceUrl = config('services.scholarship.url', 'http://localhost:8001');
             $token = $request->bearerToken();
-            
+
             // Fetch students from scholarship service
             $client = new \GuzzleHttp\Client(['timeout' => 30]);
-            
+
             // Get all students (with pagination if needed)
             $allStudents = [];
             $page = 1;
             $perPage = 100;
-            
+
             do {
                 $response = $client->get("{$scholarshipServiceUrl}/api/students", [
                     'headers' => [
@@ -1056,22 +1170,23 @@ class AnalyticsController extends Controller
                 ]);
 
                 $data = json_decode($response->getBody()->getContents(), true);
-                
+
                 if (!isset($data['success']) || !$data['success']) {
                     break;
                 }
 
                 $students = $data['data']['data'] ?? [];
                 $allStudents = array_merge($allStudents, $students);
-                
+
                 $hasMore = isset($data['data']['next_page_url']) && $data['data']['next_page_url'] !== null;
                 $page++;
-                
+
                 // Limit to prevent infinite loops
-                if ($page > 50) break;
-                
+                if ($page > 50)
+                    break;
+
             } while ($hasMore && !empty($students));
-            
+
             if (empty($allStudents)) {
                 return response()->json([
                     'success' => true,
@@ -1084,7 +1199,7 @@ class AnalyticsController extends Controller
                     ]
                 ]);
             }
-            
+
             // Initialize distribution arrays
             $programDistribution = [];
             $yearLevelDistribution = [];
@@ -1097,7 +1212,7 @@ class AnalyticsController extends Controller
             ];
             $monthlyEnrollment = [];
             $genderDistribution = ['Male' => 0, 'Female' => 0, 'Other' => 0];
-            
+
             // Process each student
             foreach ($allStudents as $student) {
                 try {
@@ -1108,28 +1223,28 @@ class AnalyticsController extends Controller
                             'Accept' => 'application/json',
                         ],
                     ]);
-                    
+
                     $academicData = json_decode($academicResponse->getBody()->getContents(), true);
                     $academicRecords = $academicData['data'] ?? [];
-                    
+
                     // Get current academic record
-                    $currentRecord = collect($academicRecords)->firstWhere('is_current', true) 
+                    $currentRecord = collect($academicRecords)->firstWhere('is_current', true)
                         ?? collect($academicRecords)->sortByDesc('school_year')->first();
-                    
+
                     // Program distribution
                     $program = $currentRecord['program'] ?? $student['program'] ?? 'Unknown';
                     if (!isset($programDistribution[$program])) {
                         $programDistribution[$program] = 0;
                     }
                     $programDistribution[$program]++;
-                    
+
                     // Year level distribution
                     $yearLevel = $currentRecord['year_level'] ?? $student['year_level'] ?? 'Unknown';
                     if (!isset($yearLevelDistribution[$yearLevel])) {
                         $yearLevelDistribution[$yearLevel] = 0;
                     }
                     $yearLevelDistribution[$yearLevel]++;
-                    
+
                     // Gender distribution
                     $gender = $student['sex'] ?? 'Other';
                     if (in_array($gender, ['Male', 'Female'])) {
@@ -1137,34 +1252,39 @@ class AnalyticsController extends Controller
                     } else {
                         $genderDistribution['Other']++;
                     }
-                    
+
                     // GPA calculation
                     $gpa = null;
                     if ($currentRecord) {
                         $gpa = $currentRecord['gpa'] ?? $currentRecord['general_weighted_average'] ?? null;
                     }
-                    
+
                     // If no GPA from current record, calculate average from all records
                     if ($gpa === null && !empty($academicRecords)) {
-                        $gpas = array_filter(array_map(function($record) {
+                        $gpas = array_filter(array_map(function ($record) {
                             return $record['gpa'] ?? $record['general_weighted_average'] ?? null;
                         }, $academicRecords));
-                        
+
                         if (!empty($gpas)) {
                             $gpa = array_sum($gpas) / count($gpas);
                         }
                     }
-                    
+
                     // Convert GPA (0-4 scale) to percentage for distribution
                     if ($gpa !== null && $gpa > 0) {
                         $percentage = ($gpa / 4.0) * 100;
-                        if ($percentage >= 90) $gpaDistribution['A (90-100)']++;
-                        elseif ($percentage >= 80) $gpaDistribution['B (80-89)']++;
-                        elseif ($percentage >= 70) $gpaDistribution['C (70-79)']++;
-                        elseif ($percentage >= 60) $gpaDistribution['D (60-69)']++;
-                        else $gpaDistribution['F (Below 60)']++;
+                        if ($percentage >= 90)
+                            $gpaDistribution['A (90-100)']++;
+                        elseif ($percentage >= 80)
+                            $gpaDistribution['B (80-89)']++;
+                        elseif ($percentage >= 70)
+                            $gpaDistribution['C (70-79)']++;
+                        elseif ($percentage >= 60)
+                            $gpaDistribution['D (60-69)']++;
+                        else
+                            $gpaDistribution['F (Below 60)']++;
                     }
-                    
+
                     // Monthly enrollment
                     $enrollmentDate = null;
                     if ($currentRecord && isset($currentRecord['enrollment_date'])) {
@@ -1172,12 +1292,12 @@ class AnalyticsController extends Controller
                     } elseif (isset($student['created_at'])) {
                         $enrollmentDate = $student['created_at'];
                     }
-                    
+
                     if ($enrollmentDate) {
                         try {
                             $date = new \Carbon\Carbon($enrollmentDate);
                             $monthKey = $date->format('Y-m');
-                            
+
                             if (!isset($monthlyEnrollment[$monthKey])) {
                                 $monthlyEnrollment[$monthKey] = 0;
                             }
@@ -1186,35 +1306,35 @@ class AnalyticsController extends Controller
                             // Skip invalid dates
                         }
                     }
-                    
+
                 } catch (\Exception $e) {
                     // If we can't fetch academic records, still count basic info
                     \Log::warning("Failed to fetch academic records for student {$student['id']}: " . $e->getMessage());
-                    
+
                     $program = $student['program'] ?? 'Unknown';
                     if (!isset($programDistribution[$program])) {
                         $programDistribution[$program] = 0;
                     }
                     $programDistribution[$program]++;
-                    
+
                     $yearLevel = $student['year_level'] ?? 'Unknown';
                     if (!isset($yearLevelDistribution[$yearLevel])) {
                         $yearLevelDistribution[$yearLevel] = 0;
                     }
                     $yearLevelDistribution[$yearLevel]++;
-                    
+
                     $gender = $student['sex'] ?? 'Other';
                     if (in_array($gender, ['Male', 'Female'])) {
                         $genderDistribution[$gender]++;
                     } else {
                         $genderDistribution['Other']++;
                     }
-                    
+
                     if (isset($student['created_at'])) {
                         try {
                             $date = new \Carbon\Carbon($student['created_at']);
                             $monthKey = $date->format('Y-m');
-                            
+
                             if (!isset($monthlyEnrollment[$monthKey])) {
                                 $monthlyEnrollment[$monthKey] = 0;
                             }
@@ -1225,13 +1345,13 @@ class AnalyticsController extends Controller
                     }
                 }
             }
-            
+
             // Transform to chart format
             $totalStudents = count($allStudents);
-            
+
             $chartData = [
                 'monthlyEnrollment' => collect($monthlyEnrollment)
-                    ->map(function($count, $month) {
+                    ->map(function ($count, $month) {
                         return [
                             'month' => $month,
                             'students' => $count
@@ -1242,7 +1362,7 @@ class AnalyticsController extends Controller
                     ->slice(-12) // Last 12 months
                     ->toArray(),
                 'programDistribution' => collect($programDistribution)
-                    ->map(function($count, $name) use ($totalStudents) {
+                    ->map(function ($count, $name) use ($totalStudents) {
                         return [
                             'name' => $name,
                             'value' => $count,
@@ -1252,7 +1372,7 @@ class AnalyticsController extends Controller
                     ->values()
                     ->toArray(),
                 'gpaDistribution' => collect($gpaDistribution)
-                    ->map(function($count, $name) use ($totalStudents) {
+                    ->map(function ($count, $name) use ($totalStudents) {
                         return [
                             'name' => $name,
                             'value' => $count,
@@ -1262,7 +1382,7 @@ class AnalyticsController extends Controller
                     ->values()
                     ->toArray(),
                 'yearLevelDistribution' => collect($yearLevelDistribution)
-                    ->map(function($count, $name) use ($totalStudents) {
+                    ->map(function ($count, $name) use ($totalStudents) {
                         return [
                             'name' => $name,
                             'value' => $count,
@@ -1272,10 +1392,10 @@ class AnalyticsController extends Controller
                     ->values()
                     ->toArray(),
                 'genderDistribution' => collect($genderDistribution)
-                    ->filter(function($count) {
+                    ->filter(function ($count) {
                         return $count > 0;
                     })
-                    ->map(function($count, $name) use ($totalStudents) {
+                    ->map(function ($count, $name) use ($totalStudents) {
                         return [
                             'name' => $name,
                             'value' => $count,
@@ -1285,7 +1405,7 @@ class AnalyticsController extends Controller
                     ->values()
                     ->toArray(),
             ];
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $chartData
@@ -1294,7 +1414,7 @@ class AnalyticsController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error fetching analytics charts data: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load analytics data: ' . $e->getMessage(),
@@ -1317,15 +1437,15 @@ class AnalyticsController extends Controller
         try {
             $scholarshipServiceUrl = config('services.scholarship.url', 'http://localhost:8001');
             $token = $request->bearerToken();
-            
+
             // Fetch students from scholarship service
             $client = new \GuzzleHttp\Client(['timeout' => 30]);
-            
+
             // Get all students (with pagination if needed)
             $allStudents = [];
             $page = 1;
             $perPage = 100;
-            
+
             do {
                 $response = $client->get("{$scholarshipServiceUrl}/api/students", [
                     'headers' => [
@@ -1339,29 +1459,30 @@ class AnalyticsController extends Controller
                 ]);
 
                 $data = json_decode($response->getBody()->getContents(), true);
-                
+
                 if (!isset($data['success']) || !$data['success']) {
                     break;
                 }
 
                 $students = $data['data']['data'] ?? [];
                 $allStudents = array_merge($allStudents, $students);
-                
+
                 $hasMore = isset($data['data']['next_page_url']) && $data['data']['next_page_url'] !== null;
                 $page++;
-                
+
                 // Limit to prevent infinite loops
-                if ($page > 50) break;
-                
+                if ($page > 50)
+                    break;
+
             } while ($hasMore && !empty($students));
-            
+
             if (empty($allStudents)) {
                 return response()->json([
                     'success' => true,
                     'data' => []
                 ]);
             }
-            
+
             // Transform the data to match frontend expectations
             $transformedStudents = [];
             foreach ($allStudents as $student) {
@@ -1373,14 +1494,14 @@ class AnalyticsController extends Controller
                             'Accept' => 'application/json',
                         ],
                     ]);
-                    
+
                     $academicData = json_decode($academicResponse->getBody()->getContents(), true);
                     $academicRecords = $academicData['data'] ?? [];
-                    
+
                     // Get current academic record for program and year level
-                    $currentRecord = collect($academicRecords)->firstWhere('is_current', true) 
+                    $currentRecord = collect($academicRecords)->firstWhere('is_current', true)
                         ?? collect($academicRecords)->sortByDesc('school_year')->first();
-                    
+
                     // Determine status
                     $status = 'inactive';
                     if ($student['is_currently_enrolled'] ?? false) {
@@ -1388,7 +1509,7 @@ class AnalyticsController extends Controller
                     } elseif ($student['is_graduating'] ?? false) {
                         $status = 'graduated';
                     }
-                    
+
                     // Get enrollment date from academic record or student created_at
                     $enrollmentDate = null;
                     if ($currentRecord && isset($currentRecord['enrollment_date'])) {
@@ -1396,14 +1517,14 @@ class AnalyticsController extends Controller
                     } elseif (isset($student['created_at'])) {
                         $enrollmentDate = $student['created_at'];
                     }
-                    
+
                     // Build student name
                     $name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
                     if (isset($student['extension_name']) && $student['extension_name']) {
                         $name .= ' ' . $student['extension_name'];
                     }
                     $name = trim($name) ?: 'Unknown';
-                    
+
                     $transformedStudents[] = [
                         'id' => $student['id'] ?? null,
                         'student_id' => $student['id'] ?? null,
@@ -1422,20 +1543,20 @@ class AnalyticsController extends Controller
                 } catch (\Exception $e) {
                     // If we can't fetch academic records, still include basic student info
                     \Log::warning("Failed to fetch academic records for student {$student['id']}: " . $e->getMessage());
-                    
+
                     $name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
                     if (isset($student['extension_name']) && $student['extension_name']) {
                         $name .= ' ' . $student['extension_name'];
                     }
                     $name = trim($name) ?: 'Unknown';
-                    
+
                     $status = 'inactive';
                     if ($student['is_currently_enrolled'] ?? false) {
                         $status = 'active';
                     } elseif ($student['is_graduating'] ?? false) {
                         $status = 'graduated';
                     }
-                    
+
                     $transformedStudents[] = [
                         'id' => $student['id'] ?? null,
                         'student_id' => $student['id'] ?? null,
@@ -1462,7 +1583,7 @@ class AnalyticsController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error fetching enrollment statistics data: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load enrollment data: ' . $e->getMessage(),
@@ -1482,7 +1603,7 @@ class AnalyticsController extends Controller
     {
         $delta = $current - $previous;
         $deltaPercent = $previous > 0 ? round(($delta / $previous) * 100, 1) : 0;
-        
+
         return [
             'delta' => $delta,
             'delta_percent' => $deltaPercent,

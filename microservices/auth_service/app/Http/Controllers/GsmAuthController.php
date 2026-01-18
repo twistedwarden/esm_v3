@@ -13,10 +13,12 @@ use Illuminate\Support\Facades\Validator;
 class GsmAuthController extends Controller
 {
     protected $brevoService;
+    protected $loginAttemptService;
 
-    public function __construct(BrevoEmailService $brevoService)
+    public function __construct(BrevoEmailService $brevoService, \App\Services\LoginAttemptService $loginAttemptService)
     {
         $this->brevoService = $brevoService;
+        $this->loginAttemptService = $loginAttemptService;
     }
 
     /**
@@ -34,12 +36,49 @@ class GsmAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'data' => [ 'errors' => $validator->errors()->all() ],
+                'data' => ['errors' => $validator->errors()->all()],
                 'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 400);
         }
 
         $user = User::where('email', $request->email)->first();
+
+        // Check for account lockout
+        $lockout = $this->loginAttemptService->checkLockout($request->email);
+
+        if ($lockout) {
+            $reasonCode = 'ACCOUNT_LOCKED';
+            $resolvedUserId = $user ? $user->id : null;
+            $resolvedUserEmail = $request->email;
+            $resolvedUserRole = $user ? $user->role : 'guest';
+
+            AuditLogService::logAction(
+                'LOGIN',
+                'Login blocked due to lockout (GSM)',
+                'User',
+                $resolvedUserId ? (string) $resolvedUserId : null,
+                null,
+                null,
+                [
+                    'stage' => 'lockout_check',
+                    'reason_code' => $reasonCode,
+                    'username' => $request->email,
+                    'locked_until' => $lockout['locked_until'],
+                    'channel' => 'gsm',
+                ],
+                'failed',
+                $resolvedUserId,
+                $resolvedUserEmail,
+                $resolvedUserRole
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Account is temporarily locked. Please try again later.',
+                'lockout' => $lockout,
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 429); // 429 Too Many Requests
+        }
 
         $reasonCode = null;
         $resolvedUserId = null;
@@ -60,6 +99,17 @@ class GsmAuthController extends Controller
                 $resolvedUserEmail = $request->email;
             }
 
+            // Record failed attempt
+            $this->loginAttemptService->recordAttempt(
+                $resolvedUserEmail,
+                $request->ip(),
+                false,
+                $request->userAgent()
+            );
+
+            // Analyze failures for warning/lockout
+            $analysis = $this->loginAttemptService->analyzeRecentFailures($resolvedUserEmail);
+
             AuditLogService::logAction(
                 'LOGIN',
                 'Failed login attempt (GSM)',
@@ -72,6 +122,7 @@ class GsmAuthController extends Controller
                     'reason_code' => $reasonCode,
                     'username' => $request->email,
                     'channel' => 'gsm',
+                    'attempt_analysis' => $analysis
                 ],
                 'failed',
                 $resolvedUserId,
@@ -79,12 +130,26 @@ class GsmAuthController extends Controller
                 $resolvedUserRole ?? 'guest'
             );
 
-            return response()->json([
+            $response = [
                 'success' => false,
                 'message' => 'Invalid email or password',
                 'data' => null,
                 'timestamp' => now()->format('Y-m-d H:i:s'),
-            ], 401);
+            ];
+
+            if ($analysis['status'] === 'lockout') {
+                $response['message'] = $analysis['message'];
+                $response['lockout'] = [
+                    'locked' => true,
+                    'remaining_seconds' => $this->loginAttemptService->checkLockout($resolvedUserEmail)['remaining_seconds'] ?? 0
+                ];
+                return response()->json($response, 429);
+            } elseif ($analysis['status'] === 'warning') {
+                $response['warning'] = $analysis['message'];
+                $response['remaining_attempts'] = $analysis['remaining_attempts'];
+            }
+
+            return response()->json($response, 401);
         }
 
         if ($user->status !== 'active') {
@@ -151,6 +216,14 @@ class GsmAuthController extends Controller
             $userData['department'] = null;
             $userData['position'] = null;
         }
+        // Record successful attempt and clear failures
+        $this->loginAttemptService->recordAttempt(
+            $user->email,
+            $request->ip(),
+            true,
+            $request->userAgent()
+        );
+        $this->loginAttemptService->clearLoginFailures($user->email);
 
         AuditLogService::logAction(
             'LOGIN',
@@ -195,7 +268,7 @@ class GsmAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'data' => [ 'errors' => $validator->errors()->all() ],
+                'data' => ['errors' => $validator->errors()->all()],
                 'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 400);
         }
@@ -205,7 +278,7 @@ class GsmAuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Email check completed',
-            'data' => [ 'exists' => (bool) $exists ],
+            'data' => ['exists' => (bool) $exists],
             'timestamp' => now()->format('Y-m-d H:i:s'),
         ]);
     }
@@ -231,7 +304,7 @@ class GsmAuthController extends Controller
         }
 
         $user = User::where('email', $request->email)->first();
-        
+
         $otp = OtpVerification::where('user_id', $user->id)
             ->where('otp_code', $request->otp_code)
             ->where('type', 'login')
@@ -370,10 +443,10 @@ class GsmAuthController extends Controller
     {
         try {
             $scholarshipServiceUrl = env('SCHOLARSHIP_SERVICE_URL', 'http://localhost:8002');
-            
+
             $response = \Illuminate\Support\Facades\Http::timeout(5)
                 ->get("{$scholarshipServiceUrl}/api/staff/user/{$userId}");
-            
+
             if ($response->successful()) {
                 $data = $response->json();
                 if ($data['success'] && isset($data['data'])) {
@@ -392,7 +465,7 @@ class GsmAuthController extends Controller
                 'error' => $e->getMessage()
             ]);
         }
-        
+
         return null;
     }
 
@@ -403,10 +476,10 @@ class GsmAuthController extends Controller
     {
         try {
             $scholarshipServiceUrl = config('services.scholarship_service.url', 'http://localhost:8001');
-            
+
             $response = \Illuminate\Support\Facades\Http::timeout(10)
                 ->get("{$scholarshipServiceUrl}/api/public/staff/verify/{$userId}");
-            
+
             if ($response->successful()) {
                 $data = $response->json();
                 if ($data['success'] && isset($data['data'])) {
@@ -419,7 +492,7 @@ class GsmAuthController extends Controller
                 'error' => $e->getMessage()
             ]);
         }
-        
+
         return null;
     }
 }

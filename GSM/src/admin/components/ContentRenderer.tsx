@@ -14,7 +14,7 @@ import PSDGuidelinesTabbed from './modules/partnerSchool/PSDGuidelinesTabbed'
 import PSDApplicationsTabbed from './modules/partnerSchool/PSDApplicationsTabbed'
 import UserManagement from './modules/UserManagement/UserManagement'
 import AuditLog from './modules/AuditLog/AuditLog'
-import { EMROverview, AcademicPerformanceReport, EnrollmentReport, AnalyticsCharts, MonitoringDashboard } from './modules/educationMonitoring'
+import { EMROverview, AcademicPerformanceReport, EnrollmentReport, AnalyticsReport, MonitoringDashboard } from './modules/educationMonitoring'
 import SettingsOverview from './modules/settings/SettingsOverview'
 import InterviewerDashboard from './modules/interviewer/InterviewerDashboard'
 import MyInterviews from './modules/interviewer/MyInterviews'
@@ -116,7 +116,7 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 		case 'emr-enrollment-statistics':
 			return <div><EnrollmentReport /></div>
 		case 'emr-analytics':
-			return <div><AnalyticsCharts /></div>
+			return <div><AnalyticsReport /></div>
 		case 'emr-legacy':
 			return <div><EMROverview /></div>
 		case 'user-management':

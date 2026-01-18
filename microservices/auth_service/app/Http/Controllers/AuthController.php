@@ -18,10 +18,12 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     protected $brevoService;
+    protected $loginAttemptService;
 
-    public function __construct(BrevoEmailService $brevoService)
+    public function __construct(BrevoEmailService $brevoService, \App\Services\LoginAttemptService $loginAttemptService)
     {
         $this->brevoService = $brevoService;
+        $this->loginAttemptService = $loginAttemptService;
     }
 
     /**
@@ -38,8 +40,44 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('citizen_id', $request->username)
-                   ->orWhere('email', $request->username)
-                   ->first();
+            ->orWhere('email', $request->username)
+            ->first();
+
+        // Check for account lockout
+        $email = $user ? $user->email : $request->username;
+        $lockout = $this->loginAttemptService->checkLockout($email);
+
+        if ($lockout) {
+            $reasonCode = 'ACCOUNT_LOCKED';
+            $resolvedUserId = $user ? $user->id : null;
+            $resolvedUserEmail = $email;
+            $resolvedUserRole = $user ? $user->role : 'guest';
+
+            AuditLogService::logAction(
+                'LOGIN',
+                'Login blocked due to lockout',
+                'User',
+                $resolvedUserId ? (string) $resolvedUserId : null,
+                null,
+                null,
+                [
+                    'stage' => 'lockout_check',
+                    'reason_code' => $reasonCode,
+                    'username' => $request->username,
+                    'locked_until' => $lockout['locked_until']
+                ],
+                'failed',
+                $resolvedUserId,
+                $resolvedUserEmail,
+                $resolvedUserRole
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Account is temporarily locked. Please try again later.',
+                'lockout' => $lockout
+            ], 429); // 429 Too Many Requests
+        }
 
         $reasonCode = null;
         $resolvedUserId = null;
@@ -60,6 +98,17 @@ class AuthController extends Controller
                 $resolvedUserEmail = $request->username;
             }
 
+            // Record failed attempt
+            $this->loginAttemptService->recordAttempt(
+                $resolvedUserEmail,
+                $request->ip(),
+                false,
+                $request->userAgent()
+            );
+
+            // Analyze failures for warning/lockout
+            $analysis = $this->loginAttemptService->analyzeRecentFailures($resolvedUserEmail);
+
             AuditLogService::logAction(
                 'LOGIN',
                 'Failed login attempt',
@@ -71,6 +120,7 @@ class AuthController extends Controller
                     'stage' => 'password',
                     'reason_code' => $reasonCode,
                     'username' => $request->username,
+                    'attempt_analysis' => $analysis
                 ],
                 'failed',
                 $resolvedUserId,
@@ -78,11 +128,34 @@ class AuthController extends Controller
                 $resolvedUserRole ?? 'guest'
             );
 
-            return response()->json([
+            $response = [
                 'success' => false,
                 'message' => 'Invalid username/email or password'
-            ], 401);
+            ];
+
+            if ($analysis['status'] === 'lockout') {
+                $response['message'] = $analysis['message'];
+                $response['lockout'] = [
+                    'locked' => true,
+                    'remaining_seconds' => $this->loginAttemptService->checkLockout($resolvedUserEmail)['remaining_seconds'] ?? 0
+                ];
+                return response()->json($response, 429);
+            } elseif ($analysis['status'] === 'warning') {
+                $response['warning'] = $analysis['message'];
+                $response['remaining_attempts'] = $analysis['remaining_attempts'];
+            }
+
+            return response()->json($response, 401);
         }
+
+        // Successful login - record attempt
+        $this->loginAttemptService->recordAttempt(
+            $user->email,
+            $request->ip(),
+            true,
+            $request->userAgent()
+        );
+        $this->loginAttemptService->clearLoginFailures($user->email);
 
         // Check if user is active
         if ($user->status !== 'active') {
@@ -113,7 +186,7 @@ class AuthController extends Controller
         try {
             $otp = OtpVerification::generateOtp($user->id, 'login');
             $userName = trim($user->first_name . ' ' . $user->last_name);
-            
+
             $this->brevoService->sendLoginOtpEmail(
                 $user->email,
                 $userName,
@@ -182,7 +255,7 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         $user = $request->user();
-        
+
         $userData = [
             'id' => $user->id,
             'citizen_id' => $user->citizen_id,
@@ -200,13 +273,13 @@ class AuthController extends Controller
         if ($user->role === 'staff') {
             try {
                 $scholarshipServiceUrl = env('SCHOLARSHIP_SERVICE_URL', 'http://localhost:8002');
-                
+
                 $response = \Illuminate\Support\Facades\Http::timeout(5)
                     ->get($scholarshipServiceUrl . '/api/staff/user/' . $user->id);
-                
+
                 if ($response->successful()) {
                     $staffData = $response->json();
-                    
+
                     if (isset($staffData['success']) && $staffData['success'] && isset($staffData['data'])) {
                         $userData['system_role'] = $staffData['data']['system_role'] ?? null;
                         $userData['department'] = $staffData['data']['department'] ?? null;
@@ -218,7 +291,7 @@ class AuthController extends Controller
                 // Continue without staff details - frontend will handle missing system_role
             }
         }
-        
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -445,7 +518,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
-        
+
         if ($user->status === 'active') {
             return response()->json([
                 'success' => false,
@@ -459,7 +532,7 @@ class AuthController extends Controller
         // Send OTP via Brevo
         try {
             $userName = trim($user->first_name . ' ' . $user->last_name);
-            
+
             $this->brevoService->sendOtpEmail(
                 $user->email,
                 $userName,
@@ -492,7 +565,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
-        
+
         $otp = OtpVerification::where('user_id', $user->id)
             ->where('otp_code', $request->otp_code)
             ->where('type', 'email_verification')
@@ -622,7 +695,7 @@ class AuthController extends Controller
 
         try {
             $userName = trim($user->first_name . ' ' . $user->last_name);
-            
+
             $this->brevoService->sendLoginOtpEmail(
                 $user->email,
                 $userName,
@@ -692,7 +765,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
-        
+
         $otp = OtpVerification::where('user_id', $user->id)
             ->where('otp_code', $request->otp_code)
             ->where('type', 'login')
@@ -794,14 +867,14 @@ class AuthController extends Controller
                 'street' => $request->street,
                 'barangay' => $request->barangay
             ]);
-            
+
             $client = new \GuzzleHttp\Client([
                 'verify' => false,
                 'timeout' => 30,
             ]);
-            
+
             Log::info('Attempting Google OAuth token exchange with code: ' . $request->code);
-            
+
             $response = $client->post('https://oauth2.googleapis.com/token', [
                 'form_params' => [
                     'client_id' => env('GOOGLE_CLIENT_ID'),
@@ -881,21 +954,21 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             Log::error('Google registration error: ' . $e->getMessage());
             Log::error('Google registration stack trace: ' . $e->getTraceAsString());
-            
+
             if (strpos($e->getMessage(), 'invalid_grant') !== false) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Google authorization code has expired or is invalid. Please try logging in with Google again.'
                 ], 400);
             }
-            
+
             if (strpos($e->getMessage(), 'Malformed auth code') !== false) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Google authorization code is invalid. Please try logging in with Google again.'
                 ], 400);
             }
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Google registration failed. Please try again.'

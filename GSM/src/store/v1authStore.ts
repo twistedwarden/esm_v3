@@ -33,6 +33,8 @@ type AuthState = {
 	additionalInfo: any
 	isLoading: boolean
 	isLoggingOut: boolean
+	sessionDuration: number | null
+	setSessionDuration: (duration: number) => void
 	login: (username: string, password: string, captchaToken?: string | null) => Promise<boolean>
 	loginWithOtp: (email: string, otpCode: string) => Promise<boolean>
 	register: (userData: any, captchaToken?: string | null) => Promise<boolean>
@@ -69,6 +71,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 	additionalInfo: null,
 	isLoading: true,
 	isLoggingOut: false,
+	sessionDuration: null,
+	setSessionDuration: (duration: number) => set({ sessionDuration: duration }),
 
 	initializeAuth: async () => {
 		const token = localStorage.getItem('auth_token')
@@ -184,7 +188,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 			const data = await response.json()
 
 			if (!response.ok) {
-				set({ error: data.message || 'Login failed' })
+				let errorMessage = data.message || 'Login failed'
+
+				// Append warning if available (e.g. for login attempts)
+				if (data.warning) {
+					errorMessage = `${errorMessage} (${data.warning})`
+				}
+
+				set({ error: errorMessage })
 				return false
 			}
 

@@ -163,7 +163,10 @@ export const API_CONFIG = {
 
             // Legacy endpoints
             ENROLLMENT_TRENDS: '/api/analytics/enrollment-trends',
-            PERFORMANCE_DISTRIBUTION: '/api/analytics/performance-distribution'
+            PERFORMANCE_DISTRIBUTION: '/api/analytics/performance-distribution',
+
+            // Academic Performance
+            ACADEMIC_PERFORMANCE: '/api/analytics/academic-performance',
         }
     }
 };

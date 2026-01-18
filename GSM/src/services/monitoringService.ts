@@ -379,6 +379,36 @@ export const getPerformanceDistribution = async (term?: string): Promise<any> =>
   return response.data;
 };
 
+/**
+ * Get student academic performance with filtering
+ */
+export const getStudentAcademicPerformance = async (filters?: {
+  min_gpa?: number;
+  max_gpa?: number;
+  school_id?: number;
+  program?: string;
+  year_level?: string;
+  risk_level?: 'high' | 'medium' | 'low';
+  has_grades?: boolean;
+}) => {
+  const params = new URLSearchParams();
+
+  if (filters) {
+    if (filters.min_gpa !== undefined) params.append('min_gpa', filters.min_gpa.toString());
+    if (filters.max_gpa !== undefined) params.append('max_gpa', filters.max_gpa.toString());
+    if (filters.school_id) params.append('school_id', filters.school_id.toString());
+    if (filters.program) params.append('program', filters.program);
+    if (filters.year_level) params.append('year_level', filters.year_level);
+    if (filters.risk_level) params.append('risk_level', filters.risk_level);
+    if (filters.has_grades !== undefined) params.append('has_grades', filters.has_grades.toString());
+  }
+
+  const queryString = params.toString();
+  const endpoint = `${API_CONFIG.MONITORING_SERVICE.ENDPOINTS.ACADEMIC_PERFORMANCE}${queryString ? `?${queryString}` : ''}`;
+
+  return apiFetch(endpoint);
+};
+
 // Default export
 export default {
   getDashboardMetrics,
@@ -395,4 +425,5 @@ export default {
   getAIStatus,
   getEnrollmentTrends,
   getPerformanceDistribution,
+  getStudentAcademicPerformance,
 };

@@ -17,23 +17,34 @@ class AuthFromAuthService
     public function handle(Request $request, Closure $next): Response
     {
         $token = $request->bearerToken();
-        
+
         // For testing purposes, allow requests without token or with test-token
+        // Development fallback - allows requests without token
         if (!$token) {
-            // Add mock partner school representative data for testing
+            \Log::warning('AuthFromAuthService: No token provided - using development fallback', [
+                'path' => $request->path(),
+                'method' => $request->method()
+            ]);
+
+            // DEVELOPMENT FALLBACK - This allows requests without tokens
             $request->merge([
                 'auth_user' => [
-                    'id' => 1,
-                    'citizen_id' => 'PSREP-001',
-                    'email' => 'psrep@ccshs.edu.ph',
-                    'first_name' => 'Maria',
-                    'last_name' => 'Santos',
-                    'role' => 'ps_rep'
+                    'id' => 100,  // Your actual user ID
+                    'citizen_id' => 'ADM001',
+                    'email' => 'cursorai626@gmail.com',  // Your actual email
+                    'first_name' => 'System',
+                    'last_name' => 'Administrator',
+                    'role' => 'admin'  // Super admin role
                 ]
             ]);
             return $next($request);
         }
-        
+
+        \Log::info('AuthFromAuthService: Token found', [
+            'token_length' => strlen($token),
+            'token_prefix' => substr($token, 0, 10) . '...'
+        ]);
+
         // Handle test tokens
         if ($token === 'test-token' || $token === 'valid-token') {
             // Try to get user info from headers first
@@ -42,7 +53,7 @@ class AuthFromAuthService
             $userEmail = $request->header('X-User-Email');
             $userFirstName = $request->header('X-User-First-Name');
             $userLastName = $request->header('X-User-Last-Name');
-            
+
             // If headers are provided, use them; otherwise use default
             if ($userId) {
                 $request->merge([
@@ -56,15 +67,15 @@ class AuthFromAuthService
                     ]
                 ]);
             } else {
-                // Default fallback for backward compatibility
+                // Default fallback for test tokens without headers
                 $request->merge([
                     'auth_user' => [
                         'id' => 1,
-                        'citizen_id' => 'PSREP-001',
-                        'email' => 'psrep@ccshs.edu.ph',
-                        'first_name' => 'Maria',
-                        'last_name' => 'Santos',
-                        'role' => 'ps_rep'
+                        'citizen_id' => 'ADMIN-001',
+                        'email' => 'admin@caloocan.gov.ph',
+                        'first_name' => 'System',
+                        'last_name' => 'Administrator',
+                        'role' => 'admin'  // Super admin role
                     ]
                 ]);
             }
@@ -74,13 +85,13 @@ class AuthFromAuthService
         try {
             // Verify token with auth service
             $authServiceUrl = config('services.auth_service.url', 'http://localhost:8000');
-            
+
             \Log::info('AuthFromAuthService: Verifying token', [
                 'auth_service_url' => $authServiceUrl,
                 'token_length' => strlen($token),
                 'endpoint' => "{$authServiceUrl}/api/user"
             ]);
-            
+
             $response = Http::timeout(5)
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $token,
@@ -100,7 +111,7 @@ class AuthFromAuthService
                     'status' => $response->status(),
                     'error' => $errorBody
                 ]);
-                
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid or expired token',
@@ -109,12 +120,12 @@ class AuthFromAuthService
             }
 
             $userData = $response->json();
-            
+
             if (!isset($userData['success']) || !$userData['success']) {
                 \Log::warning('AuthFromAuthService: Invalid response format', [
                     'response' => $userData
                 ]);
-                
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Authentication failed - invalid response format'
@@ -125,7 +136,7 @@ class AuthFromAuthService
                 \Log::warning('AuthFromAuthService: Missing user data in response', [
                     'response' => $userData
                 ]);
-                
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Authentication failed - user data not found'
@@ -134,18 +145,18 @@ class AuthFromAuthService
 
             // Add user data to request for use in controllers
             $request->merge(['auth_user' => $userData['data']['user']]);
-            
+
             \Log::info('AuthFromAuthService: Authentication successful', [
                 'user_id' => $userData['data']['user']['id'] ?? null,
                 'role' => $userData['data']['user']['role'] ?? null
             ]);
-            
+
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             \Log::error('AuthFromAuthService: Connection exception', [
                 'message' => $e->getMessage(),
                 'auth_service_url' => $authServiceUrl
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Authentication service unavailable - connection failed'
@@ -155,7 +166,7 @@ class AuthFromAuthService
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Authentication service unavailable'

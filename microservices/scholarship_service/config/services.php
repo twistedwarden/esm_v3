@@ -41,4 +41,9 @@ return [
         'api_key' => env('AUTH_SERVICE_API_KEY'),
     ],
 
+    'monitoring' => [
+        'url' => env('MONITORING_SERVICE_URL', 'http://localhost:8003'),
+        'timeout' => env('MONITORING_SERVICE_TIMEOUT', 30),
+    ],
+
 ];

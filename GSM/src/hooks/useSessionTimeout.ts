@@ -1,21 +1,28 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useAuthStore } from '../store/v1authStore'
 
-const TIMEOUT_DURATION = 3 * 60 * 1000 // 3 minutes in milliseconds
+const DEFAULT_TIMEOUT_DURATION = 30 * 60 * 1000 // 30 minutes default
 const WARNING_DURATION = 30 * 1000 // Show warning 30 seconds before timeout
 
 type UseSessionTimeoutOptions = {
   onTimeout?: () => void
   onWarning?: () => void
   enabled?: boolean
+  durationSeconds?: number
 }
 
 export const useSessionTimeout = (options: UseSessionTimeoutOptions = {}) => {
-  const { onTimeout, onWarning, enabled = true } = options
+  const { onTimeout, onWarning, enabled = true, durationSeconds } = options
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const warningRef = useRef<NodeJS.Timeout | null>(null)
   const [warningShown, setWarningShown] = useState(false)
   const logout = useAuthStore(state => state.logout)
+
+  // Calculate duration in MS. Use prop if provided, otherwise default.
+  // Ensure we don't go below warning duration (30s) + buffer.
+  const timeoutDuration = durationSeconds
+    ? Math.max(durationSeconds * 1000, WARNING_DURATION + 5000)
+    : DEFAULT_TIMEOUT_DURATION
 
   const clearTimers = useCallback(() => {
     if (timeoutRef.current) {
@@ -47,22 +54,22 @@ export const useSessionTimeout = (options: UseSessionTimeoutOptions = {}) => {
 
   const resetTimer = useCallback(() => {
     if (!enabled) return
-    
+
     // Don't reset timer if warning is already shown
     if (warningShown) return
 
     clearTimers()
 
-    // Set warning timer (30 seconds before timeout)
+    // Set warning timer
     warningRef.current = setTimeout(() => {
       handleWarning()
-    }, TIMEOUT_DURATION - WARNING_DURATION)
+    }, timeoutDuration - WARNING_DURATION)
 
     // Set timeout timer
     timeoutRef.current = setTimeout(() => {
       handleTimeout()
-    }, TIMEOUT_DURATION)
-  }, [enabled, warningShown, clearTimers, handleWarning, handleTimeout])
+    }, timeoutDuration)
+  }, [enabled, warningShown, clearTimers, handleWarning, handleTimeout, timeoutDuration])
 
   useEffect(() => {
     if (!enabled) {

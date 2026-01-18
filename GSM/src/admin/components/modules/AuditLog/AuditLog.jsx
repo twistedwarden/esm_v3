@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Search, 
-    Filter, 
-    Download, 
-    Eye, 
+import {
+    Search,
+    Filter,
+    Download,
+    Eye,
     Calendar,
     User,
     Shield,
@@ -12,7 +12,8 @@ import {
     XCircle,
     Clock,
     FileText,
-    RefreshCw
+    RefreshCw,
+    Trash2
 } from 'lucide-react';
 import { LoadingData } from '../../ui/LoadingSpinner';
 import { getScholarshipServiceUrl } from '../../../../config/api';
@@ -26,7 +27,7 @@ const generateMockAuditLogs = () => {
     const resourceTypes = ['User', 'Application', 'Document', 'School', 'Student'];
     const statuses = ['success', 'failed', 'error'];
     const users = ['admin@example.com', 'user@example.com', 'moderator@example.com', 'reviewer@example.com'];
-    
+
     return Array.from({ length: 5 }, (_, i) => ({
         id: i + 1,
         action: actions[Math.floor(Math.random() * actions.length)],
@@ -79,8 +80,10 @@ const AuditLog = () => {
     }, []);
 
     useEffect(() => {
-        fetchLogs(false);
-    }, [filters, searchTerm, pagination.current_page]);
+        if (pagination.current_page > 0) {
+            fetchLogs(false);
+        }
+    }, [filters.action, filters.user_role, filters.resource_type, filters.status, filters.date_from, filters.date_to, searchTerm, pagination.current_page]);
 
     const buildAuthHeaders = () => {
         const token = localStorage.getItem('auth_token');
@@ -214,6 +217,32 @@ const AuditLog = () => {
         setShowDetails(true);
     };
 
+    const clearLogs = async () => {
+        if (!window.confirm('Are you sure you want to clear all audit logs? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${SCHOLARSHIP_API}/audit-logs/clear`, {
+                method: 'DELETE',
+                headers: buildAuthHeaders(),
+            });
+            const data = await response.json();
+
+            if (data && data.success) {
+                // Refresh logs and stats
+                fetchLogs(true);
+                fetchStatistics();
+            } else {
+                console.error('Failed to clear logs:', data);
+                alert('Failed to clear logs: ' + (data.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error clearing logs:', error);
+            alert('Error clearing logs');
+        }
+    };
+
     const exportLogs = async () => {
         try {
             const params = new URLSearchParams();
@@ -344,6 +373,14 @@ const AuditLog = () => {
                         <span className="sm:hidden">Refresh</span>
                     </button>
                     <button
+                        onClick={clearLogs}
+                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm sm:text-base"
+                    >
+                        <Trash2 size={18} className="sm:w-5 sm:h-5" />
+                        <span className="hidden sm:inline">Clear History</span>
+                        <span className="sm:hidden">Clear</span>
+                    </button>
+                    <button
                         onClick={exportLogs}
                         className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
                     >
@@ -368,7 +405,7 @@ const AuditLog = () => {
                             <FileText className="text-blue-500" size={24} />
                         </div>
                     </div>
-                    
+
                     <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                         <div className="flex items-center justify-between">
                             <div>
@@ -380,7 +417,7 @@ const AuditLog = () => {
                             <CheckCircle className="text-green-500" size={24} />
                         </div>
                     </div>
-                    
+
                     <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                         <div className="flex items-center justify-between">
                             <div>
@@ -392,7 +429,7 @@ const AuditLog = () => {
                             <XCircle className="text-red-500" size={24} />
                         </div>
                     </div>
-                    
+
                     <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
                         <div className="flex items-center justify-between">
                             <div>
@@ -420,7 +457,7 @@ const AuditLog = () => {
                             className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm sm:text-base"
                         />
                     </div>
-                    
+
                     <select
                         value={filters.action}
                         onChange={(e) => handleFilterChange('action', e.target.value)}
@@ -431,37 +468,37 @@ const AuditLog = () => {
                             <option key={action} value={action}>{action}</option>
                         ))}
                     </select>
-                    
+
                     <select
                         value={filters.user_role}
                         onChange={(e) => handleFilterChange('user_role', e.target.value)}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm sm:text-base"
                     >
                         <option value="">All Roles</option>
                         {filterOptions.user_roles?.map(role => (
                             <option key={role} value={role}>{role}</option>
                         ))}
                     </select>
-                    
+
                     <select
                         value={filters.status}
                         onChange={(e) => handleFilterChange('status', e.target.value)}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm sm:text-base"
                     >
                         <option value="">All Status</option>
                         {filterOptions.statuses?.map(status => (
                             <option key={status} value={status}>{status}</option>
                         ))}
                     </select>
-                    
+
                     <button
                         onClick={clearFilters}
-                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                        className="w-full sm:w-auto px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm sm:text-base"
                     >
                         Clear
                     </button>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
                     <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -544,8 +581,8 @@ const AuditLog = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        {log.resource_type && log.resource_id ? 
-                                            `${log.resource_type} #${log.resource_id}` : 
+                                        {log.resource_type && log.resource_id ?
+                                            `${log.resource_type} #${log.resource_id}` :
                                             log.resource_type || 'N/A'
                                         }
                                     </td>
@@ -607,11 +644,10 @@ const AuditLog = () => {
                                         <button
                                             key={page}
                                             onClick={() => handlePageChange(page)}
-                                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                page === pagination.current_page
-                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                            } ${page === 1 ? 'rounded-l-md' : ''} ${page === pagination.last_page ? 'rounded-r-md' : ''}`}
+                                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${page === pagination.current_page
+                                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                } ${page === 1 ? 'rounded-l-md' : ''} ${page === pagination.last_page ? 'rounded-r-md' : ''}`}
                                         >
                                             {page}
                                         </button>
@@ -639,7 +675,7 @@ const AuditLog = () => {
                                     <XCircle size={24} />
                                 </button>
                             </div>
-                            
+
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -651,12 +687,12 @@ const AuditLog = () => {
                                         <p className="mt-1 text-sm text-gray-900 dark:text-white capitalize">{selectedLog.status}</p>
                                     </div>
                                 </div>
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
                                     <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedLog.description}</p>
                                 </div>
-                                
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">User</label>
@@ -667,13 +703,13 @@ const AuditLog = () => {
                                         <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedLog.user_role || 'N/A'}</p>
                                     </div>
                                 </div>
-                                
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Resource</label>
                                         <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                                            {selectedLog.resource_type && selectedLog.resource_id ? 
-                                                `${selectedLog.resource_type} #${selectedLog.resource_id}` : 
+                                            {selectedLog.resource_type && selectedLog.resource_id ?
+                                                `${selectedLog.resource_type} #${selectedLog.resource_id}` :
                                                 selectedLog.resource_type || 'N/A'
                                             }
                                         </p>
@@ -683,7 +719,7 @@ const AuditLog = () => {
                                         <p className="mt-1 text-sm text-gray-900 dark:text-white">{formatDate(selectedLog.created_at)}</p>
                                     </div>
                                 </div>
-                                
+
                                 {selectedLog.new_values && typeof selectedLog.new_values === 'object' && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -734,7 +770,7 @@ const AuditLog = () => {
                                         </details>
                                     </div>
                                 )}
-                                
+
                                 {selectedLog.error_message && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Error Message</label>
@@ -742,7 +778,7 @@ const AuditLog = () => {
                                     </div>
                                 )}
                             </div>
-                            
+
                             <div className="mt-6 flex justify-end">
                                 <button
                                     onClick={() => setShowDetails(false)}

@@ -11,7 +11,7 @@ export { EnrollmentReport } from './enrollmentStatistics';
 export { StudentProgressReport } from './studentProgress';
 
 // Analytics module
-export { AnalyticsCharts } from './analytics';
+export { AnalyticsCharts, AnalyticsReport } from './analytics';
 
 // AI Insights
 export { default as AIInsightsPanel } from './AIInsightsPanel';

@@ -357,6 +357,7 @@ Route::prefix('audit-logs')->middleware(['auth.auth_service'])->group(function (
     Route::get('/recent', [App\Http\Controllers\Api\AuditLogController::class, 'recent']);
     Route::get('/filter-options', [App\Http\Controllers\Api\AuditLogController::class, 'filterOptions']);
     Route::get('/export', [App\Http\Controllers\Api\AuditLogController::class, 'export']);
+    Route::delete('/clear', [App\Http\Controllers\Api\AuditLogController::class, 'clear']); // Clear logs route
     Route::get('/user/{userId}', [App\Http\Controllers\Api\AuditLogController::class, 'byUser']);
     Route::get('/resource/{resourceType}/{resourceId}', [App\Http\Controllers\Api\AuditLogController::class, 'byResource']);
     Route::get('/{id}', [App\Http\Controllers\Api\AuditLogController::class, 'show']);

@@ -9,6 +9,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PartnerSchoolAccountController;
+use App\Http\Controllers\SecuritySettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -64,17 +65,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // User notification preferences
     Route::get('/user/notifications', [SettingsController::class, 'getNotificationPreferences']);
     Route::put('/user/notifications', [SettingsController::class, 'updateNotificationPreferences']);
-    
+
     // System settings (admin only)
     Route::get('/admin/settings', [SettingsController::class, 'getSystemSettings']);
     Route::put('/admin/settings', [SettingsController::class, 'updateSystemSettings']);
-    
+
+    // Security Settings
+    Route::get('/security-settings', [SecuritySettingsController::class, 'index']);
+    Route::put('/security-settings', [SecuritySettingsController::class, 'update']);
+
     // Admin dashboard routes
     Route::get('/admin/health', [AdminController::class, 'getSystemHealth']);
     Route::get('/admin/stats', [AdminController::class, 'getAdminStats']);
     Route::post('/admin/export/{type}', [AdminController::class, 'exportData']);
     Route::post('/admin/clear-cache', [AdminController::class, 'clearCache']);
-    
+
     // Dashboard routes
     Route::get('/dashboard/overview', [DashboardController::class, 'getOverview']);
     Route::get('/dashboard/trends', [DashboardController::class, 'getTrends']);

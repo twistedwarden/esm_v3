@@ -1150,164 +1150,102 @@ const MonitoringDashboard: React.FC = () => {
       {/* ================================================================== */}
       {activeTab === 'insights' && (
         <div className="space-y-6">
-          {/* Refresh Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleRefreshInsights}
-              disabled={aiLoading}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${aiLoading ? 'animate-spin' : ''}`} />
-              {aiLoading ? 'Generating...' : 'Regenerate Insights'}
-            </button>
-          </div>
-
           {aiLoading && !aiInsights ? (
-            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-              <div className="inline-flex p-4 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
-                <RefreshCw className="w-8 h-8 animate-spin text-purple-500" />
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-12 shadow-sm border border-slate-200 dark:border-slate-700">
+              <div className="text-center">
+                <Sparkles className="w-12 h-12 animate-pulse text-blue-500 mx-auto mb-4" />
+                <p className="text-slate-600 dark:text-slate-400">Generating AI insights...</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">This may take a moment</p>
               </div>
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">Generating AI Insights</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Analyzing your scholarship data to provide actionable recommendations...
-              </p>
             </div>
-          ) : aiInsights ? (
+          ) : !aiInsights ? (
+            <EmptyState
+              title="No AI Insights Available"
+              description="AI insights are being generated. Please refresh or wait a moment."
+              icon={<Sparkles className="w-8 h-8 text-slate-400" />}
+              action={{ label: 'Refresh Insights', onClick: handleRefreshInsights }}
+            />
+          ) : (
             <>
-              {/* Provider Info */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                  <Sparkles className="w-4 h-4 text-purple-500" />
-                  <span>Provider: <strong>{aiInsights.provider}</strong></span>
-                  {aiInsights.from_cache && (
-                    <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs">
-                      Cached
-                    </span>
-                  )}
-                </div>
-                {aiInsights.latency_ms && (
-                  <span className="text-xs text-slate-500">
-                    Generated in {Number(aiInsights.latency_ms).toFixed(0)}ms
-                  </span>
-                )}
-              </div>
-
-              {/* Highlights */}
-              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-purple-500 rounded-lg">
-                    <Sparkles className="w-5 h-5 text-white" />
+              {/* AI Highlights */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 shadow-sm border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">AI Strategic Highlights</h2>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      Key Highlights
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Generated: {new Date(aiInsights.generated_at).toLocaleString()}
-                    </p>
-                  </div>
+                  <button
+                    onClick={handleRefreshInsights}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${aiLoading ? 'animate-spin' : ''}`} />
+                    Regenerate
+                  </button>
                 </div>
-                <div className="space-y-3">
-                  {aiInsights.insights.highlights && aiInsights.insights.highlights.length > 0 ? (
-                    aiInsights.insights.highlights.map((highlight, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg"
-                      >
-                        <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400 text-xs font-bold">
-                          {idx + 1}
-                        </div>
-                        <p className="text-sm text-slate-700 dark:text-slate-300">{highlight}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
-                      No highlights available. Ensure analytics data is populated.
-                    </p>
-                  )}
+                <div className="space-y-2">
+                  {aiInsights.insights.highlights?.map((highlight, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <span className="text-blue-500 mt-1">•</span>
+                      <p>{highlight}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Summary */}
+              {/* Executive Summary */}
               <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Executive Summary</h3>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  {aiInsights.insights.summary || 'No summary available.'}
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Executive Summary</h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  {aiInsights.insights.summary}
                 </p>
               </div>
 
-              {/* Recommendations */}
+              {/* Strategic Recommendations */}
               <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-                  Action Recommendations
-                </h3>
-                <div className="space-y-3">
-                  {aiInsights.insights.recommendations && aiInsights.insights.recommendations.length > 0 ? (
-                    aiInsights.insights.recommendations.map((rec, idx) => {
-                      const priorityConfig = {
-                        high: 'border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-900/20',
-                        medium: 'border-amber-200 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20',
-                        low: 'border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/20',
-                      };
-                      const priorityBadge = {
-                        high: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400',
-                        medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400',
-                        low: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400',
-                      };
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Strategic Recommendations</h2>
+                <div className="space-y-4">
+                  {aiInsights.insights.recommendations?.map((rec, idx) => {
+                    const priorityColors = {
+                      high: 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20',
+                      medium: 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/20',
+                      low: 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20',
+                    };
+                    const priorityBadgeColors = {
+                      high: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400',
+                      medium: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400',
+                      low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400',
+                    };
 
-                      return (
-                        <div
-                          key={idx}
-                          className={`p-4 rounded-lg border ${priorityConfig[rec.priority] || priorityConfig.low}`}
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <span
-                              className={`text-xs font-medium px-2 py-0.5 rounded ${priorityBadge[rec.priority] || priorityBadge.low}`}
-                            >
-                              {rec.priority?.toUpperCase() || 'INFO'}
-                            </span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {rec.area?.replace(/_/g, ' ') || 'General'}
-                            </span>
-                          </div>
-                          <p className="text-sm text-slate-700 dark:text-slate-300">{rec.action}</p>
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-4 rounded-lg border-2 ${priorityColors[rec.priority as keyof typeof priorityColors] || priorityColors.low}`}
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-white capitalize">
+                            {rec.area.replace(/_/g, ' ')}
+                          </h3>
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium uppercase ${priorityBadgeColors[rec.priority as keyof typeof priorityBadgeColors] || priorityBadgeColors.low}`}>
+                            {rec.priority}
+                          </span>
                         </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
-                      No recommendations at this time. All metrics appear to be within normal ranges.
-                    </p>
-                  )}
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{rec.action}</p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Supporting Metrics (Collapsible) */}
-              {aiInsights.supporting_metrics && (
-                <details className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                  <summary className="p-4 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl">
-                    View Supporting Data
-                  </summary>
-                  <div className="px-4 pb-4">
-                    <pre className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg overflow-auto max-h-64">
-                      {JSON.stringify(aiInsights.supporting_metrics, null, 2)}
-                    </pre>
-                  </div>
-                </details>
-              )}
+              {/* Metadata */}
+              <div className="text-center text-xs text-slate-400 dark:text-slate-500">
+                <p>Insights generated by AI • Last updated: {new Date(aiInsights.generated_at).toLocaleString()}</p>
+              </div>
             </>
-          ) : (
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-              <EmptyState
-                title="AI Insights Unavailable"
-                description="Unable to generate insights. This could be because no analytics data is available or the AI service is not configured."
-                icon={<Sparkles className="w-8 h-8 text-slate-400" />}
-                action={{ label: 'Generate Insights', onClick: handleRefreshInsights }}
-              />
-            </div>
           )}
         </div>
       )}
+
     </div>
   );
 };
