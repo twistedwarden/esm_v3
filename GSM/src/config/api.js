@@ -133,7 +133,37 @@ export const API_CONFIG = {
         BASE_URL: 'https://monitoring-educ.goserveph.com',
         ENDPOINTS: {
             // Health check
-            HEALTH: '/api/health'
+            HEALTH: '/api/health',
+
+            // Analytics Dashboard
+            DASHBOARD: '/api/analytics/dashboard',
+
+            // Trends
+            APPLICATION_TRENDS: (days = 30) => `/api/analytics/applications/trends?days=${days}`,
+            FINANCIAL_TRENDS: (days = 30, schoolYear) => {
+                const params = new URLSearchParams({ days: days.toString() });
+                if (schoolYear) params.append('school_year', schoolYear);
+                return `/api/analytics/financial/trends?${params}`;
+            },
+            SSC_REVIEW_TRENDS: (days = 14) => `/api/analytics/ssc/trends?days=${days}`,
+            INTERVIEW_TRENDS: (days = 30) => `/api/analytics/interviews/trends?days=${days}`,
+            DEMOGRAPHICS_TRENDS: (days = 30) => `/api/analytics/demographics/trends?days=${days}`,
+
+            // Alerts
+            ALERTS: '/api/analytics/alerts',
+            ALERT_ACKNOWLEDGE: (id) => `/api/analytics/alerts/${id}/acknowledge`,
+
+            // System
+            SYSTEM_OVERVIEW: '/api/analytics/system-overview',
+            FILTER_OPTIONS: '/api/analytics/filter-options',
+
+            // AI Insights
+            AI_INSIGHTS: '/api/analytics/ai/insights',
+            AI_STATUS: '/api/analytics/ai/status',
+
+            // Legacy endpoints
+            ENROLLMENT_TRENDS: '/api/analytics/enrollment-trends',
+            PERFORMANCE_DISTRIBUTION: '/api/analytics/performance-distribution'
         }
     }
 };

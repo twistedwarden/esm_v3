@@ -5,13 +5,15 @@
  * for analytics data and AI-powered insights.
  */
 
-const MONITORING_API_URL = import.meta.env.VITE_MONITORING_SERVICE_URL || 'http://localhost:8003/api';
+import { getMonitoringServiceUrl, API_CONFIG } from '../config/api';
+
+const MONITORING_API_URL = getMonitoringServiceUrl('').replace(/\/$/, ''); // Get base URL without trailing slash
 
 const getAuthToken = (): string | null => localStorage.getItem('auth_token');
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const token = getAuthToken();
-  
+
   const response = await fetch(`${MONITORING_API_URL}${endpoint}`, {
     ...options,
     headers: {
@@ -23,11 +25,11 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     throw new Error(data.message || 'API request failed');
   }
-  
+
   return data;
 };
 
@@ -225,7 +227,7 @@ export interface AIStatus {
  * Get executive dashboard with all key KPIs
  */
 export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
-  const response = await apiFetch('/analytics/dashboard');
+  const response = await apiFetch(API_CONFIG.MONITORING_SERVICE.ENDPOINTS.DASHBOARD);
   return response.data;
 };
 
@@ -233,7 +235,7 @@ export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
  * Get application pipeline trends
  */
 export const getApplicationTrends = async (days: number = 30): Promise<{ trends: TrendDataPoint[]; period_days: number }> => {
-  const response = await apiFetch(`/analytics/applications/trends?days=${days}`);
+  const response = await apiFetch(API_CONFIG.MONITORING_SERVICE.ENDPOINTS.APPLICATION_TRENDS(days));
   return response.data;
 };
 
@@ -241,9 +243,8 @@ export const getApplicationTrends = async (days: number = 30): Promise<{ trends:
  * Get financial/budget trends
  */
 export const getFinancialTrends = async (days: number = 30, schoolYear?: string): Promise<{ trends: TrendDataPoint[]; period_days: number }> => {
-  const params = new URLSearchParams({ days: days.toString() });
-  if (schoolYear) params.append('school_year', schoolYear);
-  const response = await apiFetch(`/analytics/financial/trends?${params}`);
+  const endpoint = API_CONFIG.MONITORING_SERVICE.ENDPOINTS.FINANCIAL_TRENDS(days, schoolYear);
+  const response = await apiFetch(endpoint);
   return response.data;
 };
 
@@ -251,7 +252,7 @@ export const getFinancialTrends = async (days: number = 30, schoolYear?: string)
  * Get SSC review queue trends
  */
 export const getSscReviewTrends = async (days: number = 14): Promise<{ trends: TrendDataPoint[]; period_days: number }> => {
-  const response = await apiFetch(`/analytics/ssc/trends?days=${days}`);
+  const response = await apiFetch(API_CONFIG.MONITORING_SERVICE.ENDPOINTS.SSC_REVIEW_TRENDS(days));
   return response.data;
 };
 
@@ -259,7 +260,7 @@ export const getSscReviewTrends = async (days: number = 14): Promise<{ trends: T
  * Get interview statistics trends
  */
 export const getInterviewTrends = async (days: number = 30): Promise<{ trends: TrendDataPoint[]; period_days: number }> => {
-  const response = await apiFetch(`/analytics/interviews/trends?days=${days}`);
+  const response = await apiFetch(API_CONFIG.MONITORING_SERVICE.ENDPOINTS.INTERVIEW_TRENDS(days));
   return response.data;
 };
 
@@ -267,7 +268,7 @@ export const getInterviewTrends = async (days: number = 30): Promise<{ trends: T
  * Get demographics trends
  */
 export const getDemographicsTrends = async (days: number = 30): Promise<{ trends: TrendDataPoint[]; period_days: number }> => {
-  const response = await apiFetch(`/analytics/demographics/trends?days=${days}`);
+  const response = await apiFetch(API_CONFIG.MONITORING_SERVICE.ENDPOINTS.DEMOGRAPHICS_TRENDS(days));
   return response.data;
 };
 
@@ -283,9 +284,9 @@ export const getAlerts = async (options?: {
   if (options?.status) params.append('status', options.status);
   if (options?.severity) params.append('severity', options.severity);
   if (options?.limit) params.append('limit', options.limit.toString());
-  
+
   const queryString = params.toString();
-  const response = await apiFetch(`/analytics/alerts${queryString ? `?${queryString}` : ''}`);
+  const response = await apiFetch(`${API_CONFIG.MONITORING_SERVICE.ENDPOINTS.ALERTS}${queryString ? `?${queryString}` : ''}`);
   return response.data;
 };
 
@@ -293,7 +294,7 @@ export const getAlerts = async (options?: {
  * Acknowledge an alert
  */
 export const acknowledgeAlert = async (alertId: number): Promise<void> => {
-  await apiFetch(`/analytics/alerts/${alertId}/acknowledge`, { method: 'POST' });
+  await apiFetch(API_CONFIG.MONITORING_SERVICE.ENDPOINTS.ALERT_ACKNOWLEDGE(alertId), { method: 'POST' });
 };
 
 /**
@@ -306,9 +307,9 @@ export const getSystemOverview = async (options?: {
   const params = new URLSearchParams();
   if (options?.hours) params.append('hours', options.hours.toString());
   if (options?.limit) params.append('limit', options.limit.toString());
-  
+
   const queryString = params.toString();
-  const response = await apiFetch(`/analytics/system-overview${queryString ? `?${queryString}` : ''}`);
+  const response = await apiFetch(`${API_CONFIG.MONITORING_SERVICE.ENDPOINTS.SYSTEM_OVERVIEW}${queryString ? `?${queryString}` : ''}`);
   return response.data;
 };
 
@@ -320,7 +321,7 @@ export const getFilterOptions = async (): Promise<{
   date_range: { earliest: string | null; latest: string | null };
   available_metrics: string[];
 }> => {
-  const response = await apiFetch('/analytics/filter-options');
+  const response = await apiFetch(API_CONFIG.MONITORING_SERVICE.ENDPOINTS.FILTER_OPTIONS);
   return response.data;
 };
 
@@ -341,9 +342,9 @@ export const getAIInsights = async (filters?: {
   if (filters?.program) params.append('program', filters.program);
   if (filters?.term) params.append('term', filters.term);
   if (refresh) params.append('refresh', 'true');
-  
+
   const queryString = params.toString();
-  const response = await apiFetch(`/analytics/ai/insights${queryString ? `?${queryString}` : ''}`);
+  const response = await apiFetch(`${API_CONFIG.MONITORING_SERVICE.ENDPOINTS.AI_INSIGHTS}${queryString ? `?${queryString}` : ''}`);
   return response;
 };
 
@@ -351,7 +352,7 @@ export const getAIInsights = async (filters?: {
  * Get AI service status
  */
 export const getAIStatus = async (): Promise<AIStatus> => {
-  const response = await apiFetch('/analytics/ai/status');
+  const response = await apiFetch(API_CONFIG.MONITORING_SERVICE.ENDPOINTS.AI_STATUS);
   return response.status;
 };
 
@@ -366,15 +367,15 @@ export const getEnrollmentTrends = async (options?: {
   const params = new URLSearchParams();
   if (options?.months) params.append('months', options.months.toString());
   if (options?.groupBy) params.append('group_by', options.groupBy);
-  
+
   const queryString = params.toString();
-  const response = await apiFetch(`/analytics/enrollment-trends${queryString ? `?${queryString}` : ''}`);
+  const response = await apiFetch(`${API_CONFIG.MONITORING_SERVICE.ENDPOINTS.ENROLLMENT_TRENDS}${queryString ? `?${queryString}` : ''}`);
   return response.data;
 };
 
 export const getPerformanceDistribution = async (term?: string): Promise<any> => {
   const params = term ? `?term=${encodeURIComponent(term)}` : '';
-  const response = await apiFetch(`/analytics/performance-distribution${params}`);
+  const response = await apiFetch(`${API_CONFIG.MONITORING_SERVICE.ENDPOINTS.PERFORMANCE_DISTRIBUTION}${params}`);
   return response.data;
 };
 
