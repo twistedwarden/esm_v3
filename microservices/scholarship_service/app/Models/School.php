@@ -54,7 +54,7 @@ class School extends Model
                 try {
                     $schoolTableService = app(SchoolSpecificTableService::class);
                     $schoolTableService->ensureSchoolTableExists($school->id, $school->name);
-                    
+
                     \Log::info("Auto-created school-specific table for new partner school", [
                         'school_id' => $school->id,
                         'school_name' => $school->name,
@@ -76,7 +76,7 @@ class School extends Model
                 try {
                     $schoolTableService = app(SchoolSpecificTableService::class);
                     $schoolTableService->ensureSchoolTableExists($school->id, $school->name);
-                    
+
                     \Log::info("Auto-created school-specific table for school updated to partner school", [
                         'school_id' => $school->id,
                         'school_name' => $school->name,
@@ -107,9 +107,17 @@ class School extends Model
     /**
      * Get the partner school application for this school
      */
-    public function partnerSchoolApplication(): BelongsTo
+    public function partnerSchoolApplication(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->belongsTo(PartnerSchoolApplication::class, 'application_id');
+        return $this->hasOne(PartnerSchoolApplication::class)->latestOfMany();
+    }
+
+    /**
+     * Get the verification documents for this school
+     */
+    public function verificationDocuments(): HasMany
+    {
+        return $this->hasMany(PartnerSchoolVerificationDocument::class);
     }
 
     // Accessors
@@ -175,7 +183,7 @@ class School extends Model
         if (!$this->verification_expiry_date) {
             return false;
         }
-        
+
         return $this->verification_expiry_date->isPast();
     }
 }

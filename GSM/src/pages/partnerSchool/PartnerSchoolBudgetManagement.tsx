@@ -3,7 +3,7 @@ import {
     Wallet,
     Plus,
     Calendar,
-    DollarSign,
+    PhilippinePeso,
     Upload,
     X,
     Check,
@@ -317,7 +317,7 @@ const PartnerSchoolBudgetManagement: React.FC<PartnerSchoolBudgetManagementProps
                                         Amount <span className="text-red-500">*</span>
                                     </label>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                        <PhilippinePeso className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                                         <input
                                             type="number"
                                             step="0.01"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    UserPlus, Clock, FileText, Download, Upload 
+import {
+    UserPlus, Clock, FileText, Download, Upload
 } from 'lucide-react';
 import StudentStats from './components/StudentStats';
 import StudentFormModal from './components/StudentFormModal';
@@ -8,8 +8,12 @@ import studentApiService from '../../../../services/studentApiService';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 import { Loader2 } from 'lucide-react';
 
-const Overview: React.FC = () => {
-    const { showSuccess, showError } = useToastContext();
+interface OverviewProps {
+    onPageChange?: (id: string, tabId?: string) => void;
+}
+
+const Overview: React.FC<OverviewProps> = ({ onPageChange }) => {
+    const { showSuccess } = useToastContext();
     const [recentStudents, setRecentStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -25,7 +29,8 @@ const Overview: React.FC = () => {
                 sort: 'created_at',
                 order: 'desc'
             });
-            const data = response.data?.data || response.data || [];
+            const res = response as any;
+            const data = res.data?.data || res.data || [];
             setRecentStudents(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch recent students:', error);
@@ -37,7 +42,7 @@ const Overview: React.FC = () => {
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short', 
+            month: 'short',
             day: 'numeric',
             year: 'numeric'
         });
@@ -72,11 +77,14 @@ const Overview: React.FC = () => {
                             <Clock className="w-5 h-5 text-gray-400" />
                             Recent Registrations
                         </h2>
-                        <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                        <button
+                            onClick={() => onPageChange?.('studentRegistry-directory')}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        >
                             View All
                         </button>
                     </div>
-                    
+
                     {loading ? (
                         <div className="p-12 flex justify-center">
                             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
@@ -99,9 +107,8 @@ const Overview: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                                            student.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                                        }`}>
+                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${student.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                                            }`}>
                                             {student.status}
                                         </span>
                                         <p className="text-xs text-gray-400 mt-1">
@@ -123,7 +130,10 @@ const Overview: React.FC = () => {
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
                         <div className="space-y-3">
-                            <button className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors">
+                            <button
+                                onClick={() => onPageChange?.('studentRegistry-tools')}
+                                className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors"
+                            >
                                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                                     <Upload className="w-4 h-4" />
                                 </div>
@@ -132,7 +142,10 @@ const Overview: React.FC = () => {
                                     <p className="text-xs text-gray-500">Bulk upload via CSV/Excel</p>
                                 </div>
                             </button>
-                            <button className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors">
+                            <button
+                                onClick={() => onPageChange?.('studentRegistry-tools')}
+                                className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors"
+                            >
                                 <div className="p-2 bg-green-50 text-green-600 rounded-lg">
                                     <Download className="w-4 h-4" />
                                 </div>
@@ -141,7 +154,10 @@ const Overview: React.FC = () => {
                                     <p className="text-xs text-gray-500">Download registry reports</p>
                                 </div>
                             </button>
-                            <button className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors">
+                            <button
+                                onClick={() => onPageChange?.('studentRegistry-tools')}
+                                className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors"
+                            >
                                 <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
                                     <FileText className="w-4 h-4" />
                                 </div>

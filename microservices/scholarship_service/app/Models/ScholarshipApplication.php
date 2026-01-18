@@ -32,6 +32,7 @@ class ScholarshipApplication extends Model
         'marginalized_groups',
         'digital_wallets',
         'wallet_account_number',
+        'bank_name',
         'how_did_you_know',
         'is_school_at_caloocan',
         'submitted_at',
@@ -247,7 +248,7 @@ class ScholarshipApplication extends Model
         }
 
         $newStatus = $stageProgression[$this->status];
-        
+
         $this->update([
             'status' => $newStatus,
             'notes' => $notes,
@@ -304,19 +305,19 @@ class ScholarshipApplication extends Model
         }
 
         // Stage is completed if current status is beyond this stage
-        return $currentIndex > $stageIndex || 
-               ($currentIndex === $stageIndex && in_array($this->status, ['approved', 'rejected']));
+        return $currentIndex > $stageIndex ||
+            ($currentIndex === $stageIndex && in_array($this->status, ['approved', 'rejected']));
     }
 
     public function canBeRejected(): bool
     {
         return in_array($this->status, [
-            'submitted', 
-            'documents_reviewed', 
-            'interview_scheduled', 
+            'submitted',
+            'documents_reviewed',
+            'interview_scheduled',
             'interview_completed',
-            'endorsed_to_ssc', 
-            'for_compliance', 
+            'endorsed_to_ssc',
+            'for_compliance',
             'compliance_documents_submitted',
             'on_hold',
             'grants_processing'
@@ -638,7 +639,7 @@ class ScholarshipApplication extends Model
         }
 
         $interview = InterviewSchedule::createForApplication($this, $interviewData);
-        
+
         $this->update([
             'status' => 'interview_scheduled',
             'interview_schedule_id' => $interview->id,
@@ -665,7 +666,7 @@ class ScholarshipApplication extends Model
         }
 
         $interview = InterviewSchedule::createForApplication($this, $interviewData);
-        
+
         $this->update([
             'status' => 'interview_scheduled',
             'interview_schedule_id' => $interview->id,
@@ -761,7 +762,7 @@ class ScholarshipApplication extends Model
                 'reviewed_at' => now(),
                 'notes' => $notes,
             ];
-            
+
             $this->update([
                 'ssc_stage_status' => $stageStatus,
             ]);
@@ -791,7 +792,7 @@ class ScholarshipApplication extends Model
     {
         $requiredStages = ['document_verification', 'financial_review', 'academic_review'];
         $stageStatus = $this->ssc_stage_status ?? [];
-        
+
         $allCompleted = true;
         foreach ($requiredStages as $stage) {
             if (!isset($stageStatus[$stage]) || $stageStatus[$stage]['status'] !== 'approved') {
@@ -818,7 +819,7 @@ class ScholarshipApplication extends Model
             $assignment = \App\Models\SscMemberAssignment::where('user_id', $userId)
                 ->where('is_active', true)
                 ->first();
-            
+
             return $assignment ? $assignment->ssc_role : 'unknown';
         } catch (\Exception $e) {
             Log::warning('Failed to get reviewer role', [
@@ -836,7 +837,7 @@ class ScholarshipApplication extends Model
     {
         $query = self::where(function ($q) {
             $q->where('status', 'endorsed_to_ssc')
-              ->orWhere('status', 'ssc_final_approval');
+                ->orWhere('status', 'ssc_final_approval');
         });
 
         // For non-final stages, show applications that haven't been completed for this stage
@@ -844,8 +845,8 @@ class ScholarshipApplication extends Model
             $query->where(function ($q) use ($stage) {
                 // Show applications where this stage is not completed
                 $q->whereNull('ssc_stage_status')
-                  ->orWhereRaw("JSON_EXTRACT(ssc_stage_status, '$.{$stage}') IS NULL")
-                  ->orWhereRaw("JSON_EXTRACT(ssc_stage_status, '$.{$stage}.status') != 'approved'");
+                    ->orWhereRaw("JSON_EXTRACT(ssc_stage_status, '$.{$stage}') IS NULL")
+                    ->orWhereRaw("JSON_EXTRACT(ssc_stage_status, '$.{$stage}.status') != 'approved'");
             });
         } else {
             // For final approval, only show applications where all required stages are completed

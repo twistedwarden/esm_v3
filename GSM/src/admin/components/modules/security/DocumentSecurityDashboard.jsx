@@ -18,7 +18,7 @@ import {
   Activity,
   Settings
 } from 'lucide-react';
-import { getScholarshipServiceUrl } from '../../../../config/api';
+import { API_CONFIG } from '../../../../config/api';
 
 const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
   const [statistics, setStatistics] = useState(null);
@@ -52,18 +52,23 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
     dateTo: ''
   });
 
-  // Fetch data
-  const SCHOLARSHIP_API = getScholarshipServiceUrl('/api');
+  // API Methods
+  const apiCall = async (endpoint, options = {}) => {
+    const SCHOLARSHIP_API = API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL;
+    const response = await fetch(`${SCHOLARSHIP_API}${endpoint}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Accept': 'application/json',
+        ...options.headers
+      },
+      ...options
+    });
+    return await response.json();
+  };
 
   const fetchStatistics = async () => {
     try {
-      const response = await fetch(`${SCHOLARSHIP_API}/virus-scan/statistics?days=${filters.days}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Accept': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await apiCall(`${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.VIRUS_SCAN.STATISTICS}?days=${filters.days}`);
       if (data.success) {
         setStatistics(data.data);
       }
@@ -80,13 +85,7 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
       if (filters.dateFrom) params.append('date_from', filters.dateFrom);
       if (filters.dateTo) params.append('date_to', filters.dateTo);
 
-      const response = await fetch(`${SCHOLARSHIP_API}/virus-scan/logs?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Accept': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await apiCall(`${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.VIRUS_SCAN.LOGS}?${params}`);
       if (data.success) {
         setLogs(data.data.data || []);
       }
@@ -100,18 +99,29 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
       const params = new URLSearchParams();
       if (filters.threat) params.append('threat', filters.threat);
 
-      const response = await fetch(`${SCHOLARSHIP_API}/virus-scan/quarantine?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Accept': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await apiCall(`${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.VIRUS_SCAN.QUARANTINE}?${params}`);
       if (data.success) {
         setQuarantine(data.data.data || []);
       }
     } catch (error) {
       console.error('Error fetching quarantine:', error);
+    }
+  };
+
+  const handleQuarantineDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to permanently delete this file?')) return;
+
+    try {
+      const data = await apiCall(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.VIRUS_SCAN.QUARANTINE_DELETE(id), {
+        method: 'DELETE'
+      });
+      if (data.success) {
+        fetchQuarantine(); // Refresh list
+        alert('File deleted successfully');
+      }
+    } catch (error) {
+      console.error('Error deleting quarantined file:', error);
+      alert('Failed to delete file');
     }
   };
 
@@ -290,8 +300,8 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center justify-center sm:justify-start space-x-2 py-3 sm:py-2 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap min-w-0 ${activeTab === tab.id
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
                 <Icon className="h-4 w-4 flex-shrink-0" />
@@ -353,10 +363,10 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
                 </div>
               </div>
               <div className={`px-3 py-1 rounded-full text-sm font-medium ${statistics.scanner_health.status === 'healthy'
-                  ? 'bg-green-100 text-green-800'
-                  : statistics.scanner_health.status === 'warning'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
+                ? 'bg-green-100 text-green-800'
+                : statistics.scanner_health.status === 'warning'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
                 }`}>
                 {statistics.scanner_health.status.toUpperCase()}
               </div>
@@ -486,8 +496,8 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.is_reviewed
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
                         }`}>
                         {item.is_reviewed ? 'Reviewed' : 'Pending Review'}
                       </span>
@@ -497,7 +507,9 @@ const DocumentSecurityDashboard = ({ activeItem = 'security-dashboard' }) => {
                         <button className="text-orange-600 hover:text-orange-900">
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button className="text-red-600 hover:text-red-900">
+                        <button
+                          onClick={() => handleQuarantineDelete(item.id)}
+                          className="text-red-600 hover:text-red-900">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-    MoreVertical, Eye, Edit, Archive, Trash2, RotateCcw, 
+import {
+    MoreVertical, Eye, Edit, Archive, Trash2, RotateCcw,
     CheckSquare, Square, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +15,7 @@ interface StudentListProps {
 }
 
 const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
-    const { 
+    const {
         students, loading, filters, pagination, sort,
         handleFilterChange, handlePageChange, handleSortChange, refreshData,
         handleArchive, handleRestore, handleDelete
@@ -89,7 +89,7 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
             </div>
 
             <StudentStats />
-            
+
             <StudentFilters filters={filters} onFilterChange={handleFilterChange} />
 
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
@@ -173,14 +173,14 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
                                 </tr>
                             ) : (
                                 studentsArray.map((student, index) => (
-                                    <tr 
-                                        key={`student-${student.id || index}`} 
+                                    <tr
+                                        key={`student-${student.student_uuid || student.id || index}`}
                                         className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer"
-                                        onClick={() => openDetailModal(student.id)}
+                                        onClick={() => openDetailModal(student.student_uuid || student.id)}
                                     >
                                         <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                                            <button onClick={() => handleSelectStudent(student.id)}>
-                                                {selectedStudents.has(student.id) ? (
+                                            <button onClick={() => handleSelectStudent(student.student_uuid || student.id)}>
+                                                {selectedStudents.has(student.student_uuid || student.id) ? (
                                                     <CheckSquare className="w-5 h-5 text-blue-500" />
                                                 ) : (
                                                     <Square className="w-5 h-5 text-gray-300 group-hover:text-gray-400" />
@@ -194,41 +194,46 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-gray-900 dark:text-white">{student.first_name} {student.last_name}</p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{student.email}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{student.email || student.email_address || 'No Email'}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-4 text-sm text-gray-600 dark:text-gray-300 font-mono">{student.student_number}</td>
+                                        <td className="p-4 text-sm text-gray-600 dark:text-gray-300 font-mono">
+                                            {student.student_number || student.student_id_number || student.id_number || 'N/A'}
+                                        </td>
                                         <td className="p-4">
-                                            <p className="text-sm text-gray-900 dark:text-white">{student.program}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">{student.year_level}</p>
+                                            <p className="text-sm text-gray-900 dark:text-white">
+                                                {student.program || student.current_academic_record?.program || student.course || 'N/A'}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                {student.year_level || student.current_academic_record?.year_level || student.year || 'N/A'}
+                                            </p>
                                         </td>
                                         <td className="p-4">
                                             <div className="flex flex-col gap-1 items-start">
-                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                                    student.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                    student.status === 'archived' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                                                }`}>
-                                                    {student.status}
+                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${(student.status || (student.is_currently_enrolled ? 'active' : 'inactive')) === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                        (student.status || (student.deleted_at ? 'archived' : 'inactive')) === 'archived' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                            'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                                    }`}>
+                                                    {student.status || (student.is_currently_enrolled ? 'Active' : 'Inactive')}
                                                 </span>
-                                                {student.scholarship_status !== 'none' && (
+                                                {(student.scholarship_status || 'none') !== 'none' && (
                                                     <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                                        {student.scholarship_status}
+                                                        {student.scholarship_status || 'None'}
                                                     </span>
                                                 )}
                                             </div>
                                         </td>
                                         <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button 
-                                                    onClick={() => openDetailModal(student.id)}
+                                                <button
+                                                    onClick={() => openDetailModal(student.student_uuid || student.id)}
                                                     className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-slate-700"
                                                     title="View"
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => openEditModal(student)}
                                                     className="p-1.5 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded dark:hover:bg-slate-700"
                                                     title="Edit"
@@ -236,16 +241,16 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 {viewMode === 'archived' ? (
-                                                    <button 
-                                                        onClick={() => handleRestore([student.id])}
+                                                    <button
+                                                        onClick={() => handleRestore([student.student_uuid || student.id])}
                                                         className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded dark:hover:bg-slate-700"
                                                         title="Restore"
                                                     >
                                                         <RotateCcw className="w-4 h-4" />
                                                     </button>
                                                 ) : (
-                                                    <button 
-                                                        onClick={() => handleArchive([student.id])}
+                                                    <button
+                                                        onClick={() => handleArchive([student.student_uuid || student.id])}
                                                         className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded dark:hover:bg-slate-700"
                                                         title="Archive"
                                                     >

@@ -122,7 +122,12 @@ class SchoolController extends Controller
      */
     public function show(School $school): JsonResponse
     {
-        $school->load(['academicRecords.student', 'scholarshipApplications.student']);
+        $school->load([
+            'academicRecords.student',
+            'scholarshipApplications.student',
+            'partnerSchoolApplication',
+            'verificationDocuments'
+        ]);
 
         return response()->json([
             'success' => true,
@@ -216,6 +221,47 @@ class SchoolController extends Controller
         // For database cache, you may need to track keys differently
         Cache::flush(); // Simple approach - clears all cache
         // Alternative with Redis: Cache::getRedis()->keys('schools:*') and delete each
+    }
+    /**
+     * Get top schools by application count for dashboard
+     */
+    public function getTopSchools(Request $request): JsonResponse
+    {
+        try {
+            $schools = School::withCount([
+                'scholarshipApplications' => function ($query) {
+                    // Count all applications except draft
+                    $query->where('status', '!=', 'draft');
+                }
+            ])
+                ->withCount([
+                    'scholarshipApplications as approved_count' => function ($query) {
+                        $query->where('status', 'approved');
+                    }
+                ])
+                ->orderByDesc('scholarship_applications_count')
+                ->limit(4)
+                ->get();
+
+            $data = $schools->map(function ($school) {
+                return [
+                    'name' => $school->name,
+                    'applications' => $school->scholarship_applications_count,
+                    'approved' => $school->approved_count
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch top schools',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
 

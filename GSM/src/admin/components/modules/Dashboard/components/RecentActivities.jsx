@@ -7,7 +7,7 @@ import {
     CheckCircle,
     Clock,
     Calendar,
-    DollarSign,
+    PhilippinePeso,
     XCircle
 } from 'lucide-react';
 

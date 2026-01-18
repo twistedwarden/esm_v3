@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, DollarSign, School, Calendar, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, PhilippinePeso, School, Calendar, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
 
 function FundAllocation({ onPageChange }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -178,7 +178,7 @@ function FundAllocation({ onPageChange }) {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center">
-                        <DollarSign className="w-8 h-8 text-orange-500 mr-3" />
+                        <PhilippinePeso className="w-8 h-8 text-orange-500 mr-3" />
                         Fund Allocation Management
                     </h1>
                     <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -205,7 +205,7 @@ function FundAllocation({ onPageChange }) {
                             <p className="text-2xl font-bold text-slate-800 dark:text-white">₱{totalBudget.toLocaleString()}</p>
                         </div>
                         <div className="bg-blue-500 p-3 rounded-lg shadow-sm">
-                            <DollarSign className="w-6 h-6 text-white" />
+                            <PhilippinePeso className="w-6 h-6 text-white" />
                         </div>
                     </div>
                 </div>
@@ -227,7 +227,7 @@ function FundAllocation({ onPageChange }) {
                             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">₱{totalRemaining.toLocaleString()}</p>
                         </div>
                         <div className="bg-blue-500 p-3 rounded-lg shadow-sm">
-                            <DollarSign className="w-6 h-6 text-white" />
+                            <PhilippinePeso className="w-6 h-6 text-white" />
                         </div>
                     </div>
                 </div>
@@ -379,7 +379,7 @@ function FundAllocation({ onPageChange }) {
 
                 {filteredAllocations.length === 0 && (
                     <div className="text-center py-12">
-                        <DollarSign className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                        <PhilippinePeso className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                         <p className="text-slate-600 dark:text-slate-400">No fund allocations found matching your criteria.</p>
                     </div>
                 )}

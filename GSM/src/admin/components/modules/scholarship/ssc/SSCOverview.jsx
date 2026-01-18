@@ -9,7 +9,7 @@ import {
   TrendingUp,
   MessageSquare,
   FileCheck,
-  DollarSign,
+  PhilippinePeso,
   Calendar,
   Award,
   BarChart3,
@@ -173,7 +173,7 @@ function SSCOverview() {
         baseCards.push({
           title: 'Financial Review',
           value: stats.financialReview,
-          icon: DollarSign,
+          icon: PhilippinePeso,
           color: 'yellow',
           change: 'Pending review',
           changeType: 'neutral'

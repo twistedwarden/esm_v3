@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
-import { CheckCircle, XCircle, DollarSign, TrendingUp, User, ChevronDown, ChevronUp, FileText, Link as LinkIcon, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, PhilippinePeso, TrendingUp, User, ChevronDown, ChevronUp, FileText, Link as LinkIcon, Clock } from 'lucide-react';
 
 function FinancialReview() {
   const [applications, setApplications] = useState([]);
@@ -217,7 +217,7 @@ function FinancialReview() {
       <div className="grid gap-4">
         {applications.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
-            <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
+            <PhilippinePeso className="mx-auto h-12 w-12 text-gray-400" />
             <p className="mt-4 text-gray-600 dark:text-gray-400">No applications pending financial review</p>
           </div>
         ) : (

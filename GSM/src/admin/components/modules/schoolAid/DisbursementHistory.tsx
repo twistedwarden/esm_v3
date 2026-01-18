@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, Download, Calendar, DollarSign, User, School, X, ExternalLink, FileDown } from 'lucide-react';
+import { Search, Filter, Download, Calendar, PhilippinePeso, User, School, X, ExternalLink, FileDown } from 'lucide-react';
 import { DisbursementHistoryRecord, PaymentMethod } from './types';
 import { schoolAidService } from './services/schoolAidService';
 import { API_CONFIG } from '../../../../config/api';
@@ -315,7 +315,7 @@ const DisbursementHistory: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center text-sm text-gray-900 dark:text-white capitalize">
-                      <DollarSign className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-400" />
+                      <PhilippinePeso className="w-4 h-4 mr-1 text-gray-400 dark:text-slate-400" />
                       {(record.method as PaymentMethod)?.replace('_', ' ') || 'Bank Transfer'}
                     </div>
                   </td>
@@ -340,7 +340,7 @@ const DisbursementHistory: React.FC = () => {
         {records.length === 0 && (
           <div className="text-center py-12">
             <div className="mx-auto h-12 w-12 text-gray-400 dark:text-slate-400">
-              <DollarSign className="w-12 h-12" />
+              <PhilippinePeso className="w-12 h-12" />
             </div>
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
               No disbursements found

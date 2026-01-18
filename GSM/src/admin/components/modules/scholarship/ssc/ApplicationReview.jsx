@@ -19,7 +19,7 @@ import {
   X,
   School,
   Calendar,
-  DollarSign,
+  PhilippinePeso,
   GraduationCap,
   BookOpen,
   Star,
@@ -241,7 +241,7 @@ function ApplicationReview() {
               </span>
             </div>
             <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
-              <DollarSign className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
+              <PhilippinePeso className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
               <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Amount:</span>
               <span className="font-medium text-gray-900 dark:text-white truncate">
                 ₱{application.requestedAmount.toLocaleString()}

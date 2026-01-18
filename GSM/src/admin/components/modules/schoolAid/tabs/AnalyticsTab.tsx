@@ -5,7 +5,7 @@ import {
   Download, 
   Calendar,
   Users,
-  DollarSign,
+  PhilippinePeso,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -176,7 +176,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           trend="+12%"
         />
         <MetricCard
-          icon={DollarSign}
+          icon={PhilippinePeso}
           title="Total Amount"
           value={metrics.totalAmount}
           subtitle="All disbursements"

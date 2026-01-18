@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  DollarSign, 
-  Plus, 
-  Edit, 
-  Save, 
-  X, 
+import {
+  PhilippinePeso,
+  Plus,
+  Edit,
+  Save,
+  X,
   Calendar,
   TrendingUp,
   TrendingDown,
@@ -118,12 +118,12 @@ const BudgetTab: React.FC<BudgetTabProps> = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Determine the actual budget type to use
-    const actualBudgetType = formData.budget_type === 'other' 
-      ? customBudgetType.trim() 
+    const actualBudgetType = formData.budget_type === 'other'
+      ? customBudgetType.trim()
       : formData.budget_type;
-    
+
     if (!actualBudgetType || !formData.school_year || !formData.total_budget) {
       setError('Please fill in all required fields');
       return;
@@ -160,10 +160,10 @@ const BudgetTab: React.FC<BudgetTabProps> = () => {
         total_budget: 0,
         description: '',
       });
-      
+
       // Refresh budgets
       await fetchBudgets();
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
@@ -373,7 +373,7 @@ const BudgetTab: React.FC<BudgetTabProps> = () => {
       {/* Budgets List */}
       {budgets.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
-          <DollarSign className="w-12 h-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
+          <PhilippinePeso className="w-12 h-12 text-gray-400 dark:text-slate-500 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-slate-400">No budgets configured yet</p>
           <p className="text-sm text-gray-500 dark:text-slate-500 mt-1">
             Click "Add Budget" to create your first budget allocation
@@ -446,7 +446,7 @@ const BudgetTab: React.FC<BudgetTabProps> = () => {
                           <div className="flex items-center justify-between text-xs mb-1">
                             <span className="text-gray-500 dark:text-slate-400">Utilization</span>
                             <span className="font-medium text-gray-700 dark:text-slate-300">
-                              {budget.total_budget > 0 
+                              {budget.total_budget > 0
                                 ? ((budget.disbursed_budget / budget.total_budget) * 100).toFixed(1)
                                 : 0}%
                             </span>

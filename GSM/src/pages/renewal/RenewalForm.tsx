@@ -1,164 +1,166 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { FileText, Upload, CheckCircle, User, GraduationCap, DollarSign, MapPin, Phone, Building } from 'lucide-react';
+import { FileText, Upload, CheckCircle, User, GraduationCap, PhilippinePeso, ArrowRight, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { InputField } from '../../components/ui/InputField';
-import { Alert } from '../../components/ui/Alert';
 import { useAuthStore } from '../../store/v1authStore';
+import { scholarshipApiService } from '../../services/scholarshipApiService';
 import * as yup from 'yup';
+import { Link, useNavigate } from 'react-router-dom';
 
-interface RenewalFormData {
-  // Personal Information
-  lastName: string;
-  firstName: string;
-  middleName: string;
-  extensionName: string;
-  sex: string;
-  civilStatus: string;
-  nationality: string;
-  birthPlace: string;
-  birthDate: string;
-  isPWD: string;
-  pwdSpecification: string;
-  religion: string;
-  
-  // Address Information
-  presentBarangay: string;
-  presentDistrict: string;
-  presentCity: string;
-  presentZipCode: string;
-  permanentBarangay: string;
-  permanentDistrict: string;
-  permanentCity: string;
-  permanentZipCode: string;
-  
-  // Contact Information
-  contactNumber: string;
-  emailAddress: string;
-  
-  // Employment Status
-  isEmployed: string;
-  isJobSeeking: string;
-  isCurrentlyEnrolled: string;
-  
-  // Marginalized Group
-  primaryMarginalizedGroup: string;
-  secondaryMarginalizedGroups: string[];
-  
-  // Digital Wallet
-  hasDigitalWallet: string;
-  digitalWallets: string[];
-  walletAccountNumber: string;
-  
-  // Scholarship Information
-  scholarIdNumber: string;
-  scholarshipCategory: string;
-  scholarshipSubCategory: string;
-  currentEducationalLevel: string;
-  schoolYear: string;
-  schoolTerm: string;
-  isGraduating: string;
-  
-  // Academic Performance
-  currentGPA: string;
-  reasonForRenewal: string;
-  financialNeed: string;
-  
-  // Documents
-  documents: any;
-}
-
+// Schema Validation
 const renewalSchema = yup.object({
-  // Personal Information
-  lastName: yup.string().required('Last name is required'),
+  // Step 1: Personal Information (Mostly Read-only/Pre-filled)
   firstName: yup.string().required('First name is required'),
-  middleName: yup.string().required('Middle name is required'),
-  extensionName: yup.string().optional().default(''),
-  sex: yup.string().required('Sex is required'),
-  civilStatus: yup.string().required('Civil status is required'),
-  nationality: yup.string().required('Nationality is required'),
-  birthPlace: yup.string().required('Birth place is required'),
-  birthDate: yup.string().required('Birth date is required'),
-  isPWD: yup.string().required('PWD status is required'),
-  pwdSpecification: yup.string().optional().default(''),
-  religion: yup.string().required('Religion is required'),
-  
-  // Address Information
-  presentBarangay: yup.string().required('Present barangay is required'),
-  presentDistrict: yup.string().required('Present district is required'),
-  presentCity: yup.string().required('Present city is required'),
-  presentZipCode: yup.string().required('Present zip code is required'),
-  permanentBarangay: yup.string().required('Permanent barangay is required'),
-  permanentDistrict: yup.string().required('Permanent district is required'),
-  permanentCity: yup.string().required('Permanent city is required'),
-  permanentZipCode: yup.string().required('Permanent zip code is required'),
-  
-  // Contact Information
-  contactNumber: yup.string().required('Contact number is required'),
+  lastName: yup.string().required('Last name is required'),
+  middleName: yup.string().optional(),
+  extensionName: yup.string().optional().nullable(),
   emailAddress: yup.string().email('Invalid email').required('Email address is required'),
-  
-  // Employment Status
-  isEmployed: yup.string().required('Employment status is required'),
-  isJobSeeking: yup.string().required('Job seeking status is required'),
-  isCurrentlyEnrolled: yup.string().required('Current enrollment status is required'),
-  
-  // Marginalized Group
-  primaryMarginalizedGroup: yup.string().required('Primary marginalized group is required'),
-  secondaryMarginalizedGroups: yup.array().of(yup.string().required()).optional().default([]),
-  
-  // Digital Wallet
-  hasDigitalWallet: yup.string().required('Digital wallet status is required'),
-  digitalWallets: yup.array().of(yup.string().required()).optional().default([]),
-  walletAccountNumber: yup.string().optional().default(''),
-  
-  // Scholarship Information
-  scholarIdNumber: yup.string().required('Scholar ID number is required'),
-  scholarshipCategory: yup.string().required('Scholarship category is required'),
-  scholarshipSubCategory: yup.string().required('Scholarship sub-category is required'),
-  currentEducationalLevel: yup.string().required('Current educational level is required'),
+  contactNumber: yup.string().required('Contact number is required'),
+
+  // Step 2: Academic & Application Updates (Editable)
   schoolYear: yup.string().required('School year is required'),
   schoolTerm: yup.string().required('School term is required'),
-  isGraduating: yup.string().required('Graduation status is required'),
-  
-  // Academic Performance
-  currentGPA: yup.string().required('Current GPA is required'),
-  reasonForRenewal: yup.string().required('Reason for renewal is required'),
-  financialNeed: yup.string().required('Financial need description is required'),
-  
-  // Documents - validation will be handled by uploadedFiles state
-  documents: yup.mixed().optional().default(null)
+  currentEducationalLevel: yup.string().required('Educational level is required'),
+  course: yup.string().required('Course/Program is required'),
+  yearLevel: yup.string().required('Year level is required'),
+  unitsEnrolled: yup.string().required('Units enrolled is required'),
+  gwa: yup.string().required('GWA is required'),
+  isGraduating: yup.string().required('Graduating status is required'),
+
+  // Financial/Other Changes
+  paymentMethod: yup.string().required('Payment method is required'),
+  bankName: yup.string().when('paymentMethod', {
+    is: (val: string | undefined) => val === 'Bank Transfer',
+    then: (schema) => schema.required('Bank name is required'),
+    otherwise: (schema) => schema.optional()
+  }),
+  walletAccountNumber: yup.string().when('paymentMethod', {
+    is: (val: string | undefined) => val && val !== 'Cash',
+    then: (schema) => schema.required('Account/Mobile number is required'),
+    otherwise: (schema) => schema.optional()
+  }),
+
+  // Step 3: Documents
+  // files managed via state, validated manually before submit
 });
 
+// Explicit interface to avoid type inference issues with yup .when() clauses
+interface RenewalFormData {
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  extensionName?: string | null;
+  emailAddress: string;
+  contactNumber: string;
+  schoolYear: string;
+  schoolTerm: string;
+  currentEducationalLevel: string;
+  course: string;
+  yearLevel: string;
+  unitsEnrolled: string;
+  gwa: string;
+  isGraduating: string;
+  paymentMethod: string;
+  bankName?: string;
+  walletAccountNumber?: string;
+}
+
 export const RenewalForm: React.FC = () => {
+  const navigate = useNavigate();
   const currentUser = useAuthStore(s => s.currentUser);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previousApplication, setPreviousApplication] = useState<any>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors }
   } = useForm<RenewalFormData>({
-    resolver: yupResolver(renewalSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: yupResolver(renewalSchema) as any,
+    mode: 'onChange',
     defaultValues: {
-      firstName: currentUser?.firstName || '',
-      lastName: currentUser?.lastName || '',
-      nationality: 'Filipino',
-      civilStatus: 'Single',
-      isPWD: 'No',
-      isEmployed: 'No',
-      isJobSeeking: 'No',
-      isCurrentlyEnrolled: 'Yes',
-      hasDigitalWallet: 'Yes',
-      currentEducationalLevel: 'Tertiary/College',
-      schoolYear: '2024',
-      schoolTerm: '1ST',
-      isGraduating: 'No'
+      isGraduating: 'No',
+      paymentMethod: '',
+      bankName: '',
+      walletAccountNumber: '',
+      middleName: '',
+      extensionName: ''
     }
   });
+
+  // Watch fields for conditional rendering
+  const paymentMethod = watch('paymentMethod');
+
+  useEffect(() => {
+    const fetchPreviousApplication = async () => {
+      try {
+        setIsLoadingData(true);
+        const applications = await scholarshipApiService.getUserApplications();
+
+        // Find the latest application (approved or otherwise) to pre-fill
+        const latestApp = applications.length > 0 ? applications[0] : null;
+
+        if (latestApp) {
+          setPreviousApplication(latestApp);
+
+          // Pre-fill Personal Info
+          setValue('firstName', latestApp.student?.first_name || currentUser?.first_name || '');
+          setValue('lastName', latestApp.student?.last_name || currentUser?.last_name || '');
+          setValue('middleName', latestApp.student?.middle_name || '');
+          setValue('extensionName', latestApp.student?.extension_name || '');
+          setValue('emailAddress', latestApp.student?.email_address || currentUser?.email || '');
+          setValue('contactNumber', latestApp.student?.contact_number || '');
+
+          // Pre-fill some Academic Info that might stay same
+          setValue('currentEducationalLevel', 'Tertiary/College');
+          // Try to get course from academic records if available
+          if (latestApp.student?.academic_records?.[0]?.program) {
+            setValue('course', latestApp.student.academic_records[0].program);
+          }
+
+          // Pre-fill Wallet/Payment if available
+          if (latestApp.wallet_account_number) {
+            setValue('walletAccountNumber', latestApp.wallet_account_number);
+            // Heuristic to guess payment method
+            const walletNum = latestApp.wallet_account_number;
+            if (walletNum.startsWith('09')) {
+              // Likely GCash or PayMaya
+              setValue('paymentMethod', latestApp.digital_wallets?.[0] || 'GCash');
+            } else {
+              // Likely Bank Transfer if not starting with 09
+              setValue('paymentMethod', 'Bank Transfer');
+            }
+          }
+        } else {
+          // Fallback to current user data if no app found
+          // @ts-ignore
+          setValue('firstName', currentUser?.first_name || '');
+          // @ts-ignore
+          setValue('lastName', currentUser?.last_name || '');
+          setValue('emailAddress', currentUser?.email || '');
+        }
+      } catch (err) {
+        console.error('Error fetching previous application:', err);
+        setError('Failed to load previous application data. You may need to fill in all fields manually.');
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    if (currentUser) {
+      fetchPreviousApplication();
+    }
+  }, [currentUser, setValue]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -175,97 +177,61 @@ export const RenewalForm: React.FC = () => {
     setIsSubmitting(true);
     setError(null);
 
-    // Validate uploaded files
     if (uploadedFiles.length === 0) {
-      setError('Please upload at least one required document.');
+      setError('Please upload the required renewal documents (e.g., Grades, Certificate of Registration).');
       setIsSubmitting(false);
       return;
     }
 
     try {
+      // Construct payload
+      const payload = {
+        ...data,
+        type: 'renewal',
+        previous_application_id: previousApplication?.id,
+        // In real implementation, you would upload files first and send their IDs/URLs
+        // For now we just log them
+      };
+
+      console.log('Submitting Renewal:', payload);
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('Renewal form data:', data);
-      console.log('Uploaded files:', uploadedFiles);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       setSubmitSuccess(true);
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError('Failed to submit renewal application. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const marginalizedGroups = [
-    'I am part of an Indigent Family',
-    'My family is Displaced/Relocated within Caloocan City',
-    'I am a Person with Disability (PWD)',
-    'I have an immediate family member who is a Person with Disability (PWD)',
-    'My parent is a Household Helper/Kasambahay',
-    'I am an Alternative Learning System (ALS) graduate',
-    'I am a solo parent',
-    'I have a solo parent',
-    'I have a parent who is an Overseas Filipino Worker (OFW)',
-    'I have a parent who has been found guilty with finality in criminal case',
-    'I am a Youth in Conflict with the Law',
-    'I have an immediate family member who is a tricycle driver and/or operator',
-    'My family belongs to Indigenous People',
-    'Beneficiary of the Pantawid Pamilyang Pilipino Program (4Ps)',
-    'Not Applicable'
-  ];
+  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 3));
+  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  const digitalWallets = ['GCASH', 'MAYA', 'SEABANK', 'CIMB', 'OTHERS'];
-
-  const scholarshipCategories = [
-    'Scholarship for Tertiary Students',
-    'Scholarship for Senior High School Students',
-    'Scholarship for Alternative Learning System (ALS)',
-    'Scholarship for Technical Vocational Education'
-  ];
-
-  const scholarshipSubCategories = [
-    'Academic Excellence Scholarship',
-    'Economic Scholarship',
-    'Athletic Scholarship',
-    'Cultural Scholarship',
-    'Leadership Scholarship'
-  ];
-
-  const requiredDocuments = [
-    'Certificate of Enrollment',
-    'Transcript of Records (Latest)',
-    'Certificate of Good Moral',
-    'Income Certificate',
-    'Barangay Certificate',
-    'Previous Scholarship Certificate',
-    'Valid ID (Government-issued)',
-    'Birth Certificate',
-    'Proof of Residency'
-  ];
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 text-green-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading your information...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (submitSuccess) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Renewal Application Submitted Successfully!
-            </h1>
-            <p className="text-gray-600 mb-6">
-              Your scholarship renewal application has been received and is being processed. 
-              You will receive a confirmation email shortly.
-            </p>
-            <div className="space-y-2 text-sm text-gray-500">
-              <p><strong>Application Number:</strong> REN-2024-001234</p>
-              <p><strong>Submitted Date:</strong> {new Date().toLocaleDateString()}</p>
-            </div>
-            <div className="mt-6">
-              <Button onClick={() => setSubmitSuccess(false)}>
-                Submit Another Renewal
-              </Button>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Renewal Submitted!</h1>
+          <p className="text-gray-600 mb-6">
+            Your scholarship renewal application has been successfully submitted. We will review your academic records and updated documents.
+          </p>
+          <Button onClick={() => navigate('/portal')} className="w-full">
+            Return to Portal
+          </Button>
         </div>
       </div>
     );
@@ -273,700 +239,323 @@ export const RenewalForm: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <GraduationCap className="h-8 w-8 text-orange-500" />
-            <h1 className="text-3xl font-bold text-gray-900">Scholarship Renewal Application</h1>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <div className="flex items-center space-x-2 text-sm text-gray-500 mb-4">
+            <Link to="/portal" className="hover:text-green-600">Portal</Link>
+            <span>/</span>
+            <span className="text-gray-900 font-medium">Renewal Application</span>
           </div>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Complete the form below to renew your scholarship for the next academic period.
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Scholarship Renewal</h1>
+          <p className="text-gray-600 mt-2">Update your academic information for the new term.</p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          {/* I. PERSONAL INFORMATION */}
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="flex items-center mb-6">
-              <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold mr-4">
-                I
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">PERSONAL INFORMATION</h2>
-            </div>
-            <p className="text-sm text-gray-600 mb-6 italic">
-              Please ensure that the information you provided aligns with your submitted documents.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <InputField
-                label="Last Name"
-                type="text"
-                placeholder="Dela Cruz"
-                registration={register('lastName')}
-                error={errors.lastName?.message}
-                required
-              />
-              
-              <InputField
-                label="First Name"
-                type="text"
-                placeholder="Juan"
-                registration={register('firstName')}
-                error={errors.firstName?.message}
-                required
-              />
-              
-              <InputField
-                label="Middle Name"
-                type="text"
-                placeholder="Santos"
-                registration={register('middleName')}
-                error={errors.middleName?.message}
-                required
-              />
-              
-              <InputField
-                label="Extension/Name"
-                type="text"
-                placeholder="Jr., Sr., III"
-                registration={register('extensionName')}
-                error={errors.extensionName?.message}
-              />
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sex <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('sex')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Sex</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-                {errors.sex && <p className="mt-1 text-sm text-red-600">{errors.sex.message}</p>}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Civil Status <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('civilStatus')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Civil Status</option>
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                  <option value="Widowed">Widowed</option>
-                  <option value="Divorced">Divorced</option>
-                  <option value="Separated">Separated</option>
-                </select>
-                {errors.civilStatus && <p className="mt-1 text-sm text-red-600">{errors.civilStatus.message}</p>}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nationality <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('nationality')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Nationality</option>
-                  <option value="Filipino">Filipino</option>
-                  <option value="Dual Citizen">Dual Citizen</option>
-                  <option value="Foreign">Foreign</option>
-                </select>
-                {errors.nationality && <p className="mt-1 text-sm text-red-600">{errors.nationality.message}</p>}
-              </div>
-              
-              <InputField
-                label="Birth Place"
-                type="text"
-                placeholder="Caloocan City"
-                registration={register('birthPlace')}
-                error={errors.birthPlace?.message}
-                required
-              />
-              
-              <InputField
-                label="Date of Birth"
-                type="date"
-                registration={register('birthDate')}
-                error={errors.birthDate?.message}
-                required
-              />
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Are you a Person with Disability (PWD)? <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('isPWD')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select</option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
-                {errors.isPWD && <p className="mt-1 text-sm text-red-600">{errors.isPWD.message}</p>}
-              </div>
-              
-              <InputField
-                label="If PWD, Specify"
-                type="text"
-                placeholder="Type of disability"
-                registration={register('pwdSpecification')}
-                error={errors.pwdSpecification?.message}
-              />
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Religion <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('religion')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Religion</option>
-                  <option value="ROMAN CATHOLIC">Roman Catholic</option>
-                  <option value="ISLAM">Islam</option>
-                  <option value="CHRISTIAN">Christian</option>
-                  <option value="BORN AGAIN">Born Again</option>
-                  <option value="IGLESIA NI CRISTO (INC)">Iglesia ni Cristo (INC)</option>
-                  <option value="BIBLE BAPTIST">Bible Baptist</option>
-                  <option value="7TH DAY ADVENTIST">7th Day Adventist</option>
-                  <option value="AGLIPAY">Aglipay</option>
-                  <option value="DATING DAAN">Dating Daan</option>
-                  <option value="JEHOVA">Jehova</option>
-                  <option value="OTHERS, PLEASE SPECIFY">Others, please specify</option>
-                </select>
-                {errors.religion && <p className="mt-1 text-sm text-red-600">{errors.religion.message}</p>}
-                <p className="mt-1 text-xs text-gray-500">Your religion will not affect your scholarship application result</p>
-              </div>
-            </div>
-
-            {/* Present Address Section */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <MapPin className="h-5 w-5 text-orange-500 mr-2" />
-                Present Address
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <InputField
-                  label="Barangay"
-                  type="text"
-                  placeholder="Bagbag"
-                  registration={register('presentBarangay')}
-                  error={errors.presentBarangay?.message}
-                  required
-                />
-                
-                <InputField
-                  label="District"
-                  type="text"
-                  placeholder="District 5"
-                  registration={register('presentDistrict')}
-                  error={errors.presentDistrict?.message}
-                  required
-                />
-                
-                <InputField
-                  label="City"
-                  type="text"
-                  placeholder="Caloocan City"
-                  registration={register('presentCity')}
-                  error={errors.presentCity?.message}
-                  required
-                />
-                
-                <InputField
-                  label="Zip Code"
-                  type="text"
-                  placeholder="1400"
-                  registration={register('presentZipCode')}
-                  error={errors.presentZipCode?.message}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Permanent Address Section */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <MapPin className="h-5 w-5 text-orange-500 mr-2" />
-                Permanent Address
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <InputField
-                  label="Barangay"
-                  type="text"
-                  placeholder="Bagbag"
-                  registration={register('permanentBarangay')}
-                  error={errors.permanentBarangay?.message}
-                  required
-                />
-                
-                <InputField
-                  label="District"
-                  type="text"
-                  placeholder="District 5"
-                  registration={register('permanentDistrict')}
-                  error={errors.permanentDistrict?.message}
-                  required
-                />
-                
-                <InputField
-                  label="City"
-                  type="text"
-                  placeholder="Caloocan City"
-                  registration={register('permanentCity')}
-                  error={errors.permanentCity?.message}
-                  required
-                />
-                
-                <InputField
-                  label="Zip Code"
-                  type="text"
-                  placeholder="1400"
-                  registration={register('permanentZipCode')}
-                  error={errors.permanentZipCode?.message}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Contact Information Section */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Phone className="h-5 w-5 text-orange-500 mr-2" />
-                Contact Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField
-                  label="Active Contact Number"
-                  type="tel"
-                  placeholder="0912 345 6789"
-                  registration={register('contactNumber')}
-                  error={errors.contactNumber?.message}
-                  required
-                />
-                
-                <InputField
-                  label="Active Email Address"
-                  type="email"
-                  placeholder="juan.delacruz@email.com"
-                  registration={register('emailAddress')}
-                  error={errors.emailAddress?.message}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Employment Status Section */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Building className="h-5 w-5 text-orange-500 mr-2" />
-                Employment/Job Status
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Are you employed in the past three (3) months? <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register('isEmployed')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  >
-                    <option value="">Select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
-                  {errors.isEmployed && <p className="mt-1 text-sm text-red-600">{errors.isEmployed.message}</p>}
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between relative">
+            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -z-0"></div>
+            {[1, 2, 3].map((step) => (
+              <div
+                key={step}
+                className={`relative z-10 flex flex-col items-center ${step <= currentStep ? 'text-green-600' : 'text-gray-400'}`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 bg-white
+                  ${step <= currentStep ? 'border-green-600 text-green-600' : 'border-gray-300 text-gray-400'}
+                  ${step === currentStep ? 'ring-4 ring-green-50' : ''}
+                `}>
+                  {step}
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Have you been actively looking for a job in the past three (3) months? <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register('isJobSeeking')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  >
-                    <option value="">Select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
-                  {errors.isJobSeeking && <p className="mt-1 text-sm text-red-600">{errors.isJobSeeking.message}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Are you enrolled in the last semester/school year? <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register('isCurrentlyEnrolled')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  >
-                    <option value="">Select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
-                  {errors.isCurrentlyEnrolled && <p className="mt-1 text-sm text-red-600">{errors.isCurrentlyEnrolled.message}</p>}
-                </div>
+                <span className="text-xs font-medium mt-2 bg-gray-50 px-2">
+                  {step === 1 ? 'Personal Info' : step === 2 ? 'Academic Updates' : 'Documents'}
+                </span>
               </div>
-            </div>
-
-            {/* Marginalized Group Information Section */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <User className="h-5 w-5 text-orange-500 mr-2" />
-                Marginalized Group Information
-              </h3>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Which primary marginalized group do you belong? (Check one) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {marginalizedGroups.map((group, index) => (
-                      <label key={index} className="flex items-center">
-                        <input
-                          type="radio"
-                          value={group}
-                          {...register('primaryMarginalizedGroup')}
-                          className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">{group}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {errors.primaryMarginalizedGroup && <p className="mt-1 text-sm text-red-600">{errors.primaryMarginalizedGroup.message}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Which secondary marginalized group do you belong? (Select all that applies)
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {marginalizedGroups.map((group, index) => (
-                      <label key={index} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          value={group}
-                          {...register('secondaryMarginalizedGroups')}
-                          className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">{group}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Digital Wallet Information Section */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <DollarSign className="h-5 w-5 text-orange-500 mr-2" />
-                Digital Wallet Information
-              </h3>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Do you have an active digital wallet under your name? <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    {...register('hasDigitalWallet')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  >
-                    <option value="">Select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
-                  {errors.hasDigitalWallet && <p className="mt-1 text-sm text-red-600">{errors.hasDigitalWallet.message}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Which of the following digital wallets do you have? [Select all that applies]
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                    {digitalWallets.map((wallet, index) => (
-                      <label key={index} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          value={wallet}
-                          {...register('digitalWallets')}
-                          className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">{wallet}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                
-                <InputField
-                  label="Active Maya/GCash Account Number"
-                  type="text"
-                  placeholder="0912 345 6789"
-                  registration={register('walletAccountNumber')}
-                  error={errors.walletAccountNumber?.message}
-                />
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* II. SCHOLARSHIP AND ENROLLMENT INFORMATION */}
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="flex items-center mb-6">
-              <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold mr-4">
-                II
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">SCHOLARSHIP AND ENROLLMENT INFORMATION</h2>
-            </div>
-            <p className="text-sm text-gray-600 mb-6 italic">
-              Please ensure that the information you provided aligns with your submitted documents.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <InputField
-                label="Scholar's ID Number"
-                type="text"
-                placeholder="2024-001234"
-                registration={register('scholarIdNumber')}
-                error={errors.scholarIdNumber?.message}
-                required
-              />
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Scholarship Category <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('scholarshipCategory')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Category</option>
-                  {scholarshipCategories.map((category, index) => (
-                    <option key={index} value={category}>{category}</option>
-                  ))}
-                </select>
-                {errors.scholarshipCategory && <p className="mt-1 text-sm text-red-600">{errors.scholarshipCategory.message}</p>}
-                <p className="mt-1 text-xs text-blue-600">
-                  <a href="#" className="hover:underline">Click here for Qualifications per Scholarship Category and Sub-Category</a>
-                </p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Scholarship Sub-Category <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('scholarshipSubCategory')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Sub-Category</option>
-                  {scholarshipSubCategories.map((subCategory, index) => (
-                    <option key={index} value={subCategory}>{subCategory}</option>
-                  ))}
-                </select>
-                {errors.scholarshipSubCategory && <p className="mt-1 text-sm text-red-600">{errors.scholarshipSubCategory.message}</p>}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Current Educational Level <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('currentEducationalLevel')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Level</option>
-                  <option value="Senior High School">Senior High School</option>
-                  <option value="Tertiary/College">Tertiary/College</option>
-                  <option value="Technical Vocational">Technical Vocational</option>
-                  <option value="Graduate School">Graduate School</option>
-                </select>
-                {errors.currentEducationalLevel && <p className="mt-1 text-sm text-red-600">{errors.currentEducationalLevel.message}</p>}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  School Year <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('schoolYear')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Year</option>
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
-                  <option value="2022">2022</option>
-                  <option value="2021">2021</option>
-                </select>
-                {errors.schoolYear && <p className="mt-1 text-sm text-red-600">{errors.schoolYear.message}</p>}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  School Term/Semester <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('schoolTerm')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select Term</option>
-                  <option value="1ST">1ST</option>
-                  <option value="2ND">2ND</option>
-                  <option value="SUMMER">SUMMER</option>
-                </select>
-                {errors.schoolTerm && <p className="mt-1 text-sm text-red-600">{errors.schoolTerm.message}</p>}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Are you a graduating student this semester? <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('isGraduating')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                >
-                  <option value="">Select</option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
-                {errors.isGraduating && <p className="mt-1 text-sm text-red-600">{errors.isGraduating.message}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Document Upload */}
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Upload className="h-5 w-5 text-orange-500 mr-2" />
-              Required Documents
-            </h2>
-            
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Upload the following documents:</h3>
-              <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-gray-600">
-                {requiredDocuments.map((doc, index) => (
-                  <li key={index} className="flex items-center">
-                    <FileText className="h-4 w-4 text-orange-500 mr-2" />
-                    {doc}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            <div className="space-y-6">
-              {/* File Upload Area */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Documents <span className="text-red-500">*</span>
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-500 transition-colors duration-200">
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="documentUpload"
-                  />
-                  <label htmlFor="documentUpload" className="cursor-pointer">
-                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-lg font-medium text-gray-700 mb-2">
-                      Click to upload documents
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      or drag and drop files here
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2">
-                      Accepted formats: PDF, JPG, PNG. Maximum file size: 5MB per file.
-                    </p>
-                  </label>
-                </div>
-                {errors.documents && (
-                  <p className="mt-2 text-sm text-red-600">{String(errors.documents.message)}</p>
-                )}
-              </div>
-
-              {/* Uploaded Files List */}
-              {uploadedFiles.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Uploaded Files ({uploadedFiles.length})</h4>
-                  <div className="space-y-3">
-                    {uploadedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border">
-                        <div className="flex items-center space-x-3">
-                          <FileText className="h-5 w-5 text-orange-500" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFile(file.name)}
-                          className="text-red-500 hover:text-red-700 p-1"
-                          title="Remove file"
-                        >
-                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Upload Progress/Status */}
-              {uploadedFiles.length === 0 && (
-                <div className="text-center py-8">
-                  <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No files uploaded yet</p>
-                  <p className="text-sm text-gray-400">Upload at least one document to continue</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Error Display */}
+        <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           {error && (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <Alert type="error" message={error} />
+            <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 mx-6 mt-6 flex items-start">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <p>{error}</p>
             </div>
           )}
 
-          {/* Submit Button */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                type="submit"
-                loading={isSubmitting}
-                className="flex-1"
-                size="lg"
-              >
-                {isSubmitting ? 'Submitting Application...' : 'Submit Renewal Application'}
+          <div className="p-6 md:p-8">
+            {/* STEP 1: Personal Information */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-100">
+                  <User className="h-6 w-6 text-green-600" />
+                  <h2 className="text-xl font-semibold text-gray-800">Review Personal Information</h2>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-700 mb-6">
+                  <p>Some information has been pre-filled from your previous application. Please verify it is correct. Most fields are read-only to ensure consistency.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InputField
+                    label="First Name"
+                    registration={register('firstName')}
+                    error={errors.firstName?.message}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                  <InputField
+                    label="Last Name"
+                    registration={register('lastName')}
+                    error={errors.lastName?.message}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                  <InputField
+                    label="Middle Name"
+                    registration={register('middleName')}
+                    error={errors.middleName?.message}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                  <InputField
+                    label="Name Extension"
+                    registration={register('extensionName')}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                  <div className="col-span-1 md:col-span-2">
+                    <h3 className="text-sm font-medium text-gray-900 mb-4">Contact Information (Editable)</h3>
+                  </div>
+                  <InputField
+                    label="Email Address"
+                    registration={register('emailAddress')}
+                    error={errors.emailAddress?.message}
+                  />
+                  <InputField
+                    label="Mobile Number"
+                    registration={register('contactNumber')}
+                    error={errors.contactNumber?.message}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Academic Updates */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-100">
+                  <GraduationCap className="h-6 w-6 text-green-600" />
+                  <h2 className="text-xl font-semibold text-gray-800">Academic Updates</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">School Year *</label>
+                    <select {...register('schoolYear')} className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                      <option value="">Select School Year</option>
+                      <option value="2024-2025">2024-2025</option>
+                      <option value="2025-2026">2025-2026</option>
+                    </select>
+                    {errors.schoolYear && <p className="text-red-500 text-xs mt-1">{errors.schoolYear.message}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Term/Semester *</label>
+                    <select {...register('schoolTerm')} className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                      <option value="">Select Term</option>
+                      <option value="1st Semester">1st Semester</option>
+                      <option value="2nd Semester">2nd Semester</option>
+                      <option value="Trimester">Trimester</option>
+                      <option value="Summer">Summer</option>
+                    </select>
+                    {errors.schoolTerm && <p className="text-red-500 text-xs mt-1">{errors.schoolTerm.message}</p>}
+                  </div>
+
+                  <InputField
+                    label="Course/Program"
+                    registration={register('course')}
+                    error={errors.course?.message}
+                    placeholder="e.g. BS Information Technology"
+                  />
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Year Level *</label>
+                    <select {...register('yearLevel')} className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                      <option value="">Select Year Level</option>
+                      <option value="1st Year">1st Year</option>
+                      <option value="2nd Year">2nd Year</option>
+                      <option value="3rd Year">3rd Year</option>
+                      <option value="4th Year">4th Year</option>
+                      <option value="5th Year">5th Year</option>
+                    </select>
+                    {errors.yearLevel && <p className="text-red-500 text-xs mt-1">{errors.yearLevel.message}</p>}
+                  </div>
+
+                  <InputField
+                    label="General Weighted Average (GWA)"
+                    registration={register('gwa')}
+                    error={errors.gwa?.message}
+                    placeholder="e.g. 1.50"
+                  />
+
+                  <InputField
+                    label="Units Enrolled"
+                    registration={register('unitsEnrolled')}
+                    error={errors.unitsEnrolled?.message}
+                    placeholder="e.g. 21"
+                  />
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Are you Graduating this term? *</label>
+                    <select {...register('isGraduating')} className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                    {errors.isGraduating && <p className="text-red-500 text-xs mt-1">{errors.isGraduating.message}</p>}
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-gray-100">
+                  <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                    <PhilippinePeso className="h-5 w-5 mr-2 text-green-600" />
+                    Disbursement Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
+                      <select
+                        {...register('paymentMethod')}
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                      >
+                        <option value="">Select Payment Method</option>
+                        <option value="GCash">GCash</option>
+                        <option value="PayMaya">PayMaya</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash (Over-the-counter)</option>
+                      </select>
+                      {errors.paymentMethod && <p className="text-red-500 text-xs mt-1">{errors.paymentMethod.message}</p>}
+                    </div>
+
+                    {paymentMethod === 'Bank Transfer' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
+                        <select
+                          {...register('bankName')}
+                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                        >
+                          <option value="">Select Bank</option>
+                          <option value="BDO">BDO</option>
+                          <option value="BPI">BPI</option>
+                          <option value="Metrobank">Metrobank</option>
+                          <option value="Landbank">Landbank</option>
+                          <option value="PNB">PNB</option>
+                          <option value="RCBC">RCBC</option>
+                          <option value="Unionbank">Unionbank</option>
+                          <option value="Chinabank">Chinabank</option>
+                          <option value="Others">Others</option>
+                        </select>
+                        {errors.bankName && <p className="text-red-500 text-xs mt-1">{errors.bankName.message}</p>}
+                      </div>
+                    )}
+
+                    {paymentMethod && paymentMethod !== 'Cash' && (
+                      <InputField
+                        label={paymentMethod === 'Bank Transfer' ? 'Bank Account Number' : 'Mobile Number'}
+                        registration={register('walletAccountNumber')}
+                        error={errors.walletAccountNumber?.message}
+                        placeholder={paymentMethod === 'Bank Transfer' ? 'e.g. 1234567890' : 'e.g. 09171234567'}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Documents */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-100">
+                  <FileText className="h-6 w-6 text-green-600" />
+                  <h2 className="text-xl font-semibold text-gray-800">Required Documents</h2>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <h4 className="text-sm font-semibold text-yellow-800 mb-2">Important for Renewal:</h4>
+                  <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
+                    <li>Upload your <strong>Certificate of Registration/Enrollment</strong> for the new term.</li>
+                    <li>Upload your <strong>Certificate of Grades/TOR</strong> from the previous term.</li>
+                    <li>Ensure documents are clear and readable.</li>
+                  </ul>
+                </div>
+
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                  />
+                  <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-900 font-medium">Click to upload or drag and drop</p>
+                  <p className="text-gray-500 text-sm mt-1">PDF, JPG, PNG (Max 5MB)</p>
+                </div>
+
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-3">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-md border border-gray-200">
+                        <div className="flex items-center">
+                          <FileText className="h-5 w-5 text-gray-500 mr-3" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">{file.name}</p>
+                            <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+                          onClick={() => handleRemoveFile(file.name)}
+                          type="button"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-100">
+            {currentStep > 1 ? (
+              <Button type="button" variant="outline" onClick={prevStep} disabled={isSubmitting}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Previous
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => window.history.back()}
-                className="flex-1 sm:flex-none"
-                size="lg"
-              >
-                Cancel
+            ) : (
+              <div></div> // Spacer
+            )}
+
+            {currentStep < 3 ? (
+              <Button type="button" onClick={nextStep} className="bg-green-600 hover:bg-green-700 text-white">
+                Next <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
-            </div>
+            ) : (
+              <Button type="submit" disabled={isSubmitting} className="bg-green-600 hover:bg-green-700 text-white min-w-[150px]">
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...
+                  </>
+                ) : (
+                  'Submit Renewal'
+                )}
+              </Button>
+            )}
           </div>
         </form>
       </div>

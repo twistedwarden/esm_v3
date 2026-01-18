@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, School, DollarSign, Calendar, FileText, Eye, EyeOff } from 'lucide-react';
+import { X, User, School, PhilippinePeso, Calendar, FileText, Eye, EyeOff } from 'lucide-react';
 import { ScholarshipApplication } from '../types';
 
 interface ApplicationViewModalProps {
@@ -124,7 +124,7 @@ const ApplicationViewModal: React.FC<ApplicationViewModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-white" />
+                  <PhilippinePeso className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-slate-400">Grant Amount</p>

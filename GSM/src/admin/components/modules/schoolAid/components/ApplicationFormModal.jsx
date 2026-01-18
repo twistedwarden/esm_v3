@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, School, DollarSign, Phone, MapPin, FileText, Mail } from 'lucide-react';
+import { X, Save, User, School, PhilippinePeso, Phone, MapPin, FileText, Mail } from 'lucide-react';
 import schoolAidService from '../../../../../config/schoolAidService';
 
 function ApplicationFormModal({ application, onClose, onSave, mode = 'add' }) {
@@ -351,7 +351,7 @@ function ApplicationFormModal({ application, onClose, onSave, mode = 'add' }) {
                                     Amount <span className="text-red-500">*</span>
                                 </label>
                                 <div className="relative">
-                                    <DollarSign className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                                    <PhilippinePeso className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                                     <input
                                         type="number"
                                         value={formData.amount}
@@ -483,7 +483,7 @@ function ApplicationFormModal({ application, onClose, onSave, mode = 'add' }) {
                     {/* Bank Account Details Section */}
                     <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
                         <h3 className="text-lg font-medium text-slate-800 dark:text-white mb-4 flex items-center">
-                            <DollarSign className="w-5 h-5 mr-2 text-green-500" />
+                            <PhilippinePeso className="w-5 h-5 mr-2 text-green-500" />
                             Bank Account Details
                         </h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">

@@ -272,6 +272,7 @@ Route::post('/test-upload', function (Request $request) {
 
 // School routes
 Route::prefix('schools')->group(function () {
+    Route::get('/top', [SchoolController::class, 'getTopSchools']);
     Route::get('/', [SchoolController::class, 'index']);
     Route::post('/', [SchoolController::class, 'store'])->middleware(['auth.auth_service']);
     Route::get('/{school}', [SchoolController::class, 'show']);
@@ -496,6 +497,8 @@ Route::prefix('stats')->group(function () {
             'avg_processing_days' => round($avgProcessingDays, 1),
             'actionable_count' => \App\Models\ScholarshipApplication::whereIn('status', ['submitted', 'documents_reviewed', 'interview_scheduled', 'interview_completed', 'endorsed_to_ssc'])->count(),
             'critical_count' => \App\Models\ScholarshipApplication::whereIn('status', ['rejected', 'for_compliance'])->count(),
+            'interviews_scheduled_count' => \App\Models\InterviewSchedule::where('status', 'scheduled')->count(),
+            'partner_schools_count' => \App\Models\School::where('is_partner_school', true)->count(),
         ];
 
         return response()->json([

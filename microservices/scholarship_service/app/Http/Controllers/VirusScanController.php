@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use IlluminateSupportFacadesStorage;
 use App\Models\FileSecurityLog;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +19,7 @@ class VirusScanController extends Controller
         try {
             $days = $request->get('days', 30);
             $startDate = now()->subDays($days);
-            
+
             // Basic statistics using FileSecurityLog model
             $totalScans = FileSecurityLog::where('created_at', '>=', $startDate)->count();
             $cleanScans = FileSecurityLog::where('created_at', '>=', $startDate)->clean()->count();
@@ -26,7 +27,7 @@ class VirusScanController extends Controller
             $avgScanTime = FileSecurityLog::where('created_at', '>=', $startDate)
                 ->whereNotNull('scan_duration')
                 ->avg('scan_duration');
-                
+
             // Threat breakdown
             $threatBreakdown = FileSecurityLog::where('created_at', '>=', $startDate)
                 ->infected()
@@ -35,7 +36,7 @@ class VirusScanController extends Controller
                 ->groupBy('threat_name')
                 ->orderBy('count', 'desc')
                 ->get();
-                
+
             // Daily scan counts
             $dailyScans = FileSecurityLog::where('created_at', '>=', $startDate)
                 ->select(
@@ -47,15 +48,15 @@ class VirusScanController extends Controller
                 ->groupBy(DB::raw('DATE(created_at)'))
                 ->orderBy('date')
                 ->get();
-                
+
             // Scanner health
             $recentScans = FileSecurityLog::where('created_at', '>=', now()->subHours(24))->count();
             $failedScans = FileSecurityLog::where('created_at', '>=', now()->subHours(24))
                 ->where('scan_duration', '>', 30) // Consider >30s as failed
                 ->count();
-                
+
             $scannerHealth = $recentScans > 0 ? (($recentScans - $failedScans) / $recentScans) * 100 : 100;
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -81,13 +82,13 @@ class VirusScanController extends Controller
                     ]
                 ]
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to get virus scan statistics', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get statistics',
@@ -95,7 +96,7 @@ class VirusScanController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Get file security logs
      */
@@ -107,10 +108,10 @@ class VirusScanController extends Controller
             $threat = $request->get('threat');
             $dateFrom = $request->get('date_from');
             $dateTo = $request->get('date_to');
-            
+
             $query = FileSecurityLog::with(['student', 'application', 'document'])
                 ->select('file_security_logs.*');
-                
+
             if ($status && $status !== 'all') {
                 if ($status === 'clean') {
                     $query->clean();
@@ -118,32 +119,32 @@ class VirusScanController extends Controller
                     $query->infected();
                 }
             }
-            
+
             if ($threat) {
                 $query->threat($threat);
             }
-            
+
             if ($dateFrom) {
                 $query->where('created_at', '>=', $dateFrom);
             }
-            
+
             if ($dateTo) {
                 $query->where('created_at', '<=', $dateTo);
             }
-            
+
             $logs = $query->orderBy('file_security_logs.created_at', 'desc')
                 ->paginate($perPage);
-                
+
             return response()->json([
                 'success' => true,
                 'data' => $logs
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to get virus scan logs', [
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get logs',
@@ -151,7 +152,7 @@ class VirusScanController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Get rejected files list (quarantine equivalent)
      */
@@ -160,29 +161,29 @@ class VirusScanController extends Controller
         try {
             $perPage = $request->get('per_page', 20);
             $threat = $request->get('threat');
-            
+
             // Get rejected files (infected files that were blocked)
             $query = FileSecurityLog::with(['student', 'application'])
                 ->infected()
                 ->select('file_security_logs.*');
-                
+
             if ($threat) {
                 $query->threat($threat);
             }
-            
+
             $rejected = $query->orderBy('file_security_logs.created_at', 'desc')
                 ->paginate($perPage);
-                
+
             return response()->json([
                 'success' => true,
                 'data' => $rejected
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to get rejected files', [
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get quarantined files',
@@ -190,7 +191,7 @@ class VirusScanController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Review a quarantined file
      */
@@ -201,7 +202,7 @@ class VirusScanController extends Controller
                 'action' => 'required|in:false_positive,confirmed_threat,restore,delete',
                 'notes' => 'nullable|string|max:1000'
             ]);
-            
+
             $quarantine = DB::table('document_quarantine')->find($quarantineId);
             if (!$quarantine) {
                 return response()->json([
@@ -209,11 +210,11 @@ class VirusScanController extends Controller
                     'message' => 'Quarantined file not found'
                 ], 404);
             }
-            
+
             $reviewerId = auth()->id();
             $action = $request->input('action');
             $notes = $request->input('notes');
-            
+
             DB::table('document_quarantine')
                 ->where('id', $quarantineId)
                 ->update([
@@ -224,7 +225,7 @@ class VirusScanController extends Controller
                     'action_taken' => $action,
                     'updated_at' => now()
                 ]);
-                
+
             // Handle specific actions
             if ($action === 'false_positive') {
                 // Restore the document
@@ -233,24 +234,24 @@ class VirusScanController extends Controller
                 // Permanently delete the quarantined file
                 $this->deleteQuarantinedFile($quarantineId);
             }
-            
+
             Log::info('Quarantined file reviewed', [
                 'quarantine_id' => $quarantineId,
                 'action' => $action,
                 'reviewer_id' => $reviewerId
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'File review completed successfully'
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to review quarantined file', [
                 'quarantine_id' => $quarantineId,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to review file',
@@ -258,7 +259,7 @@ class VirusScanController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Delete a quarantined file
      */
@@ -272,32 +273,32 @@ class VirusScanController extends Controller
                     'message' => 'Quarantined file not found'
                 ], 404);
             }
-            
+
             // Delete the physical file
             $filePath = storage_path('app/public/' . $quarantine->quarantine_file_path);
             if (file_exists($filePath)) {
                 unlink($filePath);
             }
-            
+
             // Delete the quarantine record
             DB::table('document_quarantine')->where('id', $quarantineId)->delete();
-            
+
             Log::info('Quarantined file deleted', [
                 'quarantine_id' => $quarantineId,
                 'file_path' => $quarantine->quarantine_file_path
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Quarantined file deleted successfully'
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to delete quarantined file', [
                 'quarantine_id' => $quarantineId,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete file',
@@ -305,7 +306,7 @@ class VirusScanController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Restore a quarantined file (internal method)
      */
@@ -313,21 +314,22 @@ class VirusScanController extends Controller
     {
         try {
             $quarantine = DB::table('document_quarantine')->find($quarantineId);
-            if (!$quarantine) return;
-            
+            if (!$quarantine)
+                return;
+
             $quarantinePath = storage_path('app/public/' . $quarantine->quarantine_file_path);
             $originalPath = storage_path('app/public/' . $quarantine->original_file_path);
-            
+
             if (file_exists($quarantinePath)) {
                 // Ensure original directory exists
                 $originalDir = dirname($originalPath);
                 if (!is_dir($originalDir)) {
                     mkdir($originalDir, 0755, true);
                 }
-                
+
                 // Move file back to original location
                 rename($quarantinePath, $originalPath);
-                
+
                 // Update document status
                 DB::table('documents')
                     ->where('id', $quarantine->document_id)
@@ -336,13 +338,13 @@ class VirusScanController extends Controller
                         'verification_notes' => 'Restored from quarantine - false positive',
                         'updated_at' => now()
                     ]);
-                
+
                 Log::info('Quarantined file restored', [
                     'quarantine_id' => $quarantineId,
                     'document_id' => $quarantine->document_id
                 ]);
             }
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to restore quarantined file', [
                 'quarantine_id' => $quarantineId,

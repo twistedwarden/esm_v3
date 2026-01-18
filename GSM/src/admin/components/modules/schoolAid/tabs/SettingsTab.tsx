@@ -10,7 +10,7 @@ import {
   Shield,
   Users,
   Workflow,
-  DollarSign,
+  PhilippinePeso,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -177,7 +177,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         <div className="border border-gray-200 rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
-              <DollarSign className="w-5 h-5 text-green-600 mr-2" />
+              <PhilippinePeso className="w-5 h-5 text-green-600 mr-2" />
               <h4 className="text-md font-medium text-gray-900">GCash</h4>
             </div>
             <label className="flex items-center">

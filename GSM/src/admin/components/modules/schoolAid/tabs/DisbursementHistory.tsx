@@ -9,7 +9,7 @@ import {
   Clock,
   RotateCcw,
   Calendar,
-  DollarSign,
+  PhilippinePeso,
   Grid3X3,
   List
 } from 'lucide-react';
@@ -538,7 +538,7 @@ const DisbursementHistory = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-blue-600" />
+              <PhilippinePeso className="w-6 h-6 text-blue-600" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Amount</p>

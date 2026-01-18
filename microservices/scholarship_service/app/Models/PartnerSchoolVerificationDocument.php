@@ -12,6 +12,7 @@ class PartnerSchoolVerificationDocument extends Model
 
     protected $fillable = [
         'application_id',
+        'school_id',
         'document_type',
         'document_name',
         'file_name',
@@ -34,6 +35,14 @@ class PartnerSchoolVerificationDocument extends Model
     public function application(): BelongsTo
     {
         return $this->belongsTo(PartnerSchoolApplication::class, 'application_id');
+    }
+
+    /**
+     * Get the school this document belongs to
+     */
+    public function school(): BelongsTo
+    {
+        return $this->belongsTo(School::class);
     }
 
     /**

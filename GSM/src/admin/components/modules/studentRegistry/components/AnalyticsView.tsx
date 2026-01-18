@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
     BarChart3, PieChart, TrendingUp, Download, Users, 
-    GraduationCap, Award, DollarSign, BookOpen, FileText, 
+    GraduationCap, Award, PhilippinePeso, BookOpen, FileText, 
     RefreshCw, Loader2 
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -19,7 +19,7 @@ const AnalyticsView: React.FC = () => {
         { id: 'demographics', title: 'Demographics', icon: Users, color: 'blue' },
         { id: 'scholarship_impact', title: 'Scholarship Impact', icon: Award, color: 'green' },
         { id: 'academic_performance', title: 'Academic Performance', icon: BookOpen, color: 'purple' },
-        { id: 'financial_aid', title: 'Financial Aid', icon: DollarSign, color: 'orange' },
+        { id: 'financial_aid', title: 'Financial Aid', icon: PhilippinePeso, color: 'orange' },
         { id: 'enrollment_trends', title: 'Enrollment Trends', icon: TrendingUp, color: 'indigo' }
     ];
 

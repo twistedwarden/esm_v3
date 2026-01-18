@@ -875,11 +875,26 @@ class ScholarshipApiService {
   // Enrollment Verification Methods have been removed - automatic verification is disabled
 
   // Interview Schedule Methods
-  async getInterviewSchedules(): Promise<InterviewSchedule[]> {
-    const response = await this.makeRequest<{ data: InterviewSchedule[] }>(
-      '/api/interview-schedules'
-    );
-    return response.data!.data!;
+  async getInterviewSchedules(params?: any): Promise<{ data: InterviewSchedule[]; meta?: any }> {
+    const queryParams = new URLSearchParams(params).toString();
+    const endpoint = queryParams
+      ? `/api/interview-schedules?${queryParams}`
+      : '/api/interview-schedules';
+
+    const response = await this.makeRequest<{ data: any; meta?: any }>(endpoint);
+
+    // Normalize response
+    const payload = response.data as any;
+    if (payload && Array.isArray(payload.data)) {
+      // Laravel paginator
+      const { data, ...restMeta } = payload;
+      return { data, meta: restMeta };
+    } else if (Array.isArray(payload)) {
+      return { data: payload, meta: undefined };
+    }
+
+    // Fallback if data is directly in data property but not paginated
+    return { data: (payload as InterviewSchedule[]) || [], meta: undefined };
   }
 
   async getInterviewSchedule(id: number): Promise<InterviewSchedule> {

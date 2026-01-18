@@ -35,9 +35,9 @@ class DashboardService {
             pendingReview: stats.pending_applications || 0,
             rejectedApplications: stats.rejected_applications || 0,
             activeStudents: stats.total_students || 0,
-            partnerSchools: 45,
+            partnerSchools: stats.partner_schools_count || 0,
             sscReviews: stats.pending_applications || 0,
-            interviewsScheduled: 0,
+            interviewsScheduled: stats.interviews_scheduled_count || 0,
             processingSpeed: stats.avg_processing_days || 3.2,
             actionable_count: stats.actionable_count || 0,
             critical_count: stats.critical_count || 0
@@ -50,18 +50,18 @@ class DashboardService {
 
     // Fallback: Return mock data if API is not available
     return {
-      totalApplications: 1247,
-      approvedApplications: 892,
-      pendingReview: 234,
-      rejectedApplications: 121,
-      totalBudget: 45200000,
-      disbursedAmount: 32100000,
-      remainingBudget: 13100000,
-      activeStudents: 892,
-      partnerSchools: 45,
-      sscReviews: 156,
-      interviewsScheduled: 89,
-      processingSpeed: 3.2
+      totalApplications: 0,
+      approvedApplications: 0,
+      pendingReview: 0,
+      rejectedApplications: 0,
+      totalBudget: 0,
+      disbursedAmount: 0,
+      remainingBudget: 0,
+      activeStudents: 0,
+      partnerSchools: 0,
+      sscReviews: 0,
+      interviewsScheduled: 0,
+      processingSpeed: 0
     };
   }
 
@@ -83,10 +83,10 @@ class DashboardService {
       if (response.ok) {
         const data = await response.json();
         return {
-          totalBudget: data.total_budget || 45200000,
-          disbursedAmount: data.total_disbursed || 32100000,
-          remainingBudget: data.remaining_budget || 13100000,
-          utilizationRate: data.utilization_rate || 71,
+          totalBudget: data.total_budget || 0,
+          disbursedAmount: data.total_disbursed || 0,
+          remainingBudget: data.remaining_budget || 0,
+          utilizationRate: data.utilization_rate || 0,
           disbursedCount: data.disbursed_applications || 0
         };
       }
@@ -95,10 +95,10 @@ class DashboardService {
     }
 
     return {
-      totalBudget: 45200000,
-      disbursedAmount: 32100000,
-      remainingBudget: 13100000,
-      utilizationRate: 71
+      totalBudget: 0,
+      disbursedAmount: 0,
+      remainingBudget: 0,
+      utilizationRate: 0
     };
   }
 
@@ -231,7 +231,7 @@ class DashboardService {
   async getTopSchools() {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/schools`, {
+      const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/schools/top`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -242,15 +242,8 @@ class DashboardService {
 
       if (response.ok) {
         const data = await response.json();
-        // Backend returns a paginated object: { success: true, data: { data: [...], ... } }
-        const schoolsArray = data.data?.data || (Array.isArray(data.data) ? data.data : []);
-
-        if (data.success && Array.isArray(schoolsArray)) {
-          return schoolsArray.slice(0, 4).map(school => ({
-            name: school.name,
-            applications: school.applications_count || 0,
-            approved: school.approved_count || 0
-          }));
+        if (data.success && Array.isArray(data.data)) {
+          return data.data;
         }
       }
     } catch (error) {

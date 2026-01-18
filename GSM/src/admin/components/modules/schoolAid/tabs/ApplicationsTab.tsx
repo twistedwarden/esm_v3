@@ -6,7 +6,7 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  DollarSign,
+  PhilippinePeso,
   Calendar,
   User,
   School,
@@ -444,7 +444,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
               onClick={handleBatchProcessPaymentsClick}
               className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <DollarSign className="w-4 h-4" />
+              <PhilippinePeso className="w-4 h-4" />
               <span className="hidden sm:inline">Process Selected ({selectedApplications.length})</span>
               <span className="sm:hidden">Process ({selectedApplications.length})</span>
             </button>

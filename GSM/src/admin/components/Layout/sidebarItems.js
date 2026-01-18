@@ -24,7 +24,6 @@ const allSidebarItems = [
         subItems: [
             { id: 'studentRegistry-overview', label: 'Overview' },
             { id: 'studentRegistry-directory', label: 'Student Directory' },
-            { id: 'studentRegistry-reports', label: 'Reports & Analytics' },
             { id: 'studentRegistry-tools', label: 'Import/Export' }
         ]
     },
@@ -35,8 +34,7 @@ const allSidebarItems = [
             { id: 'psd-student-population', label: 'Student Population' },
             { id: 'psd-guidelines', label: 'Guidelines' },
             { id: 'psd-applications', label: 'Applications' },
-            { id: 'psd-analytics', label: 'Analytics & Reports' },
-            { id: 'psd-settings', label: 'Settings' }
+            { id: 'psd-analytics', label: 'Analytics & Reports' }
         ]
     },
     {
@@ -45,7 +43,6 @@ const allSidebarItems = [
             { id: 'emr-overview', label: 'Overview' },
             { id: 'emr-academic-performance', label: 'Academic Performance' },
             { id: 'emr-enrollment-statistics', label: 'Enrollment Statistics' },
-            { id: 'emr-student-progress', label: 'Student Progress' },
             { id: 'emr-analytics', label: 'Analytics' }
         ]
     },

@@ -17,6 +17,8 @@ import {
   GraduationCap,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   MoreVertical,
   Star,
   AlertTriangle,
@@ -47,9 +49,10 @@ import {
   Flag,
   Edit3,
   Send,
-  DollarSign
 } from 'lucide-react';
 import { LoadingApplications } from '../../../ui/LoadingSpinner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 function ScholarshipApplications() {
   // Toast context
@@ -121,22 +124,55 @@ function ScholarshipApplications() {
     rejected: 0
   });
 
+  // Pagination state
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    perPage: 10,
+    total: 0,
+    from: 0,
+    to: 0
+  });
+
   // Fetch applications
   useEffect(() => {
     fetchApplications();
-  }, [filters, searchTerm]);
+  }, [filters, searchTerm, pagination.currentPage, pagination.perPage]);
 
   const fetchApplications = async () => {
     try {
       setLoading(true);
       setError('');
 
-      const params = {};
-      if (filters.status !== 'all') params.status = filters.status;
+      const params = {
+        page: pagination.currentPage,
+        per_page: pagination.perPage,
+        ...filters
+      };
+
+      // Handle special 'all' cases or specific logic
+      if (filters.status === 'all') {
+        // If we want to restrict to specific statuses even when 'all' is selected
+        // params.status = ['draft', 'submitted', 'for_compliance']; 
+        // For now, let's just delete the status param if it's all to let backend decide or fetch everything
+        delete params.status;
+      }
+
       if (searchTerm) params.search = searchTerm;
 
       const resp = await scholarshipApiService.getApplications(params);
       const list = Array.isArray(resp.data) ? resp.data : [];
+
+      if (resp.meta) {
+        setPagination(prev => ({
+          ...prev,
+          currentPage: resp.meta.current_page || 1,
+          lastPage: resp.meta.last_page || 1,
+          total: resp.meta.total || 0,
+          from: resp.meta.from || 0,
+          to: resp.meta.to || 0
+        }));
+      }
 
       const mapped = list.map(a => ({
         // Preserve the full application object for the modal
@@ -183,37 +219,9 @@ function ScholarshipApplications() {
   };
 
   // Filter and sort applications
-  const filteredApplications = applications.filter(app => {
-    // Show applications that are in initial review stage (draft, submitted, and for_compliance)
-    // All other statuses should proceed to their appropriate next stage
-    if (!['draft', 'submitted', 'for_compliance'].includes(app.status)) {
-      return false;
-    }
-
-    const matchesStatus = filters.status === 'all' || app.status === filters.status;
-    const matchesCategory = filters.category === 'all' || (app.scholarshipCategory || '').toLowerCase().includes(filters.category.toLowerCase());
-    const matchesLevel = filters.level === 'all' || (app.currentEducationalLevel || '').toLowerCase().includes(filters.level.toLowerCase());
-    const matchesSchool = filters.school === 'all' || (app.schoolName || '').toLowerCase().includes(filters.school.toLowerCase());
-    const matchesPriority = filters.priority === 'all' || app.priority === filters.priority;
-    const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (app.schoolName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (app.scholarshipCategory || '').toLowerCase().includes(searchTerm.toLowerCase());
-
-    // Date range filter
-    const appDate = new Date(app.submittedDate);
-    const matchesDateFrom = !filters.dateFrom || appDate >= new Date(filters.dateFrom);
-    const matchesDateTo = !filters.dateTo || appDate <= new Date(filters.dateTo);
-
-    // GWA range filter
-    const gwa = parseFloat(app.generalWeightedAverage || 0);
-    const matchesMinGwa = !filters.minGwa || gwa >= parseFloat(filters.minGwa);
-    const matchesMaxGwa = !filters.maxGwa || gwa <= parseFloat(filters.maxGwa);
-
-    return matchesStatus && matchesCategory && matchesLevel && matchesSchool &&
-      matchesPriority && matchesSearch && matchesDateFrom && matchesDateTo &&
-      matchesMinGwa && matchesMaxGwa;
-  });
+  // Note: Most filtering is now done server-side. 
+  // We keep the sorting logic here if the current page needs sorting.
+  const filteredApplications = applications;
 
   const sortedApplications = [...filteredApplications].sort((a, b) => {
     let aValue, bValue;
@@ -375,11 +383,12 @@ function ScholarshipApplications() {
   // Filter handlers
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const clearAllFilters = () => {
     setFilters({
-      status: 'submitted',
+      status: 'submitted', // Reset to default "submitted" which matches initial state
       category: 'all',
       level: 'all',
       school: 'all',
@@ -390,6 +399,7 @@ function ScholarshipApplications() {
       priority: 'all'
     });
     setSearchTerm('');
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const hasActiveFilters = () => {
@@ -953,6 +963,48 @@ function ScholarshipApplications() {
     </div>
   );
 
+  const handleExport = () => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(18);
+    doc.text('Scholarship Applications Report', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+    // Table
+    const tableColumn = ["Name", "Student ID", "School", "Program", "Category", "GWA", "Amount", "Status"];
+    const tableRows = [];
+
+    // Use filteredApplications to respect current filters
+    const appsToExport = filteredApplications.length > 0 ? filteredApplications : applications;
+
+    appsToExport.forEach(app => {
+      const appData = [
+        app.name,
+        app.studentId,
+        app.schoolName || 'N/A',
+        app.scholarshipSubCategory || 'N/A',
+        app.scholarshipCategory || 'N/A',
+        app.generalWeightedAverage || 'N/A',
+        app.requestedAmount ? `P${app.requestedAmount.toLocaleString()}` : '0',
+        getStatusText(app.status)
+      ];
+      tableRows.push(appData);
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [249, 115, 22] }, // Orange color matching theme
+    });
+
+    doc.save(`scholarship_applications_${new Date().toISOString().split('T')[0]}.pdf`);
+    showSuccess('Export Complete', 'Scholarship applications report has been downloaded as PDF.');
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
@@ -966,10 +1018,13 @@ function ScholarshipApplications() {
           </p>
         </div>
         <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
-          <button className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center text-sm sm:text-base">
+          <button
+            onClick={handleExport}
+            className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center text-sm sm:text-base"
+          >
             <Download className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Export</span>
-            <span className="sm:hidden">Export</span>
+            <span className="hidden sm:inline">Export PDF</span>
+            <span className="sm:hidden">PDF</span>
           </button>
           <button className="bg-orange-500 hover:bg-orange-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base">
             <span className="hidden sm:inline">Review Selected</span>
@@ -1052,7 +1107,10 @@ function ScholarshipApplications() {
                 type="text"
                 placeholder="Search applications..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPagination(prev => ({ ...prev, currentPage: 1 }));
+                }}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
               />
             </div>
@@ -1324,6 +1382,60 @@ function ScholarshipApplications() {
           {sortedApplications.map((application) => (
             <ApplicationCard key={application.id} application={application} />
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && !error && pagination.total > 0 && (
+        <div className="mt-6 flex items-center justify-between border-t border-gray-200 dark:border-slate-700 pt-4">
+          <div className="flex flex-1 justify-between sm:hidden">
+            <button
+              onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+              disabled={pagination.currentPage === 1}
+              className="relative inline-flex items-center rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(pagination.lastPage, prev.currentPage + 1) }))}
+              disabled={pagination.currentPage === pagination.lastPage}
+              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Showing <span className="font-medium">{pagination.from}</span> to <span className="font-medium">{pagination.to}</span> of{' '}
+                <span className="font-medium">{pagination.total}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+                  disabled={pagination.currentPage === 1}
+                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="sr-only">Previous</span>
+                  <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                </button>
+                {/* Simple Page Indicator */}
+                <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-slate-600 focus:outline-offset-0">
+                  Page {pagination.currentPage} of {pagination.lastPage}
+                </span>
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(pagination.lastPage, prev.currentPage + 1) }))}
+                  disabled={pagination.currentPage === pagination.lastPage}
+                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="sr-only">Next</span>
+                  <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </nav>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1625,7 +1737,7 @@ function ScholarshipApplications() {
                     {/* Financial Information */}
                     <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <DollarSign className="w-5 h-5 mr-2 text-yellow-500" />
+                        <PhilippinePeso className="w-5 h-5 mr-2 text-yellow-500" />
                         Financial Information
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -78,23 +78,7 @@ class ScholarshipCategorySeeder extends Seeder
                         'benefits' => ['Partial tuition coverage', 'Monthly allowance', 'Book allowance'],
                     ],
                 ]
-            ],
-            [
-                'name' => 'RENEWAL SCHOLARSHIPS',
-                'description' => 'Scholarship renewal programs for continuing students',
-                'type' => 'renewal',
-                'is_active' => true,
-                'subcategories' => [
-                    [
-                        'name' => 'Academic Renewal Scholarship',
-                        'description' => 'Renewal for students maintaining good academic standing',
-                        'amount' => 45000.00,
-                        'type' => 'renewal',
-                        'requirements' => ['GWA of 2.0 or higher', 'No failing grades', 'Previous scholarship recipient'],
-                        'benefits' => ['Full tuition coverage', 'Monthly allowance', 'Book allowance'],
-                    ],
-                ]
-            ],
+            ]
         ];
 
         foreach ($categories as $categoryData) {

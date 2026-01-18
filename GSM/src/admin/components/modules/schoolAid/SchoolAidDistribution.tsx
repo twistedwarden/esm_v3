@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   FileText,
   LayoutDashboard,
-  DollarSign,
+  PhilippinePeso,
   Wallet
 } from 'lucide-react';
 import { TabConfig, ScholarshipApplication } from './types';
@@ -48,7 +48,7 @@ const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}
     {
       id: 'budget',
       label: 'Yearly School Budget',
-      icon: DollarSign,
+      icon: PhilippinePeso,
       component: BudgetTab,
       submodules: []
     },

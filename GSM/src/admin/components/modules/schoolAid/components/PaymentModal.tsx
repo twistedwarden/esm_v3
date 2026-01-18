@@ -4,7 +4,7 @@ import {
   Clock, 
   CheckCircle, 
   AlertCircle, 
-  DollarSign, 
+  PhilippinePeso, 
   Calendar, 
   User, 
   School,
@@ -361,7 +361,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <DollarSign className="w-4 h-4 text-gray-500" />
+                  <PhilippinePeso className="w-4 h-4 text-gray-500" />
                   <span className="text-lg font-semibold text-gray-900">
                     {formatCurrency(application.amount)}
                   </span>

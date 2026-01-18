@@ -6,17 +6,15 @@ import SchoolAidDistribution from './modules/schoolAid/SchoolAidDistribution'
 import DisbursementHistory from './modules/schoolAid/DisbursementHistory'
 import StudentRegistryOverview from './modules/studentRegistry'
 import StudentList from './modules/studentRegistry/components/StudentList'
-import AnalyticsView from './modules/studentRegistry/components/AnalyticsView'
 import DataTools from './modules/studentRegistry/components/DataTools'
 import PSDSchoolManagement from './modules/partnerSchool/PSDSchoolManagement'
 import PSDStudentPopulation from './modules/partnerSchool/PSDStudentPopulation'
 import PSDAnalytics from './modules/partnerSchool/PSDAnalytics'
-import PSDSettings from './modules/partnerSchool/PSDSettings'
 import PSDGuidelinesTabbed from './modules/partnerSchool/PSDGuidelinesTabbed'
 import PSDApplicationsTabbed from './modules/partnerSchool/PSDApplicationsTabbed'
 import UserManagement from './modules/UserManagement/UserManagement'
 import AuditLog from './modules/AuditLog/AuditLog'
-import { EMROverview, AcademicPerformanceReport, EnrollmentReport, StudentProgressReport, AnalyticsCharts, MonitoringDashboard } from './modules/educationMonitoring'
+import { EMROverview, AcademicPerformanceReport, EnrollmentReport, AnalyticsCharts, MonitoringDashboard } from './modules/educationMonitoring'
 import SettingsOverview from './modules/settings/SettingsOverview'
 import InterviewerDashboard from './modules/interviewer/InterviewerDashboard'
 import MyInterviews from './modules/interviewer/MyInterviews'
@@ -96,11 +94,9 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 		case 'sad-disbursement-history':
 			return <div><DisbursementHistory /></div>
 		case 'studentRegistry-overview':
-			return <div><StudentRegistryOverview /></div>
+			return <div><StudentRegistryOverview onPageChange={onPageChange} /></div>
 		case 'studentRegistry-directory':
 			return <div><StudentList viewMode="all" /></div>
-		case 'studentRegistry-reports':
-			return <div><AnalyticsView /></div>
 		case 'studentRegistry-tools':
 			return <div><DataTools /></div>
 		case 'psd-school-management':
@@ -109,8 +105,6 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 			return <div><PSDStudentPopulation /></div>
 		case 'psd-analytics':
 			return <div><PSDAnalytics /></div>
-		case 'psd-settings':
-			return <div><PSDSettings /></div>
 		case 'psd-guidelines':
 			return <div><PSDGuidelinesTabbed /></div>
 		case 'psd-applications':
@@ -121,8 +115,6 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 			return <div><AcademicPerformanceReport /></div>
 		case 'emr-enrollment-statistics':
 			return <div><EnrollmentReport /></div>
-		case 'emr-student-progress':
-			return <div><StudentProgressReport /></div>
 		case 'emr-analytics':
 			return <div><AnalyticsCharts /></div>
 		case 'emr-legacy':

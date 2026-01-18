@@ -8,6 +8,7 @@ use App\Models\EmergencyContact;
 use App\Models\FamilyMember;
 use App\Models\FinancialInformation;
 use App\Models\AcademicRecord;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -66,7 +67,8 @@ class StudentController extends Controller
             $query->where('is_currently_enrolled', $request->boolean('is_currently_enrolled'));
         }
 
-        $students = $query->orderBy('created_at', 'desc')
+        $students = $query->with(['currentAcademicRecord.school'])
+            ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 15));
 
         return response()->json([
@@ -274,6 +276,22 @@ class StudentController extends Controller
                 'academicRecords',
                 'currentAcademicRecord.school'
             ]);
+
+            // Audit log
+            $authUser = $request->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+            AuditLogService::logAction(
+                'student',
+                $student->id,
+                'created',
+                "Student '{$student->first_name} {$student->last_name}' created",
+                $userId,
+                [
+                    'citizen_id' => $student->citizen_id,
+                    'student_id_number' => $student->student_id_number,
+                    'is_new_record' => !isset($existingStudent)
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -509,6 +527,26 @@ class StudentController extends Controller
                 'currentAcademicRecord.school'
             ]);
 
+            // Audit log
+            $authUser = $request->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+            AuditLogService::logAction(
+                'student',
+                $student->id,
+                'updated',
+                "Student '{$student->first_name} {$student->last_name}' updated",
+                $userId,
+                [
+                    'citizen_id' => $student->citizen_id,
+                    'updated_sections' => [
+                        'addresses' => $request->has('addresses'),
+                        'family_members' => $request->has('family_members'),
+                        'financial_information' => $request->has('financial_information'),
+                        'emergency_contacts' => $request->has('emergency_contacts')
+                    ]
+                ]
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Student updated successfully',
@@ -536,6 +574,24 @@ class StudentController extends Controller
     public function destroy(Student $student): JsonResponse
     {
         try {
+            $authUser = request()->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+            $studentName = "{$student->first_name} {$student->last_name}";
+            $studentId = $student->id;
+
+            // Audit log before deletion
+            AuditLogService::logAction(
+                'student',
+                $studentId,
+                'deleted',
+                "Student '{$studentName}' deleted",
+                $userId,
+                [
+                    'citizen_id' => $student->citizen_id,
+                    'student_id_number' => $student->student_id_number
+                ]
+            );
+
             $student->delete();
 
             return response()->json([

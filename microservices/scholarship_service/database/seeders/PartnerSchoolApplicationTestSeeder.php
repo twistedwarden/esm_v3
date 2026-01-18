@@ -14,80 +14,96 @@ class PartnerSchoolApplicationTestSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get or create a test school first (needed for applications)
-        $school = School::first();
-        if (!$school) {
-            $school = School::create([
-                'name' => 'Test Partner School',
-                'campus' => 'Main Campus',
-                'email' => 'test@school.edu',
-                'contact_number' => '09123456789',
-                'classification' => 'PRIVATE UNIVERSITY/COLLEGE',
-                'address' => '123 Test Street',
-                'city' => 'Caloocan',
-                'province' => 'Metro Manila',
-                'region' => 'NCR',
-                'is_partner_school' => false,
-                'is_active' => true,
-            ]);
+        // Get all partner schools (created by SchoolSeeder)
+        $schools = School::where('is_partner_school', true)->get();
+
+        if ($schools->isEmpty()) {
+            $this->command->warn('No partner schools found. Make sure SchoolSeeder has run.');
+            return;
         }
 
-        // Create test applications with different statuses
-        $applications = [
+        foreach ($schools as $school) {
+            // Seed verification documents directly for the school
+            $this->seedVerificationDocuments($school);
+        }
+
+        $this->command->info('✅ Verification documents seeded for existing partner schools!');
+        $this->command->info("   - Processed {$schools->count()} schools");
+        $this->command->info('   - Documents generated (including MOA)');
+        $this->command->info('');
+        $this->command->info('You can now check the School Management UI!');
+    }
+
+    /**
+     * seed verification documents for an application
+     */
+    /**
+     * seed verification documents for a school
+     */
+    private function seedVerificationDocuments($school)
+    {
+        // Clear existing documents to ensure we generate fresh PDFs
+        \App\Models\PartnerSchoolVerificationDocument::where('school_id', $school->id)->delete();
+
+        $documents = [
             [
-                'school_id' => $school->id,
-                'status' => 'draft',
-                'admin_notes' => 'Test draft application - ready to submit',
+                'document_type' => 'Securities and Exchange Commission (SEC) Registration',
+                'document_name' => 'SEC Registration',
+                'filename_prefix' => 'SEC_Reg',
+                'content' => "<h1>SEC Registration</h1><p>This is a dummy SEC Registration document for <strong>{$school->name}</strong>.</p>",
             ],
             [
-                'school_id' => $school->id,
-                'status' => 'submitted',
-                'submitted_at' => now()->subDays(3),
-                'submitted_by' => 1,
-                'admin_notes' => 'Test submitted application - waiting for account creation',
+                'document_type' => 'Business Permit',
+                'document_name' => 'City Business Permit',
+                'filename_prefix' => 'Business_Permit',
+                'content' => "<h1>Business Permit</h1><p>This is a dummy Business Permit for <strong>{$school->name}</strong>.</p>",
             ],
             [
-                'school_id' => $school->id,
-                'status' => 'under_review',
-                'submitted_at' => now()->subDays(5),
-                'submitted_by' => 1,
-                'admin_notes' => 'Test application under review - documents pending',
+                'document_type' => 'Memorandum of Agreement',
+                'document_name' => 'Signed MOA',
+                'filename_prefix' => 'MOA',
+                'content' => "<h1>MEMORANDUM OF AGREEMENT</h1><p>This agreement is made and entered into by and between:</p><p><strong>SCHOLARSHIP PROVIDER</strong></p><p>-and-</p><p><strong>{$school->name}</strong></p><p>Subject: Scholarship Program Partnership</p>",
             ],
             [
-                'school_id' => $school->id,
-                'status' => 'under_review',
-                'submitted_at' => now()->subDays(7),
-                'submitted_by' => 1,
-                'admin_notes' => 'Test application under review',
-            ],
-            [
-                'school_id' => $school->id,
-                'status' => 'approved',
-                'submitted_at' => now()->subDays(10),
-                'reviewed_at' => now()->subDays(8),
-                'submitted_by' => 1,
-                'reviewed_by' => 1,
-                'admin_notes' => 'Test approved application',
-            ],
-            [
-                'school_id' => $school->id,
-                'status' => 'rejected',
-                'submitted_at' => now()->subDays(12),
-                'reviewed_at' => now()->subDays(11),
-                'submitted_by' => 1,
-                'reviewed_by' => 1,
-                'rejection_reason' => 'Test rejection - insufficient documentation',
-                'admin_notes' => 'Test rejected application',
+                'document_type' => 'Board Resolution',
+                'document_name' => 'Board Resolution for Partnership',
+                'filename_prefix' => 'Board_Res',
+                'content' => "<h1>Board Resolution</h1><p>Board Resolution authorizing the partnership with the Scholarship Provider.</p><p>Approved by the Board of <strong>{$school->name}</strong>.</p>",
             ],
         ];
 
-        foreach ($applications as $app) {
-            PartnerSchoolApplication::create($app);
-        }
+        foreach ($documents as $doc) {
+            // Generate a dummy PDF file
+            $fileName = $doc['filename_prefix'] . '_S' . $school->id . '.pdf';
+            $filePath = 'partner_schools/documents/' . $fileName;
 
-        $this->command->info('✅ Test data created successfully!');
-        $this->command->info('   - 6 Applications with various statuses');
-        $this->command->info('');
-        $this->command->info('You can now test the application workflow in the UI!');
+            // Generate PDF content
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($doc['content']);
+            $content = $pdf->output();
+
+            // Ensure directory exists
+            \Illuminate\Support\Facades\Storage::disk('public')->put($filePath, $content);
+
+            // Determine status based on school verification status
+            $status = $school->verification_status === 'verified' ? 'verified' : 'pending';
+            $verifiedAt = $status === 'verified' ? $school->verification_date : null;
+            $verifiedBy = $status === 'verified' ? 1 : null;
+            $notes = null;
+
+            \App\Models\PartnerSchoolVerificationDocument::create([
+                'application_id' => null,
+                'school_id' => $school->id,
+                'document_type' => $doc['document_type'],
+                'document_name' => $doc['document_name'],
+                'file_name' => $fileName,
+                'file_path' => $filePath,
+                'file_size' => strlen($content),
+                'mime_type' => 'application/pdf',
+                'verification_status' => $status,
+                'verification_notes' => $notes,
+                'verified_by' => $verifiedBy,
+                'verified_at' => $verifiedAt,
+            ]);
+        }
     }
 }

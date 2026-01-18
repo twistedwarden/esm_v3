@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Play, Clock, CheckCircle, XCircle, Download, CreditCard, Calendar, User, Plus, Edit, Trash2, DollarSign, AlertCircle, FileText, Users, Zap, Eye, X } from 'lucide-react';
+import { Search, Filter, Play, Clock, CheckCircle, XCircle, Download, CreditCard, Calendar, User, Plus, Edit, Trash2, PhilippinePeso, AlertCircle, FileText, Users, Zap, Eye, X } from 'lucide-react';
 import { API_CONFIG } from '../../../../config/api';
 
 function PaymentProcessing({ onPageChange }) {
@@ -666,7 +666,7 @@ function PaymentProcessing({ onPageChange }) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center">
-                        <DollarSign className="w-8 h-8 text-green-500 mr-3" />
+                        <PhilippinePeso className="w-8 h-8 text-green-500 mr-3" />
                         <div>
                             <p className="text-2xl font-bold text-slate-800 dark:text-white">₱{stats.totalAmount?.toLocaleString() || '0'}</p>
                             <p className="text-sm text-slate-600 dark:text-slate-400">Total Amount</p>

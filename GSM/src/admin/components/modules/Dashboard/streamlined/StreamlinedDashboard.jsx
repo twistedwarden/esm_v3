@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, RefreshCw, AlertTriangle, CheckCircle, Clock, FileText, DollarSign, Activity, Users, Send, X, Download } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Clock, FileText, PhilippinePeso, Activity, Users, Send, X, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MetricCard from './MetricCard';
 import ActionCenter from './ActionCenter';
@@ -141,10 +141,7 @@ const StreamlinedDashboard = ({ onPageChange }) => {
                 </div>
                 <div className="flex space-x-3">
                     <button onClick={fetchData} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors bg-white border border-gray-200 shadow-sm">
-                        <RefreshCw className="w-5 h-5" />
-                    </button>
-                    <button className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors bg-white border border-gray-200 shadow-sm">
-                        <Settings className="w-5 h-5" />
+                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-blue-600' : ''}`} />
                     </button>
                 </div>
             </div>
@@ -188,7 +185,7 @@ const StreamlinedDashboard = ({ onPageChange }) => {
                         className="flex items-center space-x-3 p-4 bg-purple-50 text-purple-700 rounded-xl hover:bg-purple-100 transition-all border border-purple-100 group"
                     >
                         <div className="p-2 bg-purple-600 text-white rounded-lg group-hover:scale-110 transition-transform">
-                            <DollarSign className="w-5 h-5" />
+                            <PhilippinePeso className="w-5 h-5" />
                         </div>
                         <span className="font-semibold text-sm">Process Grants</span>
                     </button>
@@ -245,7 +242,7 @@ const StreamlinedDashboard = ({ onPageChange }) => {
                                     {[
                                         { id: 'general', title: 'General Overview', desc: 'Summary of all key metrics and performance.', icon: Activity, color: 'blue' },
                                         { id: 'applications', title: 'Applications Report', desc: 'Detailed breakdown of application statuses.', icon: FileText, color: 'purple' },
-                                        { id: 'disbursements', title: 'Financial Aid Report', desc: 'Summary of budget utilization and grants.', icon: DollarSign, color: 'emerald' },
+                                        { id: 'disbursements', title: 'Financial Aid Report', desc: 'Summary of budget utilization and grants.', icon: PhilippinePeso, color: 'emerald' },
                                         { id: 'schools', title: 'Partner Schools Report', desc: 'Distribution of scholars across institutions.', icon: Users, color: 'orange' }
                                     ].map((type) => (
                                         <button

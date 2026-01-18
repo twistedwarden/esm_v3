@@ -4,12 +4,11 @@ import {
   TrendingUp,
   TrendingDown,
   Users,
-  DollarSign,
+  PhilippinePeso,
   ClipboardCheck,
   Calendar,
   AlertTriangle,
   RefreshCw,
-  ChevronRight,
   Bell,
   FileText,
   Sparkles,
@@ -18,9 +17,11 @@ import {
   XCircle,
   ArrowUpRight,
   ArrowDownRight,
-  Filter,
   Download,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+// @ts-ignore
+import autoTable from 'jspdf-autotable';
 import {
   getDashboardMetrics,
   getAIInsights,
@@ -63,11 +64,10 @@ const TrendBadge: React.FC<TrendBadgeProps> = ({ value, suffix = '%' }) => {
   const isPositive = numValue > 0;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${
-        isPositive
-          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-      }`}
+      className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded ${isPositive
+        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+        }`}
     >
       {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
       {Math.abs(numValue).toFixed(1)}{suffix}
@@ -121,9 +121,8 @@ const KPICard: React.FC<KPICardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 transition-all duration-200 ${
-        onClick ? 'cursor-pointer hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600' : ''
-      }`}
+      className={`relative overflow-hidden bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 transition-all duration-200 ${onClick ? 'cursor-pointer hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600' : ''
+        }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
@@ -278,11 +277,10 @@ const PipelineStage: React.FC<PipelineStageProps> = ({ stage, pending, completed
 
   return (
     <div
-      className={`p-3 rounded-lg border transition-all ${
-        isBottleneck
-          ? 'border-orange-300 bg-orange-50 dark:border-orange-600 dark:bg-orange-900/20'
-          : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800'
-      }`}
+      className={`p-3 rounded-lg border transition-all ${isBottleneck
+        ? 'border-orange-300 bg-orange-50 dark:border-orange-600 dark:bg-orange-900/20'
+        : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800'
+        }`}
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -322,16 +320,16 @@ interface ConnectionStatusProps {
 }
 
 const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ isConnected, lastUpdated, isLoading }) => (
-  <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
-    isLoading 
-      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' 
-      : isConnected 
+  <div
+    title={lastUpdated ? `Last updated: ${lastUpdated.toLocaleString()}` : ''}
+    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${isLoading
+      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+      : isConnected
         ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-  }`}>
-    <div className={`w-1.5 h-1.5 rounded-full ${
-      isLoading ? 'bg-blue-500 animate-pulse' : isConnected ? 'bg-green-500' : 'bg-red-500'
-    }`} />
+      }`}>
+    <div className={`w-1.5 h-1.5 rounded-full ${isLoading ? 'bg-blue-500 animate-pulse' : isConnected ? 'bg-green-500' : 'bg-red-500'
+      }`} />
     {isLoading ? 'Syncing...' : isConnected ? 'Live' : 'Offline'}
   </div>
 );
@@ -380,25 +378,224 @@ const MonitoringDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'pipeline' | 'insights'>('overview');
   const [isConnected, setIsConnected] = useState(true);
 
+  // PDF Export Handler
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const dateStr = new Date().toLocaleString();
+
+    // Header
+    doc.setFontSize(18);
+    doc.text('Education Monitoring Report', 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${dateStr}`, 14, 28);
+    doc.text(`View: ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`, 14, 33);
+    doc.setTextColor(0);
+
+    let startY = 45;
+
+    if (activeTab === 'insights' && aiInsights) {
+      // --- INSIGHTS REPORT ---
+      // 1. KPIS & METRICS (Added context for Insights)
+      if (metrics) {
+        doc.setFontSize(14);
+        doc.text('Key Performance Indicators', 14, startY);
+        startY += 5;
+
+        const kpiData = [
+          ['Total Applications', formatNumber(metrics.applications?.total)],
+          ['Approval Rate', `${metrics.applications?.approval_rate}%`],
+          ['Budget Utilized', `${metrics.financial?.utilization_rate}%`],
+          ['Scheduled Interviews', `${metrics.interviews?.scheduled || 0}`]
+        ];
+
+        autoTable(doc, {
+          startY: startY,
+          head: [['Metric', 'Value']],
+          body: kpiData,
+          theme: 'grid',
+          headStyles: { fillColor: [41, 128, 185], halign: 'center' },
+          columnStyles: { 0: { fontStyle: 'bold' }, 1: { halign: 'right' } },
+          styles: { fontSize: 10, cellPadding: 2 }
+        });
+
+        startY = (doc as any).lastAutoTable.finalY + 10;
+
+        // Financial Mini-table
+        autoTable(doc, {
+          startY: startY,
+          head: [['Financial Overview', 'Amount']],
+          body: [
+            ['Allocated', formatCurrency(metrics.financial?.allocated_budget)],
+            ['Remaining', formatCurrency(metrics.financial?.remaining_budget)]
+          ],
+          theme: 'striped',
+          headStyles: { fillColor: [142, 68, 173] },
+          columnStyles: { 1: { halign: 'right' } }
+        });
+
+        startY = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // 2. AI HIGHLIGHTS
+      doc.setFontSize(14);
+      doc.setTextColor(30, 64, 175); // Dark Blue
+      doc.text('AI Strategic Highlights', 14, startY);
+      doc.setTextColor(0);
+      startY += 8;
+
+      doc.setFontSize(10);
+      aiInsights.insights.highlights?.forEach((h) => {
+        const splitText = doc.splitTextToSize(`• ${h}`, pageWidth - 30);
+        doc.text(splitText, 14, startY);
+        startY += (splitText.length * 5) + 2;
+      });
+      startY += 8;
+
+      // 3. EXECUTIVE SUMMARY
+      doc.setFontSize(14);
+      doc.setTextColor(30, 64, 175);
+      doc.text('Executive Summary', 14, startY);
+      doc.setTextColor(0);
+      startY += 8;
+
+      doc.setFontSize(10);
+      const summaryText = doc.splitTextToSize(aiInsights.insights.summary || '', pageWidth - 28);
+      doc.text(summaryText, 14, startY);
+      startY += (summaryText.length * 5) + 12;
+
+      // 4. RECOMMENDATIONS
+      doc.setFontSize(14);
+      doc.setTextColor(30, 64, 175);
+      doc.text('Strategic Recommendations', 14, startY);
+      doc.setTextColor(0);
+      startY += 6;
+
+      const recData = aiInsights.insights.recommendations?.map(r => [
+        r.priority.toUpperCase(),
+        r.area.replace(/_/g, ' '),
+        r.action
+      ]) || [];
+
+      autoTable(doc, {
+        startY: startY,
+        head: [['Priority', 'Target Area', 'Actionable Insight']],
+        body: recData,
+        headStyles: { fillColor: [30, 64, 175] }, // Darker blue header
+        styles: { fontSize: 9, cellPadding: 4, valign: 'middle' },
+        columnStyles: {
+          0: { cellWidth: 25, fontStyle: 'bold', halign: 'center' },
+          1: { cellWidth: 40, fontStyle: 'italic' },
+          2: { cellWidth: 'auto' }
+        },
+        alternateRowStyles: { fillColor: [240, 245, 255] }
+      });
+
+    } else if (metrics) {
+      // --- METRICS REPORT (Overview & Pipeline) ---
+
+      // Overview Table
+      if (activeTab === 'overview') {
+        const kpiData = [
+          ['Total Applications', formatNumber(metrics.applications?.total)],
+          ['Approval Rate', `${metrics.applications?.approval_rate}%`],
+          ['Budget Utilized', `${metrics.financial?.utilization_rate}%`],
+          ['Active Alerts', `${metrics.alerts?.total || 0}`]
+        ];
+
+        autoTable(doc, {
+          startY: startY,
+          head: [['Metric', 'Value']],
+          body: kpiData,
+          theme: 'grid',
+          headStyles: { fillColor: [41, 128, 185] },
+          styles: { fontSize: 12 }
+        });
+
+        startY = (doc as any).lastAutoTable.finalY + 15;
+
+        // Budget Detail
+        doc.setFontSize(12);
+        doc.text('Financial Overview', 14, startY);
+        startY += 5;
+
+        autoTable(doc, {
+          startY: startY,
+          head: [['Category', 'Amount']],
+          body: [
+            ['Allocated Budget', formatCurrency(metrics.financial?.allocated_budget)],
+            ['Remaining Budget', formatCurrency(metrics.financial?.remaining_budget)],
+            ['Disbursed', formatCurrency(metrics.financial?.disbursed_budget)]
+          ],
+          theme: 'striped'
+        });
+      }
+
+      // Pipeline Table
+      if (activeTab === 'pipeline') {
+        doc.setFontSize(14);
+        doc.text('SSC Review Pipeline', 14, startY);
+        startY += 8;
+
+        const pipelineData = Object.entries(metrics.ssc_reviews?.by_stage || {}).map(([stage, count]: any) => [
+          stage.replace(/_/g, ' ').toUpperCase(),
+          count.pending,
+          count.completed
+        ]);
+
+        autoTable(doc, {
+          startY: startY,
+          head: [['Stage', 'Pending', 'Completed']],
+          body: pipelineData,
+          headStyles: { fillColor: [142, 68, 173] }
+        });
+
+        startY = (doc as any).lastAutoTable.finalY + 15;
+
+        // Interview Stats
+        doc.text('Interview Statistics', 14, startY);
+        startY += 8;
+
+        const interviewData = [
+          ['Scheduled', metrics.interviews?.scheduled],
+          ['Completed', metrics.interviews?.completed],
+          ['Passed', metrics.interviews?.results?.passed],
+          ['No Show', metrics.interviews?.no_show]
+        ];
+
+        autoTable(doc, {
+          startY: startY,
+          body: interviewData,
+          theme: 'plain',
+          styles: { fontSize: 11, cellPadding: 2 }
+        });
+      }
+    }
+
+    doc.save(`Education_Monitoring_${activeTab}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   // Fetch main dashboard metrics from database
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Fetch dashboard metrics (from aggregated analytics tables)
       const metricsResponse = await getDashboardMetrics();
-      
+
       if (metricsResponse) {
         setMetrics(metricsResponse);
         setIsConnected(true);
         console.log('Dashboard metrics loaded from database:', metricsResponse);
       }
-      
+
       // Fetch alerts
       const alertsResponse = await getAlerts({ status: 'active', limit: 5 }).catch(() => ({ alerts: [], total_count: 0 }));
       setAlerts(alertsResponse.alerts || []);
-      
+
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -430,15 +627,15 @@ const MonitoringDashboard: React.FC = () => {
   // Initial load
   useEffect(() => {
     fetchDashboardData();
-    
+
     // Fetch AI insights after main data loads
     const aiTimeout = setTimeout(() => {
       fetchAIInsights();
     }, 500);
-    
+
     // Set up auto-refresh every 5 minutes
     const interval = setInterval(fetchDashboardData, 5 * 60 * 1000);
-    
+
     return () => {
       clearInterval(interval);
       clearTimeout(aiTimeout);
@@ -544,9 +741,12 @@ const MonitoringDashboard: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
-          <button className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors">
+          <button
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+          >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden sm:inline">Export PDF</span>
           </button>
         </div>
       </div>
@@ -561,11 +761,10 @@ const MonitoringDashboard: React.FC = () => {
           <button
             key={id}
             onClick={() => setActiveTab(id as any)}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === id
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === id
+              ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
           >
             <Icon className="w-4 h-4" />
             <span className="hidden sm:inline">{label}</span>
@@ -600,7 +799,7 @@ const MonitoringDashboard: React.FC = () => {
               title="Budget Utilized"
               value={`${financial?.utilization_rate || 0}%`}
               subtitle={formatCurrency(financial?.remaining_budget || 0) + ' remaining'}
-              icon={<DollarSign className="w-5 h-5" />}
+              icon={<PhilippinePeso className="w-5 h-5" />}
               color="purple"
             />
             <KPICard
@@ -646,7 +845,7 @@ const MonitoringDashboard: React.FC = () => {
                 <MiniStat
                   label="Released"
                   value={formatNumber(apps?.released || 0)}
-                  icon={<DollarSign className="w-4 h-4" />}
+                  icon={<PhilippinePeso className="w-4 h-4" />}
                   color="text-purple-500"
                 />
               </div>

@@ -8,7 +8,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  DollarSign,
+  PhilippinePeso,
   Calendar,
   User,
   School,
@@ -162,9 +162,9 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       case 'bank_transfer':
         return <CreditCard className="w-4 h-4" />;
       case 'gcash':
-        return <DollarSign className="w-4 h-4" />;
+        return <PhilippinePeso className="w-4 h-4" />;
       case 'paymaya':
-        return <DollarSign className="w-4 h-4" />;
+        return <PhilippinePeso className="w-4 h-4" />;
       default:
         return <CreditCard className="w-4 h-4" />;
     }
@@ -295,7 +295,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
               onClick={() => handleProcessDisbursement(application)}
               className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 rounded hover:bg-blue-200 transition-colors"
             >
-              <DollarSign className="w-4 h-4" />
+              <PhilippinePeso className="w-4 h-4" />
               Process Disbursement
             </button>
           );
@@ -398,7 +398,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
             <div className="flex items-center">
               <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-                <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
+                <PhilippinePeso className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Amount</p>
@@ -714,7 +714,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       {filteredApplications.length === 0 && (
         <div className="text-center py-12">
           <div className="mx-auto h-12 w-12 text-gray-400 dark:text-slate-400">
-            <DollarSign className="w-12 h-12" />
+            <PhilippinePeso className="w-12 h-12" />
           </div>
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No disbursements found</h3>
           <p className="mt-1 text-sm text-gray-500">

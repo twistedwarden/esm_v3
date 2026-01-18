@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { X, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import studentApiService from '../../../../../services/studentApiService';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
@@ -36,8 +36,8 @@ const StudentFormModal: React.FC<StudentFormModalProps> = ({ isOpen, onClose, in
                 last_name: initialData.last_name || '',
                 email: initialData.email || '',
                 contact_number: initialData.contact_number || '',
-                student_number: initialData.student_number || '',
-                program: initialData.program || '',
+                student_number: initialData.student_number || initialData.student_id_number || '',
+                program: initialData.program || initialData.course || '',
                 year_level: initialData.year_level || '1st Year',
                 school_name: initialData.school_name || '',
                 scholarship_status: initialData.scholarship_status || 'none',

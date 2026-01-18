@@ -6,7 +6,7 @@ import {
   AlertCircle,
   User,
   GraduationCap,
-  DollarSign,
+  PhilippinePeso,
   Heart,
   FileText
 } from 'lucide-react';
@@ -231,7 +231,7 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
                 {renderScoreInput(
                   'financial_need_score',
                   'Financial Need',
-                  <DollarSign className="w-4 h-4" />,
+                  <PhilippinePeso className="w-4 h-4" />,
                   'Genuine financial need and family circumstances'
                 )}
                 

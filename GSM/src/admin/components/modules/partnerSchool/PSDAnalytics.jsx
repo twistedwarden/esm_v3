@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, PieChart, TrendingUp, Download, Filter, Calendar, Users, GraduationCap, DollarSign, Award, Activity, Eye } from 'lucide-react';
+import { BarChart3, PieChart, TrendingUp, Download, Filter, Calendar, Users, GraduationCap, PhilippinePeso, Award, Activity, Eye } from 'lucide-react';
 
 function PSDAnalytics() {
     const [dateRange, setDateRange] = React.useState('6months');
@@ -102,7 +102,7 @@ function PSDAnalytics() {
                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
                         <div className="flex items-center">
                             <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/20">
-                                <DollarSign className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                                <PhilippinePeso className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600 dark:text-slate-400">Total Budget</p>

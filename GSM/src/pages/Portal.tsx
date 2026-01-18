@@ -299,22 +299,57 @@ export const Portal: React.FC = () => {
               </div>
             </div>
 
+            {/* Document Preparation Checklist */}
+            <div className="mt-8 mb-8">
+              <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 sm:p-6 shadow-md border border-orange-200">
+                <div className="text-center mb-4">
+                  <h3 className="text-xl lg:text-2xl font-bold text-gray-800 mb-1">📋 Prepare These Documents</h3>
+                  <p className="text-sm text-gray-600">Get these ready before starting your application</p>
+                </div>
+
+                <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    'Birth Certificate (PSA)',
+                    'Transcript of Records',
+                    'Certificate of Enrollment',
+                    'Certificate of Good Moral',
+                    'Income Certificate',
+                    'Barangay Certificate',
+                    'Valid Government ID'
+                  ].map((doc, index) => (
+                    <div key={index} className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg shadow-sm">
+                      <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-green-600 text-xs font-bold">{index + 1}</span>
+                      </div>
+                      <p className="text-gray-800 text-sm font-medium">{doc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-600 italic">
+                    💡 Have clear scans ready before you apply
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Scholarship Programs Section */}
             <div className="mt-16 mb-8">
               <div className="text-center mb-10">
                 <h3 className="text-2xl lg:text-4xl font-bold text-gray-800 mb-4 drop-shadow-sm">Available Scholarship Programs</h3>
-                <div className="h-1 w-24 bg-primary-500 mx-auto rounded-full"></div>
+                <div className="h-1 w-24 bg-green-500 mx-auto rounded-full"></div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {categories.length > 0 ? (
                   categories.map((category) => (
-                    <div key={category.id} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 flex flex-col h-full">
-                      <div className="p-1 bg-gradient-to-r from-primary-400 to-primary-600"></div>
+                    <div key={category.id} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 flex flex-col h-full group">
+                      <div className="p-1 bg-gradient-to-r from-green-500 to-green-600"></div>
                       <div className="p-6 flex-grow">
                         <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-xl font-bold text-gray-800 line-clamp-2" title={category.name}>{category.name}</h4>
-                          <span className={`px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold uppercase rounded-full border border-blue-100`}>
+                          <h4 className="text-xl font-bold text-gray-800 line-clamp-2 group-hover:text-green-600 transition-colors" title={category.name}>{category.name}</h4>
+                          <span className={`px-3 py-1 bg-green-50 text-green-700 text-xs font-bold uppercase rounded-full border border-green-100`}>
                             {category.type?.replace('_', ' ') || 'SCHOLARSHIP'}
                           </span>
                         </div>
@@ -328,7 +363,7 @@ export const Portal: React.FC = () => {
                             <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Available Categories</h5>
                             <div className="space-y-2">
                               {category.subcategories.slice(0, 3).map(sub => (
-                                <div key={sub.id} className="flex items-center text-sm text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
+                                <div key={sub.id} className="flex items-center text-sm text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-100 hover:bg-green-50 hover:border-green-100 transition-colors">
                                   <svg className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                                   </svg>
@@ -346,7 +381,7 @@ export const Portal: React.FC = () => {
                       </div>
                       <div className="p-4 bg-gray-50 border-t border-gray-100">
                         <Button
-                          className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md hover:shadow-lg hover:from-primary-600 hover:to-primary-700 transform hover:-translate-y-0.5 transition-all duration-200 font-bold tracking-wide"
+                          className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md hover:shadow-lg hover:from-green-600 hover:to-green-700 transform hover:-translate-y-0.5 transition-all duration-200 font-bold tracking-wide"
                           onClick={() => {
                             if (!hasActiveApplication) {
                               navigate('/new-application');

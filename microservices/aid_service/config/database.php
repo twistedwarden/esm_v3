@@ -118,9 +118,9 @@ return [
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            'database' => 'educ_scholarship_service', // <--- Fixed Name
-            'username' => 'educ_scholarship',           // <--- Using the Scholarship User
-            'password' => 'scholarship_service',       // <--- Using the Scholarship Password (HARDCODED for now to be safe)
+            'database' => env('DB_SCHOLARSHIP_DATABASE', 'scholarship_service'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),

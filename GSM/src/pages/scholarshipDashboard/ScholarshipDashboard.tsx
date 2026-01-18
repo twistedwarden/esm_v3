@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/v1authStore';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '../../config/api';
-import { GraduationCap, Calendar, DollarSign, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, Download, Eye } from 'lucide-react';
+import { GraduationCap, Calendar, PhilippinePeso, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, Download, Eye } from 'lucide-react';
 import { SecureDocumentUpload } from '../../components/ui/SecureDocumentUpload';
 import { SkeletonDashboard } from '../../components/ui/Skeleton';
 // EnrollmentVerificationCard removed - automatic verification disabled
@@ -720,6 +720,7 @@ export const ScholarshipDashboard: React.FC = () => {
     marginalizedGroups: currentApplication.marginalized_groups || [],
     digitalWallets: currentApplication.digital_wallets || [],
     walletAccountNumber: currentApplication.wallet_account_number || 'Not provided',
+    paymentMethod: currentApplication.payment_method || 'Not specified',
     howDidYouKnow: currentApplication.how_did_you_know || [],
     isSchoolAtQC: currentApplication.is_school_at_qc || false,
     requirements: documents.map(doc => ({
@@ -1443,7 +1444,7 @@ export const ScholarshipDashboard: React.FC = () => {
             </CollapsibleSection>
 
             {/* Financial Information */}
-            <CollapsibleSection title="Financial Information" icon={DollarSign} sectionKey="financial">
+            <CollapsibleSection title="Financial Information" icon={PhilippinePeso} sectionKey="financial">
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <InfoRow label="Requested Amount" value={scholarshipData.requestedAmount} highlight />
@@ -1452,7 +1453,6 @@ export const ScholarshipDashboard: React.FC = () => {
                   <InfoRow label="Student Occupation" value={scholarshipData.studentOccupation} />
                   <InfoRow label="Student Income" value={scholarshipData.studentMonthlyIncome} />
                   <InfoRow label="Family Monthly Income" value={scholarshipData.totalFamilyMonthlyIncome} highlight />
-                  <InfoRow label="Family Annual Income" value={scholarshipData.totalAnnualIncome} highlight />
                 </div>
 
                 <div className="pt-4 border-t border-gray-200">
@@ -1469,7 +1469,12 @@ export const ScholarshipDashboard: React.FC = () => {
                       <span>Payment Information</span>
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <InfoRow label="Wallet Account Number" value={scholarshipData.walletAccountNumber} />
+                      <InfoRow
+                        label={scholarshipData.paymentMethod === 'Bank Transfer' ? 'Bank Account Number' :
+                          scholarshipData.paymentMethod === 'GCash' || scholarshipData.paymentMethod === 'PayMaya' ? 'Mobile Number' :
+                            'Account Number'}
+                        value={scholarshipData.walletAccountNumber}
+                      />
                     </div>
                   </div>
                 )}
@@ -1747,7 +1752,7 @@ export const ScholarshipDashboard: React.FC = () => {
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
                 <h2 className="text-lg font-semibold text-white flex items-center space-x-2">
-                  <DollarSign className="h-5 w-5" />
+                  <PhilippinePeso className="h-5 w-5" />
                   <span>Summary</span>
                 </h2>
               </div>
@@ -1888,7 +1893,7 @@ export const ScholarshipDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
-                          <DollarSign className="h-4 w-4 text-green-500" />
+                          <PhilippinePeso className="h-4 w-4 text-green-500" />
                           <span className="text-lg font-bold text-gray-900 dark:text-white">{disbursement.amount}</span>
                         </div>
                       </div>
@@ -1943,53 +1948,55 @@ export const ScholarshipDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div >
 
       {/* Document Removal Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="flex-shrink-0">
-                  <AlertTriangle className="h-6 w-6 text-red-500" />
+      {
+        showDeleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="p-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-6 w-6 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Remove Document</h3>
+                    <p className="text-sm text-gray-600">Are you sure you want to remove this document?</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Remove Document</h3>
-                  <p className="text-sm text-gray-600">Are you sure you want to remove this document?</p>
-                </div>
-              </div>
 
-              {documentToDelete && (
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-medium text-gray-900">{documentToDelete.file_name}</p>
-                  <p className="text-xs text-gray-600">This action cannot be undone.</p>
-                </div>
-              )}
+                {documentToDelete && (
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm font-medium text-gray-900">{documentToDelete.file_name}</p>
+                    <p className="text-xs text-gray-600">This action cannot be undone.</p>
+                  </div>
+                )}
 
-              <div className="flex space-x-3 justify-end">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setDocumentToDelete(null);
-                  }}
-                  disabled={isDeleting}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmRemoveDocument}
-                  disabled={isDeleting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                >
-                  {isDeleting ? 'Removing...' : 'Remove Document'}
-                </button>
+                <div className="flex space-x-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setDocumentToDelete(null);
+                    }}
+                    disabled={isDeleting}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmRemoveDocument}
+                    disabled={isDeleting}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                  >
+                    {isDeleting ? 'Removing...' : 'Remove Document'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };

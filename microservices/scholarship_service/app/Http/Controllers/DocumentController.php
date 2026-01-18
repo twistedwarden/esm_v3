@@ -6,6 +6,7 @@ use App\Models\Document;
 use App\Models\DocumentType;
 use App\Models\FileSecurityLog;
 use App\Services\FileSecurityService;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -41,7 +42,7 @@ class DocumentController extends Controller
         }
 
         $documents = $query->orderBy('created_at', 'desc')
-                          ->paginate($request->get('per_page', 15));
+            ->paginate($request->get('per_page', 15));
 
         return response()->json([
             'success' => true,
@@ -75,7 +76,7 @@ class DocumentController extends Controller
                 'errors' => $validator->errors()->toArray(),
                 'request_data' => $request->all()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -85,7 +86,7 @@ class DocumentController extends Controller
 
         try {
             $file = $request->file('file');
-            
+
             // Debug logging for file details
             Log::info('File details:', [
                 'original_name' => $file->getClientOriginalName(),
@@ -97,49 +98,49 @@ class DocumentController extends Controller
                 'error_message' => $file->getErrorMessage()
             ]);
 
-                   // File security validation
-                   $securityService = new FileSecurityService();
-                   $securityResult = $securityService->validateFile($file);
-                   
-                   // Log the security scan
-                   $securityLog = FileSecurityLog::create([
-                       'file_name' => $file->getClientOriginalName(),
-                       'file_path' => 'temp/' . $file->getClientOriginalName(), // Temporary path before storage
-                       'mime_type' => $file->getMimeType(),
-                       'file_size' => $file->getSize(),
-                       'is_clean' => $securityResult['is_clean'],
-                       'threat_name' => $securityResult['threat_name'],
-                       'notes' => implode('; ', $securityResult['notes'] ?? []),
-                       'scan_duration' => $securityResult['scan_duration'],
-                       'scanner_type' => 'file_security',
-                       'student_id' => $request->student_id,
-                       'application_id' => $request->application_id,
-                   ]);
-                   
-                   if (!$securityResult['is_clean']) {
-                       Log::warning('File upload rejected due to security concerns', [
-                           'file_name' => $file->getClientOriginalName(),
-                           'threat' => $securityResult['threat_name'],
-                           'student_id' => $request->student_id,
-                           'security_log_id' => $securityLog->id
-                       ]);
-                       
-                       return response()->json([
-                           'success' => false,
-                           'message' => 'File upload rejected due to security concerns',
-                           'data' => [
-                               'reason' => $securityResult['threat_name'],
-                               'scan_time' => $securityResult['scan_duration']
-                           ]
-                       ], 422);
-                   }
-                   
-                   Log::info('File passed security validation', [
-                       'filename' => $file->getClientOriginalName(),
-                       'scan_duration' => $securityResult['scan_duration'] ?? 0,
-                       'security_log_id' => $securityLog->id
-                   ]);
-            
+            // File security validation
+            $securityService = new FileSecurityService();
+            $securityResult = $securityService->validateFile($file);
+
+            // Log the security scan
+            $securityLog = FileSecurityLog::create([
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => 'temp/' . $file->getClientOriginalName(), // Temporary path before storage
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+                'is_clean' => $securityResult['is_clean'],
+                'threat_name' => $securityResult['threat_name'],
+                'notes' => implode('; ', $securityResult['notes'] ?? []),
+                'scan_duration' => $securityResult['scan_duration'],
+                'scanner_type' => 'file_security',
+                'student_id' => $request->student_id,
+                'application_id' => $request->application_id,
+            ]);
+
+            if (!$securityResult['is_clean']) {
+                Log::warning('File upload rejected due to security concerns', [
+                    'file_name' => $file->getClientOriginalName(),
+                    'threat' => $securityResult['threat_name'],
+                    'student_id' => $request->student_id,
+                    'security_log_id' => $securityLog->id
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File upload rejected due to security concerns',
+                    'data' => [
+                        'reason' => $securityResult['threat_name'],
+                        'scan_time' => $securityResult['scan_duration']
+                    ]
+                ], 422);
+            }
+
+            Log::info('File passed security validation', [
+                'filename' => $file->getClientOriginalName(),
+                'scan_duration' => $securityResult['scan_duration'] ?? 0,
+                'security_log_id' => $securityLog->id
+            ]);
+
             $originalName = $file->getClientOriginalName();
             $extension = $file->getClientOriginalExtension();
             $fileName = Str::uuid() . '.' . $extension;
@@ -156,7 +157,7 @@ class DocumentController extends Controller
                 if (Storage::disk('public')->exists($existingDocument->file_path)) {
                     Storage::disk('public')->delete($existingDocument->file_path);
                 }
-                
+
                 // Update the existing document
                 $existingDocument->update([
                     'file_name' => $originalName,
@@ -170,25 +171,25 @@ class DocumentController extends Controller
                     'virus_scan_log_id' => $scanResult['log_id'] ?? null,
                 ]);
 
-                       // Store the new file
-                       Log::info('Storing file to: ' . $filePath);
-                       $fileContents = file_get_contents($file);
-                       if ($fileContents === false) {
-                           throw new \Exception('Failed to read file contents');
-                       }
-                       Storage::disk('public')->put($filePath, $fileContents);
-                       Log::info('File stored successfully');
+                // Store the new file
+                Log::info('Storing file to: ' . $filePath);
+                $fileContents = file_get_contents($file);
+                if ($fileContents === false) {
+                    throw new \Exception('Failed to read file contents');
+                }
+                Storage::disk('public')->put($filePath, $fileContents);
+                Log::info('File stored successfully');
 
-                       // Update security log with final file path
-                       $securityLog->update(['file_path' => $filePath]);
+                // Update security log with final file path
+                $securityLog->update(['file_path' => $filePath]);
 
-                       $existingDocument->load(['student', 'application', 'documentType']);
+                $existingDocument->load(['student', 'application', 'documentType']);
 
-                       return response()->json([
-                           'success' => true,
-                           'message' => 'Document replaced successfully',
-                           'data' => $existingDocument
-                       ], 200);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Document replaced successfully',
+                    'data' => $existingDocument
+                ], 200);
             } else {
                 // Store the new file
                 Log::info('Storing new file to: ' . $filePath);
@@ -215,6 +216,24 @@ class DocumentController extends Controller
                     'file_path' => $filePath,
                     'document_id' => $document->id
                 ]);
+
+                // Audit log
+                $authUser = $request->get('auth_user');
+                $userId = $authUser['id'] ?? null;
+                AuditLogService::logAction(
+                    'document',
+                    $document->id,
+                    'uploaded',
+                    "Document '{$originalName}' uploaded",
+                    $userId,
+                    [
+                        'document_type_id' => $document->document_type_id,
+                        'file_name' => $originalName,
+                        'file_size' => $document->file_size,
+                        'student_id' => $document->student_id,
+                        'application_id' => $document->application_id
+                    ]
+                );
 
                 $document->load(['student', 'application', 'documentType']);
 
@@ -268,7 +287,7 @@ class DocumentController extends Controller
             }
 
             $filePath = Storage::disk('public')->path($document->file_path);
-            
+
             // Set headers for inline viewing
             $headers = [
                 'Content-Type' => $document->mime_type,
@@ -337,9 +356,27 @@ class DocumentController extends Controller
         }
 
         try {
+            $authUser = $request->get('auth_user');
+            $verifierId = $authUser['id'] ?? auth()->id();
+
             $document->verify(
                 $request->verification_notes,
-                auth()->id()
+                $verifierId
+            );
+
+            // Audit log
+            AuditLogService::logAction(
+                'document',
+                $document->id,
+                'verified',
+                "Document '{$document->file_name}' verified",
+                $verifierId,
+                [
+                    'document_type_id' => $document->document_type_id,
+                    'verification_notes' => $request->verification_notes,
+                    'student_id' => $document->student_id,
+                    'application_id' => $document->application_id
+                ]
             );
 
             return response()->json([
@@ -375,9 +412,27 @@ class DocumentController extends Controller
         }
 
         try {
+            $authUser = $request->get('auth_user');
+            $reviewerId = $authUser['id'] ?? auth()->id();
+
             $document->reject(
                 $request->verification_notes,
-                auth()->id()
+                $reviewerId
+            );
+
+            // Audit log
+            AuditLogService::logAction(
+                'document',
+                $document->id,
+                'rejected',
+                "Document '{$document->file_name}' rejected",
+                $reviewerId,
+                [
+                    'document_type_id' => $document->document_type_id,
+                    'verification_notes' => $request->verification_notes,
+                    'student_id' => $document->student_id,
+                    'application_id' => $document->application_id
+                ]
             );
 
             return response()->json([
@@ -401,6 +456,26 @@ class DocumentController extends Controller
     public function destroy(Document $document): JsonResponse
     {
         try {
+            $authUser = request()->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+            $fileName = $document->file_name;
+            $docId = $document->id;
+
+            // Audit log before deletion
+            AuditLogService::logAction(
+                'document',
+                $docId,
+                'deleted',
+                "Document '{$fileName}' deleted",
+                $userId,
+                [
+                    'document_type_id' => $document->document_type_id,
+                    'student_id' => $document->student_id,
+                    'application_id' => $document->application_id,
+                    'file_size' => $document->file_size
+                ]
+            );
+
             // Delete the file from storage
             if (Storage::disk('public')->exists($document->file_path)) {
                 Storage::disk('public')->delete($document->file_path);
@@ -428,9 +503,9 @@ class DocumentController extends Controller
     public function getDocumentTypes(): JsonResponse
     {
         $documentTypes = DocumentType::active()
-                                   ->orderBy('category', 'asc')
-                                   ->orderBy('name', 'asc')
-                                   ->get();
+            ->orderBy('category', 'asc')
+            ->orderBy('name', 'asc')
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -444,12 +519,12 @@ class DocumentController extends Controller
     public function getRequiredDocuments(Request $request): JsonResponse
     {
         $applicationType = $request->get('application_type', 'new');
-        
+
         $requiredDocuments = DocumentType::active()
-                                       ->required()
-                                       ->orderBy('category', 'asc')
-                                       ->orderBy('name', 'asc')
-                                       ->get();
+            ->required()
+            ->orderBy('category', 'asc')
+            ->orderBy('name', 'asc')
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -464,7 +539,7 @@ class DocumentController extends Controller
     {
         try {
             $scanLog = $document->virusScanLog;
-            
+
             if (!$scanLog) {
                 return response()->json([
                     'success' => true,
@@ -474,7 +549,7 @@ class DocumentController extends Controller
                     ]
                 ]);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -486,13 +561,13 @@ class DocumentController extends Controller
                     'scan_type' => $scanLog->scan_type
                 ]
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to get document scan status', [
                 'document_id' => $document->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get scan status',
@@ -520,7 +595,7 @@ class DocumentController extends Controller
 
         try {
             $applicationId = $request->application_id;
-            
+
             // Get the application to get student_id
             $application = \App\Models\ScholarshipApplication::find($applicationId);
             if (!$application) {
@@ -547,7 +622,7 @@ class DocumentController extends Controller
             // Create checklist
             $checklist = $requiredDocumentTypes->map(function ($docType) use ($submittedDocuments) {
                 $submittedDoc = $submittedDocuments->get($docType->id);
-                
+
                 return [
                     'id' => $docType->id,
                     'name' => $docType->name,

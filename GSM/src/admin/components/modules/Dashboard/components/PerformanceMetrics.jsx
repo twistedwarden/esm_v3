@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Target, Users, BookOpen, Clock, CheckCircle, Award, DollarSign } from 'lucide-react';
+import { TrendingUp, Target, Users, BookOpen, Clock, CheckCircle, Award, PhilippinePeso } from 'lucide-react';
 
 function PerformanceMetrics() {
     const metrics = [
@@ -37,7 +37,7 @@ function PerformanceMetrics() {
             title: 'Budget Utilization',
             current: 71,
             target: 85,
-            icon: DollarSign,
+            icon: PhilippinePeso,
             color: 'orange',
             trend: '+8.1%',
             unit: '%',

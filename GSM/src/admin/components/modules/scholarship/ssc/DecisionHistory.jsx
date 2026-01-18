@@ -11,7 +11,7 @@ import {
   FileText,
   Award,
   School,
-  DollarSign,
+  PhilippinePeso,
   User,
   X
 } from 'lucide-react';
@@ -428,7 +428,7 @@ function DecisionHistory() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center text-sm">
-                          <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
+                          <PhilippinePeso className="h-4 w-4 text-gray-400 mr-1" />
                           <span className="font-medium text-gray-900 dark:text-white">
                             {decision.review_data?.recommended_amount
                               ? `₱${decision.review_data.recommended_amount.toLocaleString()}`

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
-  DollarSign, 
+  PhilippinePeso, 
   Users, 
   Clock,
   CheckCircle,
@@ -143,7 +143,7 @@ const Overview = () => {
           color="text-blue-600"
         />
         <MetricCard
-          icon={DollarSign}
+          icon={PhilippinePeso}
           title="Total Amount for Disbursement"
           value={formatCurrency(metrics.totalAmount)}
           subtitle="Ready to process"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  DollarSign, 
+  PhilippinePeso, 
   TrendingUp,
   AlertCircle,
   Building,
@@ -234,7 +234,7 @@ const FundTracking = () => {
           <div className="space-y-3 border-l-2 border-gray-200 pl-6">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-indigo-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-indigo-600" />
+                <PhilippinePeso className="w-5 h-5 text-indigo-600" />
               </div>
               <span className="text-sm font-medium text-gray-600">Total Available</span>
             </div>
@@ -287,7 +287,7 @@ const FundTracking = () => {
               </p>
             </div>
             <div className="p-3 bg-purple-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-purple-600" />
+              <PhilippinePeso className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>

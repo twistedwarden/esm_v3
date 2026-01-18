@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, User, GraduationCap, DollarSign, FileText, Activity, 
-  Edit, Download, Upload, Plus, Eye, Calendar, 
-  MapPin, Phone, Mail, Award, BookOpen, TrendingUp, 
-  CheckCircle, Loader2 
+import {
+    X, User, GraduationCap, PhilippinePeso, FileText, Activity,
+    Edit, Plus, Calendar,
+    MapPin, Phone, Mail, Award,
+    Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
@@ -31,7 +31,7 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose
         { id: 'overview', label: 'Overview', icon: User },
         { id: 'academic', label: 'Academic', icon: GraduationCap },
         { id: 'scholarship', label: 'Scholarship', icon: Award },
-        { id: 'financial', label: 'Financial Aid', icon: DollarSign },
+        { id: 'financial', label: 'Financial Aid', icon: PhilippinePeso },
         { id: 'documents', label: 'Documents', icon: FileText },
         { id: 'activity', label: 'Activity', icon: Activity }
     ];
@@ -47,19 +47,19 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose
         try {
             // Parallel fetch for efficiency
             const [studentData, academicData, financialData, notesData] = await Promise.all([
-                studentApiService.getStudentByUUID(studentUuid!),
-                studentApiService.getStudentAcademicHistory(studentUuid!),
-                studentApiService.getStudentFinancialHistory(studentUuid!),
-                studentApiService.getStudentNotes(studentUuid!)
+                studentApiService.getStudentByUUID(String(studentUuid!)),
+                studentApiService.getStudentAcademicHistory(String(studentUuid!)),
+                studentApiService.getStudentFinancialHistory(String(studentUuid!)),
+                studentApiService.getStudentNotes(String(studentUuid!))
             ]);
 
-            setStudent(studentData.data);
-            setAcademicHistory(academicData.data || []);
-            setFinancialHistory(financialData.data || []);
-            setNotes(notesData.data || []);
-            
+            setStudent((studentData as any).data);
+            setAcademicHistory((academicData as any).data || []);
+            setFinancialHistory((financialData as any).data || []);
+            setNotes((notesData as any).data || []);
+
             // Mock documents for now as the API might not be fully ready or empty
-            setDocuments([]); 
+            setDocuments([]);
         } catch (error) {
             console.error('Error fetching student data:', error);
             showError('Failed to load student data');
@@ -71,7 +71,7 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose
     const handleAddNote = async () => {
         if (!newNote.trim() || !studentUuid) return;
         try {
-            await studentApiService.addStudentNote(studentUuid, newNote);
+            await studentApiService.addStudentNote(String(studentUuid), newNote);
             setNotes(prev => [...prev, {
                 id: Date.now(),
                 note: newNote,
@@ -106,7 +106,7 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose
                                 {student ? `${student.first_name} ${student.last_name}` : 'Loading...'}
                             </h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                                {student?.student_number || 'ID: ...'} • {student?.program || 'Program'}
+                                {student?.student_number || student?.student_id_number || 'ID: N/A'} • {student?.program || student?.course || 'Program N/A'}
                             </p>
                         </div>
                     </div>
@@ -134,11 +134,10 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                                    activeTab === tab.id
-                                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700/50'
-                                }`}
+                                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
+                                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700/50'
+                                    }`}
                             >
                                 <tab.icon className="w-4 h-4" />
                                 <span>{tab.label}</span>
@@ -187,21 +186,19 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose
                                                     <div className="space-y-4">
                                                         <div className="flex justify-between items-center">
                                                             <span className="text-gray-600 dark:text-gray-400">Enrollment Status</span>
-                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                                student?.status === 'active' 
-                                                                    ? 'bg-green-100 text-green-700' 
-                                                                    : 'bg-gray-100 text-gray-700'
-                                                            }`}>
+                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${student?.status === 'active'
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : 'bg-gray-100 text-gray-700'
+                                                                }`}>
                                                                 {student?.status?.toUpperCase()}
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between items-center">
                                                             <span className="text-gray-600 dark:text-gray-400">Scholarship</span>
-                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                                student?.scholarship_status === 'scholar'
-                                                                    ? 'bg-blue-100 text-blue-700'
-                                                                    : 'bg-orange-100 text-orange-700'
-                                                            }`}>
+                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${student?.scholarship_status === 'scholar'
+                                                                ? 'bg-blue-100 text-blue-700'
+                                                                : 'bg-orange-100 text-orange-700'
+                                                                }`}>
                                                                 {student?.scholarship_status?.toUpperCase()}
                                                             </span>
                                                         </div>
@@ -270,13 +267,13 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {/* Placeholders for other tabs */}
                                     {(activeTab === 'scholarship' || activeTab === 'financial' || activeTab === 'documents') && (
                                         <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                                             <div className="p-4 bg-gray-100 dark:bg-slate-800 rounded-full mb-4">
                                                 {activeTab === 'scholarship' && <Award className="w-8 h-8" />}
-                                                {activeTab === 'financial' && <DollarSign className="w-8 h-8" />}
+                                                {activeTab === 'financial' && <PhilippinePeso className="w-8 h-8" />}
                                                 {activeTab === 'documents' && <FileText className="w-8 h-8" />}
                                             </div>
                                             <p>No {activeTab} information available yet.</p>

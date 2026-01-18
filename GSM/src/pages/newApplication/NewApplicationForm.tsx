@@ -108,7 +108,7 @@ export const NewApplicationForm: React.FC = () => {
       presentAddress: '',
       barangay: '',
       district: '',
-      city: 'QUEZON CITY',
+      city: 'CALOOCAN CITY',
       zipCode: '',
       contactNumber: '',
       emailAddress: '',
@@ -157,6 +157,7 @@ export const NewApplicationForm: React.FC = () => {
       isRegisteredVoter: '',
       voterNationality: '',
       paymentMethod: '',
+      bankName: '',
       accountNumber: '',
       preferredMobileNumber: '',
 
@@ -252,6 +253,11 @@ export const NewApplicationForm: React.FC = () => {
       // Add accountNumber if payment method is not Cash
       if (currentPaymentMethod && currentPaymentMethod !== 'Cash') {
         fieldsToValidate = [...fieldsToValidate, 'accountNumber'];
+
+        // Add bankName if payment method is Bank Transfer
+        if (currentPaymentMethod === 'Bank Transfer') {
+          fieldsToValidate = [...fieldsToValidate, 'bankName'];
+        }
       }
 
       // Add student occupation and income if employed
@@ -625,6 +631,7 @@ export const NewApplicationForm: React.FC = () => {
         isRegisteredVoter: existingApplication.student?.is_registered_voter ? 'yes' : 'no',
         voterNationality: existingApplication.student?.voter_nationality || '',
         paymentMethod: existingApplication.digital_wallets && existingApplication.digital_wallets.length > 0 ? existingApplication.digital_wallets[0] : '',
+        bankName: '',
         accountNumber: existingApplication.wallet_account_number || '',
         hasPayMayaAccount: existingApplication.student?.has_paymaya_account ? 'yes' : 'no',
         preferredMobileNumber: existingApplication.student?.preferred_mobile_number || '',
@@ -2627,7 +2634,7 @@ export const NewApplicationForm: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Are you a registered voter in Quezon City? *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Are you a registered voter in Caloocan City? *</label>
                     <Controller
                       name="isRegisteredVoter"
                       control={control}
@@ -2710,6 +2717,35 @@ export const NewApplicationForm: React.FC = () => {
                     />
                     {errors.paymentMethod && <p className="mt-1 text-sm text-red-600">{String(errors.paymentMethod.message)}</p>}
                   </div>
+
+                  {paymentMethod === 'Bank Transfer' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
+                      <Controller
+                        name="bankName"
+                        control={control}
+                        rules={{ required: 'Bank Name is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            <option value="">Select Bank</option>
+                            <option value="BDO">BDO</option>
+                            <option value="BPI">BPI</option>
+                            <option value="Metrobank">Metrobank</option>
+                            <option value="Landbank">Landbank</option>
+                            <option value="PNB">PNB</option>
+                            <option value="RCBC">RCBC</option>
+                            <option value="Unionbank">Unionbank</option>
+                            <option value="Chinabank">Chinabank</option>
+                            <option value="Others">Others</option>
+                          </select>
+                        )}
+                      />
+                      {errors.bankName && <p className="mt-1 text-sm text-red-600">{String(errors.bankName.message)}</p>}
+                    </div>
+                  )}
 
                   {paymentMethod && paymentMethod !== 'Cash' && (
                     <div>
@@ -3130,6 +3166,26 @@ export const NewApplicationForm: React.FC = () => {
                         )}
                       />
                       {errors.schoolYear && <p className="mt-1 text-sm text-red-600">{String(errors.schoolYear.message)}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Are you a Graduating Student? *</label>
+                      <Controller
+                        name="isGraduating"
+                        control={control}
+                        rules={{ required: 'Graduating student status is required' }}
+                        render={({ field }) => (
+                          <select
+                            {...field}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            <option value="">Select Option</option>
+                            <option value="yes">YES</option>
+                            <option value="no">NO</option>
+                          </select>
+                        )}
+                      />
+                      {errors.isGraduating && <p className="mt-1 text-sm text-red-600">{String(errors.isGraduating.message)}</p>}
                     </div>
 
                     <div>

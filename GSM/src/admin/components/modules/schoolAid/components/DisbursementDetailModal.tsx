@@ -3,7 +3,7 @@ import {
   X, 
   User, 
   School, 
-  DollarSign, 
+  PhilippinePeso, 
   Calendar,
   FileText,
   CheckCircle,
@@ -111,7 +111,7 @@ const DisbursementDetailModal = ({ disbursement, onClose }) => {
                 value={disbursement.scholarshipType || 'N/A'}
               />
               <InfoRow
-                icon={DollarSign}
+                icon={PhilippinePeso}
                 label="Amount"
                 value={formatCurrency(disbursement.amount)}
                 highlight={true}

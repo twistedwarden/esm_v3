@@ -131,6 +131,7 @@ class ScholarshipApplicationController extends Controller
             'marginalized_groups' => 'nullable|array',
             'digital_wallets' => 'nullable|array',
             'wallet_account_number' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:100',
             'how_did_you_know' => 'nullable|array',
             'is_school_at_caloocan' => 'boolean',
 
@@ -185,6 +186,7 @@ class ScholarshipApplicationController extends Controller
                 'marginalized_groups',
                 'digital_wallets',
                 'wallet_account_number',
+                'bank_name',
                 'how_did_you_know',
                 'is_school_at_caloocan'
             ]);
@@ -258,6 +260,25 @@ class ScholarshipApplicationController extends Controller
                 ]);
             }
 
+            // Audit log
+            $authUser = $request->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+            AuditLogService::logAction(
+                'scholarship_application',
+                $application->id,
+                'created',
+                "Scholarship application #{$application->application_number} created",
+                $userId,
+                [
+                    'type' => $application->type,
+                    'category_id' => $application->category_id,
+                    'subcategory_id' => $application->subcategory_id,
+                    'student_id' => $application->student_id,
+                    'school_id' => $application->school_id,
+                    'requested_amount' => $application->requested_amount
+                ]
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application created successfully',
@@ -315,6 +336,7 @@ class ScholarshipApplicationController extends Controller
             'marginalized_groups' => 'nullable|array',
             'digital_wallets' => 'nullable|array',
             'wallet_account_number' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:100',
             'how_did_you_know' => 'nullable|array',
             'is_school_at_caloocan' => 'boolean',
             'notes' => 'nullable|string',
@@ -354,6 +376,7 @@ class ScholarshipApplicationController extends Controller
                 'marginalized_groups',
                 'digital_wallets',
                 'wallet_account_number',
+                'bank_name',
                 'how_did_you_know',
                 'is_school_at_qc',
                 'notes'
@@ -414,6 +437,21 @@ class ScholarshipApplicationController extends Controller
 
             $application->load(['student', 'category', 'subcategory', 'school']);
 
+            // Audit log
+            $authUser = $request->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+            AuditLogService::logAction(
+                'scholarship_application',
+                $application->id,
+                'updated',
+                "Scholarship application #{$application->application_number} updated",
+                $userId,
+                [
+                    'updated_fields' => array_keys($updateData),
+                    'academic_record_updated' => $request->has('academic_record')
+                ]
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application updated successfully',
@@ -442,7 +480,24 @@ class ScholarshipApplicationController extends Controller
         }
 
         try {
+            $authUser = $request->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+
             $application->submit();
+
+            // Audit log
+            AuditLogService::logAction(
+                'scholarship_application',
+                $application->id,
+                'submitted',
+                "Scholarship application #{$application->application_number} submitted for review",
+                $userId,
+                [
+                    'previous_status' => 'draft',
+                    'new_status' => 'submitted',
+                    'type' => $application->type
+                ]
+            );
 
             return response()->json([
                 'success' => true,
@@ -495,6 +550,21 @@ class ScholarshipApplicationController extends Controller
                 $approvedBy
             );
 
+            // Audit log
+            AuditLogService::logAction(
+                'scholarship_application',
+                $application->id,
+                'approved',
+                "Scholarship application #{$application->application_number} approved with amount: ₱" . number_format($request->approved_amount, 2),
+                $approvedBy,
+                [
+                    'approved_amount' => $request->approved_amount,
+                    'notes' => $request->notes,
+                    'previous_status' => 'endorsed_to_ssc',
+                    'new_status' => 'approved'
+                ]
+            );
+
             DB::commit();
 
             return response()->json([
@@ -545,6 +615,20 @@ class ScholarshipApplicationController extends Controller
             $application->reject(
                 $request->rejection_reason,
                 $reviewedBy
+            );
+
+            // Audit log
+            AuditLogService::logAction(
+                'scholarship_application',
+                $application->id,
+                'rejected',
+                "Scholarship application #{$application->application_number} rejected",
+                $reviewedBy,
+                [
+                    'rejection_reason' => $request->rejection_reason,
+                    'previous_status' => $application->getOriginal('status'),
+                    'new_status' => 'rejected'
+                ]
             );
 
             DB::commit();
@@ -751,6 +835,25 @@ class ScholarshipApplicationController extends Controller
         }
 
         try {
+            $authUser = request()->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+            $appNumber = $application->application_number;
+            $appId = $application->id;
+
+            // Audit log before deletion
+            AuditLogService::logAction(
+                'scholarship_application',
+                $appId,
+                'deleted',
+                "Scholarship application #{$appNumber} deleted",
+                $userId,
+                [
+                    'status' => $application->status,
+                    'student_id' => $application->student_id,
+                    'type' => $application->type
+                ]
+            );
+
             $application->delete();
 
             return response()->json([
@@ -792,6 +895,20 @@ class ScholarshipApplicationController extends Controller
                 $application->flagForCompliance(
                     $request->reason,
                     $flaggedBy
+                );
+
+                // Audit log
+                AuditLogService::logAction(
+                    'scholarship_application',
+                    $application->id,
+                    'flagged_for_compliance',
+                    "Scholarship application #{$application->application_number} flagged for compliance",
+                    $flaggedBy,
+                    [
+                        'reason' => $request->reason,
+                        'previous_status' => $application->getOriginal('status'),
+                        'new_status' => 'for_compliance'
+                    ]
                 );
 
                 DB::commit();
@@ -1674,6 +1791,21 @@ class ScholarshipApplicationController extends Controller
                 'changed_at' => now(),
             ]);
 
+            // Audit log
+            AuditLogService::logAction(
+                'scholarship_application',
+                $application->id,
+                'ssc_approved',
+                "Scholarship application #{$application->application_number} approved by SSC with amount: ₱" . number_format($request->approved_amount, 2),
+                $approvedBy,
+                [
+                    'approved_amount' => $request->approved_amount,
+                    'notes' => $request->notes,
+                    'previous_status' => 'endorsed_to_ssc',
+                    'new_status' => 'approved'
+                ]
+            );
+
             DB::commit();
 
             return response()->json([
@@ -1755,6 +1887,20 @@ class ScholarshipApplicationController extends Controller
                 'changed_by' => $reviewedBy,
                 'changed_at' => now(),
             ]);
+
+            // Audit log
+            AuditLogService::logAction(
+                'scholarship_application',
+                $application->id,
+                'ssc_rejected',
+                "Scholarship application #{$application->application_number} rejected by SSC",
+                $reviewedBy,
+                [
+                    'rejection_reason' => $request->rejection_reason,
+                    'previous_status' => 'endorsed_to_ssc',
+                    'new_status' => 'rejected'
+                ]
+            );
 
             DB::commit();
 

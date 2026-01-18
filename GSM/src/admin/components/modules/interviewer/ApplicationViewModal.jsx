@@ -3,7 +3,7 @@ import {
   X, 
   User, 
   GraduationCap, 
-  DollarSign, 
+  PhilippinePeso, 
   FileText,
   MapPin,
   Phone,
@@ -31,7 +31,7 @@ function ApplicationViewModal({ isOpen, onClose, application }) {
   const tabs = [
     { id: 'personal', label: 'Personal Info', icon: User },
     { id: 'academic', label: 'Academic Records', icon: GraduationCap },
-    { id: 'financial', label: 'Financial Info', icon: DollarSign },
+    { id: 'financial', label: 'Financial Info', icon: PhilippinePeso },
     { id: 'documents', label: 'Documents', icon: FileText }
   ];
 
@@ -214,7 +214,7 @@ function ApplicationViewModal({ isOpen, onClose, application }) {
       {student?.financial_information && (
         <div className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-4">
           <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-            <DollarSign className="w-4 h-4 mr-2" />
+            <PhilippinePeso className="w-4 h-4 mr-2" />
             Financial Information
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

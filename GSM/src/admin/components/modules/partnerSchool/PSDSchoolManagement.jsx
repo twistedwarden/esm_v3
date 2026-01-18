@@ -2,7 +2,8 @@ import React from 'react';
 import { School as SchoolIcon, Plus, Search, Filter, Edit, Trash2, Eye, MapPin, Users, Phone, Mail, Globe, Building, CheckCircle, XCircle, AlertCircle, Grid3X3, List, CheckSquare, Square } from 'lucide-react';
 import AddSchoolModal from './AddSchoolModal';
 import BulkDeleteModal from './BulkDeleteModal';
-import { getSchools, deleteSchool } from '../../../../services/schoolService';
+import { getSchools, deleteSchool, getSchoolById } from '../../../../services/schoolService';
+import { API_CONFIG } from '../../../../config/api';
 
 function PSDSchoolManagement() {
     const [searchTerm, setSearchTerm] = React.useState('');
@@ -19,6 +20,10 @@ function PSDSchoolManagement() {
     const [showBulkDeleteModal, setShowBulkDeleteModal] = React.useState(false);
     const [isBulkDeleting, setIsBulkDeleting] = React.useState(false);
 
+    // New state for detailed view
+    const [schoolDetails, setSchoolDetails] = React.useState(null);
+    const [detailsLoading, setDetailsLoading] = React.useState(false);
+
     // Fetch schools from API
     const fetchSchools = async () => {
         setLoading(true);
@@ -29,7 +34,7 @@ function PSDSchoolManagement() {
                 is_active: filterStatus === 'all' ? undefined : filterStatus === 'active',
                 is_partner_school: true
             });
-            
+
             if (response.success) {
                 setSchools(response.data.data || []);
             } else {
@@ -46,6 +51,25 @@ function PSDSchoolManagement() {
     React.useEffect(() => {
         fetchSchools();
     }, [searchTerm, filterStatus]);
+
+    // Handle view details
+    const handleViewDetails = async (school) => {
+        setSelectedSchool(school);
+        setShowViewModal(true);
+        setSchoolDetails(null);
+        setDetailsLoading(true);
+
+        try {
+            const response = await getSchoolById(school.id);
+            if (response.success) {
+                setSchoolDetails(response.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch school details:', err);
+        } finally {
+            setDetailsLoading(false);
+        }
+    };
 
     // Handle successful school creation
     const handleSchoolCreated = (newSchool) => {
@@ -72,8 +96,8 @@ function PSDSchoolManagement() {
 
     // Handle bulk selection
     const handleSelectSchool = (schoolId) => {
-        setSelectedSchools(prev => 
-            prev.includes(schoolId) 
+        setSelectedSchools(prev =>
+            prev.includes(schoolId)
                 ? prev.filter(id => id !== schoolId)
                 : [...prev, schoolId]
         );
@@ -93,17 +117,17 @@ function PSDSchoolManagement() {
         try {
             const deletePromises = selectedSchools.map(schoolId => deleteSchool(schoolId));
             const results = await Promise.allSettled(deletePromises);
-            
+
             const successful = results.filter(result => result.status === 'fulfilled' && result.value.success);
             const failed = results.filter(result => result.status === 'rejected' || !result.value.success);
-            
+
             if (successful.length > 0) {
                 setSchools(prev => prev.filter(school => !selectedSchools.includes(school.id)));
                 setSelectedSchools([]);
                 setShowBulkDeleteModal(false);
                 alert(`Successfully deleted ${successful.length} school${successful.length !== 1 ? 's' : ''}`);
             }
-            
+
             if (failed.length > 0) {
                 alert(`Failed to delete ${failed.length} school${failed.length !== 1 ? 's' : ''}`);
             }
@@ -142,28 +166,26 @@ function PSDSchoolManagement() {
                             <div className="flex items-center bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
                                 <button
                                     onClick={() => setViewMode('table')}
-                                    className={`p-2 rounded-md transition-colors ${
-                                        viewMode === 'table' 
-                                            ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm' 
-                                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
-                                    }`}
+                                    className={`p-2 rounded-md transition-colors ${viewMode === 'table'
+                                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
+                                        : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+                                        }`}
                                     title="Table View"
                                 >
                                     <List className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={() => setViewMode('grid')}
-                                    className={`p-2 rounded-md transition-colors ${
-                                        viewMode === 'grid' 
-                                            ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm' 
-                                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
-                                    }`}
+                                    className={`p-2 rounded-md transition-colors ${viewMode === 'grid'
+                                        ? 'bg-white dark:bg-slate-600 text-gray-900 dark:text-white shadow-sm'
+                                        : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+                                        }`}
                                     title="Grid View"
                                 >
                                     <Grid3X3 className="w-4 h-4" />
                                 </button>
                             </div>
-                            
+
                             {/* Bulk Actions */}
                             {selectedSchools.length > 0 && (
                                 <div className="flex items-center space-x-2">
@@ -179,8 +201,8 @@ function PSDSchoolManagement() {
                                     </button>
                                 </div>
                             )}
-                            
-                            <button 
+
+                            <button
                                 onClick={() => setShowAddModal(true)}
                                 className="inline-flex items-center justify-center px-3 py-2 sm:px-4 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors shadow-sm hover:shadow-md text-sm sm:text-base w-full sm:w-auto"
                             >
@@ -338,17 +360,14 @@ function PSDSchoolManagement() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div className="flex space-x-2">
-                                                    <button 
-                                                        onClick={() => {
-                                                            setSelectedSchool(school);
-                                                            setShowViewModal(true);
-                                                        }}
+                                                    <button
+                                                        onClick={() => handleViewDetails(school)}
                                                         className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                                                         title="View Details"
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => {
                                                             setSelectedSchool(school);
                                                             setShowEditModal(true);
@@ -358,7 +377,7 @@ function PSDSchoolManagement() {
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleDeleteSchool(school.id)}
                                                         className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                                         title="Delete School"
@@ -390,17 +409,14 @@ function PSDSchoolManagement() {
                                                 )}
                                             </button>
                                             <div className="flex space-x-1">
-                                                <button 
-                                                    onClick={() => {
-                                                        setSelectedSchool(school);
-                                                        setShowViewModal(true);
-                                                    }}
+                                                <button
+                                                    onClick={() => handleViewDetails(school)}
                                                     className="p-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                                                     title="View Details"
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => {
                                                         setSelectedSchool(school);
                                                         setShowEditModal(true);
@@ -410,7 +426,7 @@ function PSDSchoolManagement() {
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDeleteSchool(school.id)}
                                                     className="p-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                                     title="Delete School"
@@ -419,7 +435,7 @@ function PSDSchoolManagement() {
                                                 </button>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex items-center mb-3">
                                             <div className="h-12 w-12 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center mr-3">
                                                 <SchoolIcon className="h-6 w-6 text-orange-600 dark:text-orange-400" />
@@ -431,7 +447,7 @@ function PSDSchoolManagement() {
                                                 )}
                                             </div>
                                         </div>
-                                        
+
                                         <div className="space-y-2">
                                             <div className="text-xs text-gray-600 dark:text-slate-400">
                                                 <span className="font-medium">Type:</span> {school.classification}
@@ -445,7 +461,7 @@ function PSDSchoolManagement() {
                                                 {school.contact_number || 'No phone'}
                                             </div>
                                         </div>
-                                        
+
                                         <div className="mt-3 flex flex-wrap gap-1">
                                             {school.is_public && (
                                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
@@ -503,8 +519,8 @@ function PSDSchoolManagement() {
                         <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4">
                             <div className="flex justify-between items-center">
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">School Details</h2>
-                                <button 
-                                    onClick={() => setShowViewModal(false)} 
+                                <button
+                                    onClick={() => setShowViewModal(false)}
                                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                                 >
                                     ×
@@ -525,7 +541,7 @@ function PSDSchoolManagement() {
                                         )}
                                     </div>
                                 </div>
-                                
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Contact Information</h4>
@@ -544,7 +560,7 @@ function PSDSchoolManagement() {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div>
                                         <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Location</h4>
                                         <div className="space-y-2">
@@ -563,7 +579,7 @@ function PSDSchoolManagement() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-lg">
                                         <div className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -577,7 +593,7 @@ function PSDSchoolManagement() {
                                         </div>
                                         <div className="text-sm text-gray-600 dark:text-slate-400">Partner School</div>
                                     </div>
-                                        </div>
+                                </div>
 
                                 <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-lg">
                                     <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">School Properties</h4>
@@ -598,6 +614,59 @@ function PSDSchoolManagement() {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Verification Documents Section */}
+                                {detailsLoading ? (
+                                    <div className="flex justify-center p-4">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
+                                    </div>
+                                ) : schoolDetails?.verification_documents?.length > 0 ? (
+                                    <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                                        <div className="px-4 py-3 bg-gray-50 dark:bg-slate-700 border-b border-gray-200 dark:border-slate-600">
+                                            <h4 className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
+                                                <List className="w-4 h-4 mr-2" />
+                                                Verification Documents
+                                            </h4>
+                                        </div>
+                                        <div className="divide-y divide-gray-200 dark:divide-slate-700">
+                                            {schoolDetails.verification_documents.map((doc) => (
+                                                <div key={doc.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between">
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <List className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-900 dark:text-white">{doc.document_name}</p>
+                                                            <p className="text-xs text-gray-500 dark:text-slate-400">{doc.document_type}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center space-x-4">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${doc.verification_status === 'verified'
+                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                                            : doc.verification_status === 'rejected'
+                                                                ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                                                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                                                            }`}>
+                                                            {doc.verification_status.charAt(0).toUpperCase() + doc.verification_status.slice(1)}
+                                                        </span>
+                                                        <a
+                                                            href={`${API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL}/storage/${doc.file_path}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium hover:underline"
+                                                        >
+                                                            View
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                                        <p className="text-sm text-gray-500 dark:text-slate-400">No verification documents found.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

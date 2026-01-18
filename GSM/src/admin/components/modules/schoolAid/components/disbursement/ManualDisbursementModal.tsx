@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, DollarSign, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { X, Upload, PhilippinePeso, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { ScholarshipApplication } from '../../types';
 
 interface ManualDisbursementModalProps {
@@ -152,7 +152,7 @@ const ManualDisbursementModal: React.FC<ManualDisbursementModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
               <div className="flex items-center text-blue-900 dark:text-blue-100 mb-1">
-                <DollarSign className="w-4 h-4 mr-2" />
+                <PhilippinePeso className="w-4 h-4 mr-2" />
                 <span className="text-sm font-medium">Disbursement Amount</span>
               </div>
               <span className="text-xl font-bold text-blue-700 dark:text-blue-300">
