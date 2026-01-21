@@ -12,6 +12,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PartnerSchoolController extends Controller
 {
@@ -21,7 +23,7 @@ class PartnerSchoolController extends Controller
     public function updateSchoolInfo(Request $request): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -113,7 +115,7 @@ class PartnerSchoolController extends Controller
     public function getSchoolInfo(Request $request): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -144,7 +146,7 @@ class PartnerSchoolController extends Controller
             }
 
             $school = $representative->school;
-            
+
             Log::info('Partner school info requested', [
                 'citizen_id' => $authUser['citizen_id'],
                 'school_id' => $school->id,
@@ -197,7 +199,7 @@ class PartnerSchoolController extends Controller
     public function getStats(Request $request): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -281,7 +283,7 @@ class PartnerSchoolController extends Controller
     public function getStudents(Request $request): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -314,58 +316,58 @@ class PartnerSchoolController extends Controller
             $schoolId = $representative->school_id;
 
             // Get students who have applications for this school OR enrollment data
-            $query = Student::where(function($q) use ($schoolId) {
-                $q->whereHas('scholarshipApplications', function($subQ) use ($schoolId) {
+            $query = Student::where(function ($q) use ($schoolId) {
+                $q->whereHas('scholarshipApplications', function ($subQ) use ($schoolId) {
                     $subQ->where('school_id', $schoolId);
-                })->orWhereHas('enrollmentData', function($subQ) use ($schoolId) {
+                })->orWhereHas('enrollmentData', function ($subQ) use ($schoolId) {
                     $subQ->where('school_id', $schoolId);
                 });
             })->with([
-                'currentAcademicRecord', 
-                'scholarshipApplications' => function($q) use ($schoolId) {
-                    $q->where('school_id', $schoolId);
-                },
-                'enrollmentData' => function($q) use ($schoolId) {
-                    $q->where('school_id', $schoolId);
-                }
-            ]);
+                        'currentAcademicRecord',
+                        'scholarshipApplications' => function ($q) use ($schoolId) {
+                            $q->where('school_id', $schoolId);
+                        },
+                        'enrollmentData' => function ($q) use ($schoolId) {
+                            $q->where('school_id', $schoolId);
+                        }
+                    ]);
 
             // Apply search filter
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('student_id_number', 'like', "%{$search}%")
-                      ->orWhereHas('enrollmentData', function($subQ) use ($search) {
-                          $subQ->where('first_name', 'like', "%{$search}%")
-                               ->orWhere('last_name', 'like', "%{$search}%")
-                               ->orWhere('student_id_number', 'like', "%{$search}%");
-                      });
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('student_id_number', 'like', "%{$search}%")
+                        ->orWhereHas('enrollmentData', function ($subQ) use ($search) {
+                            $subQ->where('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere('student_id_number', 'like', "%{$search}%");
+                        });
                 });
             }
 
             // Apply status filter
             if ($request->has('status') && $request->status !== 'all') {
-                $query->where(function($q) use ($schoolId, $request) {
-                    $q->whereHas('scholarshipApplications', function($subQ) use ($schoolId, $request) {
+                $query->where(function ($q) use ($schoolId, $request) {
+                    $q->whereHas('scholarshipApplications', function ($subQ) use ($schoolId, $request) {
                         $subQ->where('school_id', $schoolId)
-                             ->where('status', $request->status);
-                    })->orWhereHas('enrollmentData', function($subQ) use ($schoolId, $request) {
+                            ->where('status', $request->status);
+                    })->orWhereHas('enrollmentData', function ($subQ) use ($schoolId, $request) {
                         // For enrollment data, map status to enrollment status
                         if ($request->status === 'active') {
                             $subQ->where('school_id', $schoolId)
-                                 ->where('is_currently_enrolled', true);
+                                ->where('is_currently_enrolled', true);
                         } elseif ($request->status === 'inactive') {
                             $subQ->where('school_id', $schoolId)
-                                 ->where('is_currently_enrolled', false);
+                                ->where('is_currently_enrolled', false);
                         }
                     });
                 });
             }
 
             $students = $query->orderBy('created_at', 'desc')
-                            ->paginate($request->get('per_page', 15));
+                ->paginate($request->get('per_page', 15));
 
             Log::info('Partner school students requested', [
                 'citizen_id' => $authUser['citizen_id'],
@@ -373,7 +375,7 @@ class PartnerSchoolController extends Controller
                 'total_students' => $students->total(),
                 'students_data' => $students->items()
             ]);
-            
+
             // Debug each student's enrollment data
             foreach ($students->items() as $student) {
                 Log::info('Student enrollment data debug', [
@@ -408,7 +410,7 @@ class PartnerSchoolController extends Controller
     public function getApplicationsForVerification(Request $request): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -448,7 +450,7 @@ class PartnerSchoolController extends Controller
             if ($request->has('status') && $request->status !== 'all') {
                 if ($request->status === 'needs_verification') {
                     // Show students who need enrollment verification (is_currently_enrolled = false)
-                    $query->whereHas('student', function($q) {
+                    $query->whereHas('student', function ($q) {
                         $q->where('is_currently_enrolled', false);
                     });
                 } else {
@@ -459,26 +461,26 @@ class PartnerSchoolController extends Controller
             // Apply search filter
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
-                $query->whereHas('student', function($q) use ($search) {
+                $query->whereHas('student', function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('student_id_number', 'like', "%{$search}%");
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('student_id_number', 'like', "%{$search}%");
                 });
             }
 
             $applications = $query->orderBy('created_at', 'desc')
-                                ->paginate($request->get('per_page', 15));
+                ->paginate($request->get('per_page', 15));
 
             // Transform data for frontend
-            $transformedApplications = $applications->map(function($app) {
+            $transformedApplications = $applications->map(function ($app) {
                 $student = $app->student;
                 $academicRecord = $student->currentAcademicRecord;
-                
+
                 // Determine verification status based on enrollment claim and academic record
                 $verificationStatus = 'unknown';
                 $verificationMessage = 'Status Unknown';
                 $verificationColor = 'gray';
-                
+
                 if (!$student->is_currently_enrolled && $academicRecord !== null) {
                     $verificationStatus = 'needs_verification';
                     $verificationMessage = '⚠ Needs Enrollment Verification';
@@ -496,7 +498,7 @@ class PartnerSchoolController extends Controller
                     $verificationMessage = 'Not Enrolled';
                     $verificationColor = 'gray';
                 }
-                
+
                 return [
                     'id' => $app->id,
                     'applicationNumber' => "APP-{$app->id}",
@@ -555,7 +557,7 @@ class PartnerSchoolController extends Controller
     public function getVerificationStats(Request $request): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -597,7 +599,7 @@ class PartnerSchoolController extends Controller
                 ->where('status', 'rejected')->count();
 
             // Calculate verification rate
-            $verificationRate = $totalApplications > 0 ? 
+            $verificationRate = $totalApplications > 0 ?
                 round((($verifiedApplications + $rejectedApplications) / $totalApplications) * 100, 1) : 0;
 
             // Get recent activity (last 7 days)
@@ -656,7 +658,7 @@ class PartnerSchoolController extends Controller
     public function updateEnrollmentStatus(Request $request, $studentId): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -695,7 +697,7 @@ class PartnerSchoolController extends Controller
             ]);
 
             // Find the student and verify they belong to this school
-            $student = Student::whereHas('scholarshipApplications', function($q) use ($schoolId) {
+            $student = Student::whereHas('scholarshipApplications', function ($q) use ($schoolId) {
                 $q->where('school_id', $schoolId);
             })->find($studentId);
 
@@ -762,7 +764,7 @@ class PartnerSchoolController extends Controller
     public function verifyApplication(Request $request, $applicationId): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -852,7 +854,7 @@ class PartnerSchoolController extends Controller
     public function uploadEnrollmentData(Request $request): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -900,7 +902,7 @@ class PartnerSchoolController extends Controller
 
             $csvData = $request->csv_data;
             $updateMode = $request->update_mode;
-            
+
             Log::info('Starting enrollment data upload', [
                 'citizen_id' => $authUser['citizen_id'],
                 'school_id' => $schoolId,
@@ -1061,7 +1063,7 @@ class PartnerSchoolController extends Controller
     public function getEnrollmentData(Request $request): JsonResponse
     {
         $authUser = $request->get('auth_user');
-        
+
         // Verify this is a partner school representative
         if (!$authUser || !isset($authUser['role']) || $authUser['role'] !== 'ps_rep') {
             return response()->json([
@@ -1099,10 +1101,10 @@ class PartnerSchoolController extends Controller
             // Apply search filter
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('student_id_number', 'like', "%{$search}%");
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('student_id_number', 'like', "%{$search}%");
                 });
             }
 
@@ -1126,7 +1128,7 @@ class PartnerSchoolController extends Controller
             }
 
             $enrollmentData = $query->orderBy('uploaded_at', 'desc')
-                                  ->paginate($request->get('per_page', 15));
+                ->paginate($request->get('per_page', 15));
 
             Log::info('Enrollment data requested', [
                 'citizen_id' => $authUser['citizen_id'],
@@ -1159,7 +1161,7 @@ class PartnerSchoolController extends Controller
     {
         try {
             $authUser = $request->get('auth_user');
-            
+
             if (!$authUser || $authUser['role'] !== 'ps_rep') {
                 return response()->json([
                     'success' => false,
@@ -1201,7 +1203,7 @@ class PartnerSchoolController extends Controller
             try {
                 foreach ($csvData as $index => $row) {
                     try {
-                        FlexibleStudentData::createFromCSVRow($row, (int)$schoolId, $authUser['citizen_id'], (array)$headers);
+                        FlexibleStudentData::createFromCSVRow($row, (int) $schoolId, $authUser['citizen_id'], (array) $headers);
                         $processed++;
                     } catch (\Exception $e) {
                         $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
@@ -1243,7 +1245,7 @@ class PartnerSchoolController extends Controller
     {
         try {
             $authUser = $request->get('auth_user');
-            
+
             if (!$authUser || $authUser['role'] !== 'ps_rep') {
                 return response()->json([
                     'success' => false,
@@ -1281,6 +1283,43 @@ class PartnerSchoolController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch flexible students.'
+            ], 500);
+        }
+    }
+
+    /**
+     * View a partner school verification document
+     */
+    public function viewVerificationDocument($documentId): BinaryFileResponse|JsonResponse
+    {
+        try {
+            $document = \App\Models\PartnerSchoolVerificationDocument::findOrFail($documentId);
+
+            if (!Storage::disk('public')->exists($document->file_path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found'
+                ], 404);
+            }
+
+            $filePath = Storage::disk('public')->path($document->file_path);
+
+            // Set headers for inline viewing
+            $headers = [
+                'Content-Type' => $document->mime_type,
+                'Content-Disposition' => 'inline; filename="' . $document->file_name . '"',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ];
+
+            return response()->file($filePath, $headers);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to view document',
+                'error' => $e->getMessage()
             ], 500);
         }
     }

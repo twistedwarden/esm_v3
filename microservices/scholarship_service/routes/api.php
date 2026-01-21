@@ -647,6 +647,9 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
     Route::get('/download-moa', [PartnerSchoolApplicationController::class, 'downloadMOA']);
 });
 
+// Partner School Verification Documents (public access for viewing)
+Route::get('/partner-school-documents/{documentId}/view', [\App\Http\Controllers\PartnerSchoolController::class, 'viewVerificationDocument']);
+
 // Public guidelines viewing (no auth required)
 Route::prefix('partner-school')->group(function () {
     Route::get('/guidelines', [PartnerSchoolGuidelineController::class, 'index']);

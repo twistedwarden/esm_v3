@@ -650,7 +650,7 @@ function PSDSchoolManagement() {
                                                             {doc.verification_status.charAt(0).toUpperCase() + doc.verification_status.slice(1)}
                                                         </span>
                                                         <a
-                                                            href={`${API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL}/storage/${doc.file_path}`}
+                                                            href={`${API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL}/api/partner-school-documents/${doc.id}/view`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium hover:underline"
