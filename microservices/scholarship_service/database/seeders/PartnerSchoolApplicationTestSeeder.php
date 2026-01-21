@@ -77,9 +77,8 @@ class PartnerSchoolApplicationTestSeeder extends Seeder
             $fileName = $doc['filename_prefix'] . '_S' . $school->id . '.pdf';
             $filePath = 'partner_schools/documents/' . $fileName;
 
-            // Generate PDF content
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($doc['content']);
-            $content = $pdf->output();
+            // Generate PDF content directly without DomPDF to avoid timeout
+            $content = $this->generateSimplePDF($school, $doc);
 
             // Ensure directory exists
             \Illuminate\Support\Facades\Storage::disk('public')->put($filePath, $content);
@@ -105,5 +104,83 @@ class PartnerSchoolApplicationTestSeeder extends Seeder
                 'verified_at' => $verifiedAt,
             ]);
         }
+    }
+
+    /**
+     * Generate a simple PDF as fallback
+     */
+    private function generateSimplePDF($school, $doc): string
+    {
+        // Minimal PDF structure
+        $content = <<<PDF
+%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/Resources <<
+/Font <<
+/F1 <<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+>>
+>>
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 250
+>>
+stream
+BT
+/F1 16 Tf
+50 700 Td
+({$doc['document_type']}) Tj
+0 -30 Td
+/F1 12 Tf
+(School: {$school->name}) Tj
+0 -20 Td
+(Document: {$doc['document_name']}) Tj
+0 -20 Td
+(Generated: 2026-01-21) Tj
+0 -20 Td
+(This is a sample verification document.) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000317 00000 n
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+616
+%%EOF
+PDF;
+        return $content;
     }
 }

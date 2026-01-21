@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             DocumentTypeSeeder::class,
             PartnerSchoolGuidelinesSeeder::class, // Partner school guidelines
             PartnerSchoolRepresentativeSeeder::class, // Must run after SchoolSeeder
+            PartnerSchoolApplicationTestSeeder::class, // Generate verification documents for partner schools
                 // StaffSeederWithRealIds::class, // Use the seeder with real user IDs
             StaffSeeder::class, // Use the seeder with real user IDs
             SampleApplicationSeeder::class,
