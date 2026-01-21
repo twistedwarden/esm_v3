@@ -180,78 +180,166 @@ class GsmAuthController extends Controller
             ], 401);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        // Check if OTP is enabled in security settings
+        $otpSetting = \DB::table('security_settings')
+            ->where('setting_key', 'otp_enabled')
+            ->first();
 
-        // Get staff details for staff users
-        $staffData = null;
-        if ($user->role === 'staff') {
-            $staffData = $this->getStaffSystemRole($user->id);
+        $otpEnabled = $otpSetting && $otpSetting->setting_value === 'true';
+
+        // If OTP is disabled, return token directly
+        if (!$otpEnabled) {
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            // Get staff details for staff users
+            $staffData = null;
+            if ($user->role === 'staff') {
+                $staffData = $this->getStaffSystemRole($user->id);
+            }
+
+            $userData = [
+                'id' => $user->id,
+                'citizen_id' => $user->citizen_id,
+                'email' => $user->email,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'middle_name' => $user->middle_name,
+                'extension_name' => $user->extension_name,
+                'mobile' => $user->mobile,
+                'birthdate' => $user->birthdate,
+                'address' => $user->address,
+                'house_number' => $user->house_number,
+                'street' => $user->street,
+                'barangay' => $user->barangay,
+                'role' => $user->role,
+                'is_active' => $user->is_active,
+            ];
+
+            // Merge staff data if available
+            if ($staffData) {
+                $userData['system_role'] = $staffData['system_role'];
+                $userData['department'] = $staffData['department'];
+                $userData['position'] = $staffData['position'];
+            } else {
+                $userData['system_role'] = null;
+                $userData['department'] = null;
+                $userData['position'] = null;
+            }
+
+            // Record successful attempt and clear failures
+            $this->loginAttemptService->recordAttempt(
+                $user->email,
+                $request->ip(),
+                true,
+                $request->userAgent()
+            );
+            $this->loginAttemptService->clearLoginFailures($user->email);
+
+            AuditLogService::logAction(
+                'LOGIN',
+                'Login successful without OTP (GSM)',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'password',
+                    'channel' => 'gsm',
+                    'otp_enabled' => false,
+                ],
+                'success',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login successful',
+                'data' => [
+                    'user' => $userData,
+                    'token' => $token,
+                    'requires_otp' => false
+                ],
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ]);
         }
 
-        $userData = [
-            'id' => $user->id,
-            'citizen_id' => $user->citizen_id,
-            'email' => $user->email,
-            'first_name' => $user->first_name,
-            'last_name' => $user->last_name,
-            'middle_name' => $user->middle_name,
-            'extension_name' => $user->extension_name,
-            'mobile' => $user->mobile,
-            'birthdate' => $user->birthdate,
-            'address' => $user->address,
-            'house_number' => $user->house_number,
-            'street' => $user->street,
-            'barangay' => $user->barangay,
-            'role' => $user->role,
-            'is_active' => $user->is_active,
-        ];
+        // Successful password verification - Generate OTP
+        try {
+            $otp = OtpVerification::generateOtp($user->id, 'login');
+            $userName = trim($user->first_name . ' ' . $user->last_name);
 
-        // Merge staff data if available
-        if ($staffData) {
-            $userData['system_role'] = $staffData['system_role'];
-            $userData['department'] = $staffData['department'];
-            $userData['position'] = $staffData['position'];
-        } else {
-            $userData['system_role'] = null;
-            $userData['department'] = null;
-            $userData['position'] = null;
+            $this->brevoService->sendLoginOtpEmail(
+                $user->email,
+                $userName,
+                $otp->otp_code,
+                $otp->expires_at
+            );
+
+            // Record successful attempt and clear failures
+            $this->loginAttemptService->recordAttempt(
+                $user->email,
+                $request->ip(),
+                true,
+                $request->userAgent()
+            );
+            $this->loginAttemptService->clearLoginFailures($user->email);
+
+            AuditLogService::logAction(
+                'LOGIN',
+                'Password verified, OTP sent (GSM)',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'password',
+                    'channel' => 'gsm',
+                    'otp_sent' => true,
+                ],
+                'success',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP sent to your email',
+                'data' => [
+                    'requires_otp' => true,
+                    'email' => $user->email,
+                ],
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ]);
+        } catch (\Exception $e) {
+            AuditLogService::logAction(
+                'LOGIN',
+                'Failed to send OTP (GSM)',
+                'User',
+                (string) $user->id,
+                null,
+                null,
+                [
+                    'stage' => 'otp_generation',
+                    'channel' => 'gsm',
+                    'error' => $e->getMessage(),
+                ],
+                'failed',
+                $user->id,
+                $user->email,
+                $user->role
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP. Please try again.',
+                'data' => null,
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 500);
         }
-        // Record successful attempt and clear failures
-        $this->loginAttemptService->recordAttempt(
-            $user->email,
-            $request->ip(),
-            true,
-            $request->userAgent()
-        );
-        $this->loginAttemptService->clearLoginFailures($user->email);
 
-        AuditLogService::logAction(
-            'LOGIN',
-            'Login successful (GSM)',
-            'User',
-            (string) $user->id,
-            null,
-            null,
-            [
-                'stage' => 'password',
-                'channel' => 'gsm',
-            ],
-            'success',
-            $user->id,
-            $user->email,
-            $user->role
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful',
-            'data' => [
-                'user' => $userData,
-                'token' => $token,
-                'requires_otp' => false
-            ],
-            'timestamp' => now()->format('Y-m-d H:i:s'),
-        ]);
     }
 
     /**

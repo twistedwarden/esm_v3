@@ -52,6 +52,7 @@ class SecuritySettingsController extends Controller
             'login_lockout_duration' => 'required|integer|min:60|max:3600',
             'login_attempt_window' => 'required|integer|min:300|max:1800',
             'session_timeout_duration' => 'required|integer|min:60|max:86400',
+            'otp_enabled' => 'required|boolean',
         ]);
 
         try {

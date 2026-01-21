@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
                 // StaffSeederWithRealIds::class, // Use the seeder with real user IDs
             StaffSeeder::class, // Use the seeder with real user IDs
             SampleApplicationSeeder::class,
+            SampleDocumentSeeder::class, // Generate sample documents for applications
                 //EnrollmentVerificationSeeder::class, // Must run after SampleApplicationSeeder
             InterviewScheduleSeeder::class, // Must run after SampleApplicationSeeder
             SscMembersSeeder::class, // SSC member profiles (for reference)

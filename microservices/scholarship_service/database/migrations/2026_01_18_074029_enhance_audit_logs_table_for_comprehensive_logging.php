@@ -24,7 +24,11 @@ return new class extends Migration {
             // Enhanced tracking
             $table->json('before_data')->nullable()->after('old_values')->comment('Data before change (for updates)');
             $table->json('after_data')->nullable()->after('before_data')->comment('Data after change (for updates)');
-            $table->string('error_message')->nullable()->after('status')->comment('Error message if action failed');
+
+            // Only add error_message if it doesn't exist
+            if (!Schema::hasColumn('audit_logs', 'error_message')) {
+                $table->string('error_message')->nullable()->after('status')->comment('Error message if action failed');
+            }
         });
 
         // Add indexes for better query performance

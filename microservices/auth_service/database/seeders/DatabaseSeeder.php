@@ -13,12 +13,12 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
-            // StaffUserSeeder::class,
-            // CreateCitizenUser::class,
+            CitizenUsersSeeder::class, // Must run before scholarship service seeders
+                // StaffUserSeeder::class,
+                // CreateCitizenUser::class,
             PartnerSchoolSeeder::class,
             SscMembersSeeder::class,
             AdminUsersSeeder::class,
-            // CitizenUsersSeeder::class,
             PartnerSchoolRepsSeeder::class,
         ]);
     }

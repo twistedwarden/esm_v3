@@ -45,7 +45,7 @@ function InterviewSchedules() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    status: 'pending',
+    status: 'scheduled',
     interviewer: 'all',
     dateFrom: '',
     dateTo: ''
@@ -129,8 +129,7 @@ function InterviewSchedules() {
     fetchStaffMembers();
   }, [activeTab, pagination.currentPage, pagination.perPage, filters, searchTerm]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchSchedules = async () => {
     try {
       const params = {
         page: pagination.currentPage,
@@ -141,23 +140,34 @@ function InterviewSchedules() {
       // Basic search param
       if (searchTerm) params.search = searchTerm;
 
-      let resp;
+      const resp = await scholarshipApiService.getInterviewSchedules(params);
+      const rawData = Array.isArray(resp.data) ? resp.data : (Array.isArray(resp) ? resp : []);
 
-      if (activeTab === 'scheduled') {
-        resp = await scholarshipApiService.getInterviewSchedules(params);
-        setSchedules(Array.isArray(resp.data) ? resp.data : (Array.isArray(resp) ? resp : []));
-      } else {
-        // For 'pending', we fetch applications with status 'documents_reviewed'
-        resp = await scholarshipApiService.getApplications({
-          ...params,
-          status: 'documents_reviewed',
-          with: 'student,category,subcategory'
-        });
-        setPendingApplications(Array.isArray(resp.data) ? resp.data : []);
-      }
+      // Map backend fields to frontend expectations
+      const mappedMethods = rawData.map(item => ({
+        ...item,
+        interviewDate: item.interview_date,
+        interviewTime: item.interview_time,
+        interviewer: item.interviewer_name || (item.staff ? item.staff.name : 'Unknown'),
+        interviewerEmail: item.staff?.email || item.interviewer_email,
+        studentName: item.student ? `${item.student.first_name} ${item.student.last_name}` : 'Unknown Student',
+        studentEmail: item.student?.email_address,
+        studentPhone: item.student?.phone_number,
+        studentId: item.student?.student_id_number,
+        duration: item.duration || 30,
+        type: item.interview_type,
+        location: item.interview_location,
+        platform: item.platform || (item.interview_type === 'online' ? 'Online' : 'In-Person'),
+        meetingLink: item.meeting_link,
+        notes: item.interview_notes || item.notes,
+        status: item.status,
+        documents: item.documents || [] // Ensure documents array (though not in backend model, preventing crash)
+      }));
 
-      // Update pagination from meta
-      if (resp && resp.meta) {
+      setSchedules(mappedMethods);
+
+      // Update pagination only if this is the active tab
+      if (activeTab === 'scheduled' && resp && resp.meta) {
         setPagination(prev => ({
           ...prev,
           currentPage: resp.meta.current_page || 1,
@@ -166,6 +176,54 @@ function InterviewSchedules() {
           from: resp.meta.from || 0,
           to: resp.meta.to || 0
         }));
+      }
+    } catch (e) {
+      console.error('Error fetching schedules:', e);
+      // Don't set global error here to avoid UI disruption during background updates
+    }
+  };
+
+  const fetchPendingApplications = async () => {
+    try {
+      const params = {
+        page: pagination.currentPage,
+        per_page: pagination.perPage,
+        ...filters
+      };
+
+      // Basic search param
+      if (searchTerm) params.search = searchTerm;
+
+      const resp = await scholarshipApiService.getApplications({
+        ...params,
+        status: 'documents_reviewed',
+        with: 'student,category,subcategory'
+      });
+      setPendingApplications(Array.isArray(resp.data) ? resp.data : []);
+
+      // Update pagination only if this is the active tab
+      if (activeTab === 'pending' && resp && resp.meta) {
+        setPagination(prev => ({
+          ...prev,
+          currentPage: resp.meta.current_page || 1,
+          lastPage: resp.meta.last_page || 1,
+          total: resp.meta.total || 0,
+          from: resp.meta.from || 0,
+          to: resp.meta.to || 0
+        }));
+      }
+    } catch (e) {
+      console.error('Error fetching pending applications:', e);
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      if (activeTab === 'scheduled') {
+        await fetchSchedules();
+      } else {
+        await fetchPendingApplications();
       }
     } catch (e) {
       console.error('Error fetching data:', e);
@@ -552,7 +610,7 @@ function InterviewSchedules() {
               <FileText className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
               <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Documents:</span>
               <span className="font-medium text-gray-900 dark:text-white truncate">
-                {schedule.status === 'pending' ? 'Reviewed' : schedule.documents.length}
+                {schedule.status === 'pending' ? 'Reviewed' : (schedule.documents?.length || 0)}
               </span>
             </div>
           </div>
@@ -1623,6 +1681,7 @@ Please check your internet connection and try again. If the problem persists, co
           <button
             onClick={() => {
               setActiveTab('scheduled');
+              setFilters(prev => ({ ...prev, status: 'scheduled' }));
               setPagination(prev => ({ ...prev, currentPage: 1 }));
             }}
             className={`${activeTab === 'scheduled'
@@ -1641,6 +1700,7 @@ Please check your internet connection and try again. If the problem persists, co
           <button
             onClick={() => {
               setActiveTab('pending');
+              setFilters(prev => ({ ...prev, status: 'all' }));
               setPagination(prev => ({ ...prev, currentPage: 1 }));
             }}
             className={`${activeTab === 'pending'
@@ -1678,18 +1738,19 @@ Please check your internet connection and try again. If the problem persists, co
               />
             </div>
 
-            <select
-              value={filters.status}
-              onChange={(e) => updateFilter('status', e.target.value)}
-              className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="rescheduled">Rescheduled</option>
-            </select>
+            {activeTab === 'scheduled' && (
+              <select
+                value={filters.status}
+                onChange={(e) => updateFilter('status', e.target.value)}
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
+              >
+                <option value="all">All Status</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="rescheduled">Rescheduled</option>
+              </select>
+            )}
           </div>
 
           {/* Controls */}
@@ -2297,7 +2358,7 @@ Please check your internet connection and try again. If the problem persists, co
                 <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Required Documents</h4>
                   <div className="flex flex-wrap gap-2">
-                    {activeSchedule.documents.map((doc, index) => (
+                    {(activeSchedule.documents || []).map((doc, index) => (
                       <span key={index} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm">
                         {doc}
                       </span>

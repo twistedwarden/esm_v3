@@ -168,6 +168,13 @@ export const API_CONFIG = {
             // Academic Performance
             ACADEMIC_PERFORMANCE: '/api/analytics/academic-performance',
         }
+    },
+    GOOGLE_OAUTH: {
+        CLIENT_ID: '1044028689156-jj8d7vm6uskuc08cqeohcoe84fmp69sn.apps.googleusercontent.com',
+        SCOPES: 'email profile openid',
+        RESPONSE_TYPE: 'code',
+        ACCESS_TYPE: 'offline',
+        PROMPT: 'consent'
     }
 };
 

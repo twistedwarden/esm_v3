@@ -21,7 +21,7 @@ class CitizenUsersSeeder extends Seeder
                 'last_name' => 'Doe',
                 'middle_name' => 'M.',
                 'extension_name' => null,
-                'email' => 'john.doe@email.com',
+                'email' => 'deployone73@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'citizen',
                 'mobile' => '+63-917-123-4567',
@@ -42,7 +42,7 @@ class CitizenUsersSeeder extends Seeder
                 'last_name' => 'Smith',
                 'middle_name' => 'L.',
                 'extension_name' => null,
-                'email' => 'jane.smith@email.com',
+                'email' => 'mahusaycchristian2@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'citizen',
                 'mobile' => '+63-917-234-5678',
@@ -63,7 +63,7 @@ class CitizenUsersSeeder extends Seeder
                 'last_name' => 'Johnson',
                 'middle_name' => 'R.',
                 'extension_name' => null,
-                'email' => 'michael.johnson@email.com',
+                'email' => 'grindshine478@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'citizen',
                 'mobile' => '+63-917-345-6789',
@@ -236,7 +236,7 @@ class CitizenUsersSeeder extends Seeder
 
         $this->command->info('Citizen users seeded successfully!');
         $this->command->info('Total citizen users created: ' . count($citizenUsers));
-        
+
         $this->command->table(
             ['ID', 'Name', 'Email', 'Role', 'Status'],
             collect($citizenUsers)->map(function ($user) {

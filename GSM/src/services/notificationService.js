@@ -132,12 +132,12 @@ class NotificationService {
     try {
       const stored = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
       stored.unshift(notification); // Add to beginning
-      
+
       // Keep only last 100 notifications
       if (stored.length > 100) {
         stored.splice(100);
       }
-      
+
       localStorage.setItem('admin_notifications', JSON.stringify(stored));
     } catch (error) {
       console.error('Error storing notification:', error);
@@ -245,10 +245,11 @@ class NotificationService {
    * @param {Object} application - Application data
    */
   notifyNewApplication(application) {
+    const studentName = this._getStudentName(application);
     const notification = this.createNotification(
       'scholarship_new_application',
       'New Scholarship Application',
-      `New application from ${application.student_name} for ${application.scholarship_category}`,
+      `New application from ${studentName} for ${application.scholarship_category || application.category?.name || 'Scholarship'}`,
       {
         priority: 'high',
         applicationId: application.id,
@@ -267,23 +268,24 @@ class NotificationService {
    */
   notifyApplicationReview(application, action) {
     let title, message;
-    
+    const studentName = this._getStudentName(application);
+
     switch (action) {
       case 'reviewed':
         title = 'Application Reviewed';
-        message = `Application from ${application.student_name} has been reviewed and approved`;
+        message = `Application from ${studentName} has been reviewed and approved`;
         break;
       case 'rejected':
         title = 'Application Rejected';
-        message = `Application from ${application.student_name} has been rejected`;
+        message = `Application from ${studentName} has been rejected`;
         break;
       case 'compliance':
         title = 'Application Flagged for Compliance';
-        message = `Application from ${application.student_name} has been flagged for compliance review`;
+        message = `Application from ${studentName} has been flagged for compliance review`;
         break;
       default:
         title = 'Application Status Updated';
-        message = `Application from ${application.student_name} status has been updated`;
+        message = `Application from ${studentName} status has been updated`;
     }
 
     const notification = this.createNotification(
@@ -306,10 +308,11 @@ class NotificationService {
    * @param {Object} interview - Interview data
    */
   notifyInterviewScheduled(interview) {
+    const studentName = this._getStudentName(interview);
     const notification = this.createNotification(
       'scholarship_interview_scheduled',
       'Interview Scheduled',
-      `Interview scheduled for ${interview.student_name} on ${new Date(interview.scheduled_date).toLocaleDateString()}`,
+      `Interview scheduled for ${studentName} on ${new Date(interview.scheduled_date).toLocaleDateString()}`,
       {
         priority: 'normal',
         applicationId: interview.application_id,
@@ -327,10 +330,11 @@ class NotificationService {
    * @param {string} result - Interview result (passed, failed)
    */
   notifyInterviewCompleted(interview, result) {
+    const studentName = this._getStudentName(interview);
     const notification = this.createNotification(
       'scholarship_interview_completed',
       'Interview Completed',
-      `Interview for ${interview.student_name} has been completed - ${result}`,
+      `Interview for ${studentName} has been completed - ${result}`,
       {
         priority: 'normal',
         applicationId: interview.application_id,
@@ -347,10 +351,11 @@ class NotificationService {
    * @param {Object} application - Application data
    */
   notifyFinalApproval(application) {
+    const studentName = this._getStudentName(application);
     const notification = this.createNotification(
       'scholarship_final_approval',
       'Scholarship Approved',
-      `Scholarship application from ${application.student_name} has been finally approved`,
+      `Scholarship application from ${studentName} has been finally approved`,
       {
         priority: 'high',
         applicationId: application.id,
@@ -369,7 +374,7 @@ class NotificationService {
    */
   notifyBulkAction(action, count) {
     let title, message;
-    
+
     switch (action) {
       case 'reviewed':
         title = 'Bulk Review Complete';
@@ -399,6 +404,32 @@ class NotificationService {
       }
     );
     this.addToQueue(notification);
+  }
+
+  /**
+   * Helper to resolve student name from various possible data structures
+   * @param {Object} data - Application or object containing student info
+   * @returns {string} - Resolved student name
+   */
+  _getStudentName(data) {
+    if (!data) return 'Unknown Student';
+
+    // Check direct property (custom mapped objects)
+    if (data.student_name) return data.student_name;
+
+    // Check name property (frontend view models)
+    if (data.name && typeof data.name === 'string') return data.name;
+
+    // Check nested student object (backend models)
+    if (data.student) {
+      if (data.student.full_name) return data.student.full_name;
+      if (data.student.first_name && data.student.last_name) {
+        return `${data.student.first_name} ${data.student.last_name}`;
+      }
+      if (data.student.name) return data.student.name;
+    }
+
+    return 'Unknown Student';
   }
 
   /**

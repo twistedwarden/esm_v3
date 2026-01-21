@@ -24,7 +24,7 @@ class BrevoEmailService
     public function sendOtpEmail($recipientEmail, $recipientName, $otpCode, $expiresAt)
     {
         $htmlContent = $this->getOtpEmailTemplate($recipientName, $otpCode, $expiresAt);
-        
+
         return $this->sendEmail(
             $recipientEmail,
             $recipientName,
@@ -39,7 +39,7 @@ class BrevoEmailService
     public function sendVerificationEmail($recipientEmail, $recipientName, $verificationUrl)
     {
         $htmlContent = $this->getVerificationEmailTemplate($recipientName, $verificationUrl);
-        
+
         return $this->sendEmail(
             $recipientEmail,
             $recipientName,
@@ -54,7 +54,7 @@ class BrevoEmailService
     public function sendLoginOtpEmail($recipientEmail, $recipientName, $otpCode, $expiresAt)
     {
         $htmlContent = $this->getLoginOtpEmailTemplate($recipientName, $otpCode, $expiresAt);
-        
+
         return $this->sendEmail(
             $recipientEmail,
             $recipientName,
@@ -64,15 +64,31 @@ class BrevoEmailService
     }
 
     /**
-     * Core email sending method using Brevo API
+     * Core email sending method using Brevo API or Laravel Mail as fallback
      */
     private function sendEmail($recipientEmail, $recipientName, $subject, $htmlContent)
     {
+        // If Brevo API key is not configured, use Laravel Mail as fallback
         if (!$this->apiKey) {
-            \Log::error('Brevo API key not configured');
-            throw new Exception('Email service not configured');
+            \Log::info('Brevo API key not configured, using Laravel Mail as fallback');
+
+            try {
+                \Mail::send([], [], function ($message) use ($recipientEmail, $recipientName, $subject, $htmlContent) {
+                    $message->to($recipientEmail, $recipientName)
+                        ->subject($subject)
+                        ->from($this->senderEmail, $this->senderName)
+                        ->html($htmlContent);
+                });
+
+                \Log::info('Email sent successfully via Laravel Mail to: ' . $recipientEmail);
+                return true;
+            } catch (\Exception $e) {
+                \Log::error('Laravel Mail error: ' . $e->getMessage());
+                throw new Exception('Failed to send email: ' . $e->getMessage());
+            }
         }
 
+        // Use Brevo API
         $payload = [
             'sender' => [
                 'name' => $this->senderName,
@@ -129,7 +145,7 @@ class BrevoEmailService
     private function getOtpEmailTemplate($name, $otpCode, $expiresAt)
     {
         $minutes = 10; // OTP expires in 10 minutes
-        
+
         return <<<HTML
 <!DOCTYPE html>
 <html>
@@ -182,7 +198,7 @@ HTML;
     private function getLoginOtpEmailTemplate($name, $otpCode, $expiresAt)
     {
         $minutes = 10; // OTP expires in 10 minutes
-        
+
         return <<<HTML
 <!DOCTYPE html>
 <html>

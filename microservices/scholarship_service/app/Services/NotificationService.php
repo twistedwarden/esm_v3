@@ -9,6 +9,58 @@ use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
+    protected $mailer;
+
+    public function __construct(PhpMailerService $mailer)
+    {
+        $this->mailer = $mailer;
+    }
+
+    /**
+     * Send application status notification
+     */
+    public function sendApplicationStatusNotification($application, string $status, ?string $message = null, array $additionalData = []): bool
+    {
+        try {
+            $student = $application->student;
+
+            // Only send if we have a student with an email
+            if (!$student || !$student->email_address) {
+                Log::warning('Cannot send status email: No student email found', [
+                    'application_id' => $application->id
+                ]);
+                return false;
+            }
+
+            // Using the new generic template
+            $htmlContent = view('emails.scholarship.status-update', [
+                'student_name' => $student->first_name,
+                'application_number' => $application->application_number,
+                'status' => $status,
+                'message' => $message,
+                'data' => $additionalData
+            ])->render();
+
+            $subject = 'Application Status Update - ' . strtoupper(str_replace('_', ' ', $status));
+
+            // Use the generic sendNotificationEmail method from PhpMailerService
+            return $this->mailer->sendNotificationEmail(
+                $student->email_address,
+                $student->full_name,
+                $subject,
+                $htmlContent
+            );
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send application status notification', [
+                'application_id' => $application->id,
+                'status' => $status,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
     /**
      * Send interview scheduled notification
      */
@@ -200,7 +252,7 @@ class NotificationService
     private function sendInterviewScheduledSMS($student, InterviewSchedule $schedule): void
     {
         $message = "Hi {$student->first_name}! Your scholarship interview is scheduled for {$schedule->formatted_date_time}. Location: {$schedule->full_location}. Good luck!";
-        
+
         Log::info('Interview scheduled SMS would be sent', [
             'to' => $student->contact_number,
             'message' => $message,
@@ -213,7 +265,7 @@ class NotificationService
     private function sendInterviewReminderSMS($student, InterviewSchedule $schedule): void
     {
         $message = "Reminder: Your scholarship interview is tomorrow at {$schedule->interview_time}. Location: {$schedule->full_location}";
-        
+
         Log::info('Interview reminder SMS would be sent', [
             'to' => $student->contact_number,
             'message' => $message,
@@ -278,14 +330,14 @@ class NotificationService
     public function sendBulkInterviewReminders(): int
     {
         $tomorrow = now()->addDay()->format('Y-m-d');
-        
+
         $schedules = InterviewSchedule::where('interview_date', $tomorrow)
             ->where('status', 'scheduled')
             ->with(['student', 'application'])
             ->get();
 
         $sentCount = 0;
-        
+
         foreach ($schedules as $schedule) {
             if ($this->sendInterviewReminderNotification($schedule)) {
                 $sentCount++;

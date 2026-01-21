@@ -28,7 +28,9 @@ class SecuritySettingsService
             foreach ($settings as $setting) {
                 // Convert value to appropriate type
                 $value = $setting->setting_value;
-                if (is_numeric($value)) {
+                if ($setting->setting_key === 'otp_enabled') {
+                    $value = $value === 'true';
+                } elseif (is_numeric($value)) {
                     $value = (int) $value;
                 }
                 $formatted[$setting->setting_key] = $value;
@@ -41,6 +43,7 @@ class SecuritySettingsService
                 'login_lockout_duration' => 120, // 2 minutes
                 'login_attempt_window' => 900, // 15 minutes
                 'session_timeout_duration' => 1800, // 30 minutes
+                'otp_enabled' => true,
             ];
 
             return array_merge($defaults, $formatted);
@@ -61,15 +64,19 @@ class SecuritySettingsService
             'login_lockout_threshold',
             'login_lockout_duration',
             'login_attempt_window',
-            'session_timeout_duration'
+            'session_timeout_duration',
+            'otp_enabled'
         ];
 
         foreach ($data as $key => $value) {
             if (in_array($key, $allowedKeys)) {
+                // Convert boolean to string for otp_enabled
+                $stringValue = $key === 'otp_enabled' ? ($value ? 'true' : 'false') : (string) $value;
+
                 SecuritySetting::updateOrCreate(
                     ['setting_key' => $key],
                     [
-                        'setting_value' => (string) $value,
+                        'setting_value' => $stringValue,
                         'updated_by' => $userId
                     ]
                 );

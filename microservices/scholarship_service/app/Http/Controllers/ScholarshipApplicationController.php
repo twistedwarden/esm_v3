@@ -12,6 +12,7 @@ use App\Models\PartnerSchoolRepresentative;
 use App\Models\EnrollmentVerification;
 use App\Models\InterviewSchedule;
 use App\Services\AuditLogService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,13 @@ use App\Models\ApplicationStatusHistory;
 
 class ScholarshipApplicationController extends Controller
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Display a listing of applications
      */
@@ -39,56 +47,12 @@ class ScholarshipApplicationController extends Controller
             'documents.documentType'
         ]);
 
-        $authUser = $request->get('auth_user');
-
-        // Filter for partner school representatives
-        // Partner school reps can only see applications from their assigned school
-        if ($authUser && isset($authUser['role']) && $authUser['role'] === 'ps_rep') {
-            if (isset($authUser['citizen_id'])) {
-                // Look up which school this partner rep represents
-                $partnerRep = PartnerSchoolRepresentative::findByCitizenId($authUser['citizen_id']);
-
-                if ($partnerRep) {
-                    // Filter applications to only show students from their school
-                    $query->where('school_id', $partnerRep->school_id);
-
-                    Log::info('Partner school rep filtering applications', [
-                        'citizen_id' => $authUser['citizen_id'],
-                        'school_id' => $partnerRep->school_id,
-                        'school_name' => $partnerRep->school->name ?? 'Unknown'
-                    ]);
-                } else {
-                    // Not registered as a partner rep - return empty result
-                    Log::warning('Partner school rep not found in database', [
-                        'citizen_id' => $authUser['citizen_id']
-                    ]);
-                    $query->whereRaw('1 = 0');
-                }
-            } else {
-                // No citizen_id provided - return empty result
-                Log::warning('Partner school rep missing citizen_id');
-                $query->whereRaw('1 = 0');
-            }
-        }
-
-        // Scope results: by default, allow admins/staff to view all.
-        // Limit to current user's applications only when explicitly requested
-        // via `mine=true` or `scope=student`.
-        $scopeMine = $request->boolean('mine') || $request->get('scope') === 'student';
-        if ($scopeMine && $authUser && isset($authUser['id'])) {
-            $userId = $authUser['id'];
-            $query->whereHas('student', function ($q) use ($userId) {
-                $q->where('user_id', $userId);
-            });
-        }
-
-        // Apply filters
-        if ($request->has('status')) {
+        if ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('type')) {
-            $query->where('type', $request->type);
+        if ($request->has('school_id')) {
+            $query->where('school_id', $request->school_id);
         }
 
         if ($request->has('student_id')) {
@@ -97,20 +61,473 @@ class ScholarshipApplicationController extends Controller
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->whereHas('student', function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhere('student_id_number', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('student', function ($sq) use ($search) {
+                    $sq->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                })->orWhere('application_number', 'like', "%{$search}%");
             });
         }
 
-        $applications = $query->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 15));
+        // Default sort
+        $sortField = $request->get('sort_by', 'created_at');
+        $sortDirection = $request->get('sort_dir', 'desc');
 
-        return response()->json([
-            'success' => true,
-            'data' => $applications
+        // Map frontend sort keys to database columns
+        $sortMapping = [
+            'date' => 'created_at',
+            'created_at' => 'created_at',
+            'updated_at' => 'updated_at',
+            'status' => 'status',
+            'amount' => 'requested_amount',
+        ];
+
+        // Use mapped column or default to created_at if not found
+        $dbSortField = $sortMapping[$sortField] ?? 'created_at';
+
+        $query->orderBy($dbSortField, $sortDirection);
+
+        $perPage = $request->get('per_page', 15);
+        $applications = $query->paginate($perPage);
+
+        return response()->json($applications);
+    }
+
+    // ... (store, show, update methods remain unchanged)
+
+    /**
+     * Submit application for review
+     */
+    public function submit(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        if ($application->status !== 'draft') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application can only be submitted from draft status'
+            ], 400);
+        }
+
+        try {
+            $authUser = $request->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+
+            $application->submit();
+
+            // Audit log
+            AuditLogService::logAction(
+                'SUBMIT',
+                "Scholarship application #{$application->application_number} submitted for review",
+                'ScholarshipApplication',
+                $application->id,
+                null,
+                null,
+                [
+                    'previous_status' => 'draft',
+                    'new_status' => 'submitted',
+                    'type' => $application->type,
+                    'user_id' => $userId
+                ]
+            );
+
+            // Send notification
+            $this->notificationService->sendApplicationStatusNotification(
+                $application,
+                'submitted',
+                'Your application has been successfully submitted and is now under review.'
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application submitted successfully',
+                'data' => $application
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit application',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve application
+     */
+    public function approve(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'approved_amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$application->canBeApproved()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must be endorsed to SSC to be approved'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $approvedBy = $authUser['id'] ?? null;
+            $application->approve(
+                $request->approved_amount,
+                $request->notes,
+                $approvedBy
+            );
+
+            // Audit log
+            AuditLogService::logAction(
+                'APPROVE',
+                "Scholarship application #{$application->application_number} approved with amount: ₱" . number_format($request->approved_amount, 2),
+                'ScholarshipApplication',
+                $application->id,
+                null,
+                null,
+                [
+                    'approved_amount' => $request->approved_amount,
+                    'notes' => $request->notes,
+                    'previous_status' => 'endorsed_to_ssc',
+                    'new_status' => 'approved',
+                    'approved_by' => $approvedBy
+                ]
+            );
+
+            DB::commit();
+
+            // Send notification
+            $this->notificationService->sendApplicationStatusNotification(
+                $application,
+                'approved',
+                $request->notes
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application approved successfully',
+                'data' => $application
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve application',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject application
+     */
+    public function reject(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'rejection_reason' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$application->canBeRejected()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application cannot be rejected in its current status: ' . $application->status
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $reviewedBy = $authUser['id'] ?? null;
+            $application->reject(
+                $request->rejection_reason,
+                $reviewedBy
+            );
+
+            // Audit log
+            AuditLogService::logAction(
+                'REJECT',
+                "Scholarship application #{$application->application_number} rejected",
+                'ScholarshipApplication',
+                $application->id,
+                null,
+                null,
+                [
+                    'rejection_reason' => $request->rejection_reason,
+                    'new_status' => 'rejected',
+                    'rejected_by' => $reviewedBy
+                ]
+            );
+
+            DB::commit();
+
+            // Send notification
+            $this->notificationService->sendApplicationStatusNotification(
+                $application,
+                'rejected',
+                $request->rejection_reason
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application rejected',
+                'data' => $application
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject application',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Review application
+     */
+    public function review(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$application->canBeReviewed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must be submitted for documents to be reviewed'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $reviewedBy = $authUser['id'] ?? null;
+            $previousStatus = $application->status;
+            $application->review(
+                $request->notes,
+                $reviewedBy
+            );
+
+            // ... 
+
+            DB::commit();
+
+            AuditLogService::logAction(
+                'REVIEW',
+                "Scholarship application #{$application->application_number} reviewed",
+                'ScholarshipApplication',
+                $application->id,
+                null,
+                null,
+                [
+                    'notes' => $request->notes,
+                    'previous_status' => $previousStatus,
+                    'new_status' => 'reviewed',
+                    'reviewed_by' => $reviewedBy
+                ]
+            );
+
+            // Send notification
+            $this->notificationService->sendApplicationStatusNotification(
+                $application,
+                'reviewed',
+                $request->notes
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application reviewed successfully',
+                'data' => $application
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to review application',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Process application for disbursement
+     */
+    public function process(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$application->canBeProcessed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must be approved to be processed'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $processedBy = $authUser['id'] ?? null;
+            $application->process(
+                $request->notes,
+                $processedBy
+            );
+
+            DB::commit();
+
+            AuditLogService::logAction(
+                'PROCESS',
+                "Scholarship application #{$application->application_number} processing started",
+                'ScholarshipApplication',
+                $application->id,
+                null,
+                null,
+                [
+                    'notes' => $request->notes,
+                    'previous_status' => 'approved',
+                    'new_status' => 'processing',
+                    'processed_by' => $processedBy
+                ]
+            );
+
+            // Send notification
+            $this->notificationService->sendApplicationStatusNotification(
+                $application,
+                'processing',
+                $request->notes
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Grants processing started successfully',
+                'data' => $application
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process application',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Release funds to student
+     */
+    public function release(Request $request, ScholarshipApplication $application): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$application->canBeReleased()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application must be in grants processing to disburse funds'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $authUser = $request->get('auth_user');
+            $releasedBy = $authUser['id'] ?? null;
+            $application->release(
+                $request->notes,
+                $releasedBy
+            );
+
+            DB::commit();
+
+            // Send notification
+            AuditLogService::logAction(
+                'RELEASE',
+                "Funds released for scholarship application #{$application->application_number}",
+                'ScholarshipApplication',
+                $application->id,
+                null,
+                null,
+                [
+                    'notes' => $request->notes,
+                    'previous_status' => 'processing',
+                    'new_status' => 'released',
+                    'released_by' => $releasedBy
+                ]
+            );
+
+            // Send notification
+            $this->notificationService->sendApplicationStatusNotification(
+                $application,
+                'released',
+                $request->notes
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Funds released successfully',
+                'data' => $application
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to release funds',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -264,18 +681,20 @@ class ScholarshipApplicationController extends Controller
             $authUser = $request->get('auth_user');
             $userId = $authUser['id'] ?? null;
             AuditLogService::logAction(
-                'scholarship_application',
-                $application->id,
-                'created',
+                'CREATE',
                 "Scholarship application #{$application->application_number} created",
-                $userId,
+                'ScholarshipApplication',
+                $application->id,
+                null,
+                $application->toArray(),
                 [
                     'type' => $application->type,
                     'category_id' => $application->category_id,
                     'subcategory_id' => $application->subcategory_id,
                     'student_id' => $application->student_id,
                     'school_id' => $application->school_id,
-                    'requested_amount' => $application->requested_amount
+                    'requested_amount' => $application->requested_amount,
+                    'created_by' => $userId
                 ]
             );
 
@@ -441,14 +860,16 @@ class ScholarshipApplicationController extends Controller
             $authUser = $request->get('auth_user');
             $userId = $authUser['id'] ?? null;
             AuditLogService::logAction(
-                'scholarship_application',
-                $application->id,
-                'updated',
+                'UPDATE',
                 "Scholarship application #{$application->application_number} updated",
-                $userId,
+                'ScholarshipApplication',
+                $application->id,
+                null,
+                $updateData,
                 [
                     'updated_fields' => array_keys($updateData),
-                    'academic_record_updated' => $request->has('academic_record')
+                    'academic_record_updated' => $request->has('academic_record'),
+                    'updated_by' => $userId
                 ]
             );
 
@@ -467,360 +888,6 @@ class ScholarshipApplicationController extends Controller
         }
     }
 
-    /**
-     * Submit application for review
-     */
-    public function submit(Request $request, ScholarshipApplication $application): JsonResponse
-    {
-        if ($application->status !== 'draft') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Application can only be submitted from draft status'
-            ], 400);
-        }
-
-        try {
-            $authUser = $request->get('auth_user');
-            $userId = $authUser['id'] ?? null;
-
-            $application->submit();
-
-            // Audit log
-            AuditLogService::logAction(
-                'scholarship_application',
-                $application->id,
-                'submitted',
-                "Scholarship application #{$application->application_number} submitted for review",
-                $userId,
-                [
-                    'previous_status' => 'draft',
-                    'new_status' => 'submitted',
-                    'type' => $application->type
-                ]
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Application submitted successfully',
-                'data' => $application
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to submit application',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Approve application
-     */
-    public function approve(Request $request, ScholarshipApplication $application): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'approved_amount' => 'required|numeric|min:0',
-            'notes' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        if (!$application->canBeApproved()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Application must be endorsed to SSC to be approved'
-            ], 400);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $authUser = $request->get('auth_user');
-            $approvedBy = $authUser['id'] ?? null;
-            $application->approve(
-                $request->approved_amount,
-                $request->notes,
-                $approvedBy
-            );
-
-            // Audit log
-            AuditLogService::logAction(
-                'scholarship_application',
-                $application->id,
-                'approved',
-                "Scholarship application #{$application->application_number} approved with amount: ₱" . number_format($request->approved_amount, 2),
-                $approvedBy,
-                [
-                    'approved_amount' => $request->approved_amount,
-                    'notes' => $request->notes,
-                    'previous_status' => 'endorsed_to_ssc',
-                    'new_status' => 'approved'
-                ]
-            );
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Application approved successfully',
-                'data' => $application
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to approve application',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Reject application
-     */
-    public function reject(Request $request, ScholarshipApplication $application): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'rejection_reason' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        if (!$application->canBeRejected()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Application cannot be rejected in its current status: ' . $application->status
-            ], 400);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $authUser = $request->get('auth_user');
-            $reviewedBy = $authUser['id'] ?? null;
-            $application->reject(
-                $request->rejection_reason,
-                $reviewedBy
-            );
-
-            // Audit log
-            AuditLogService::logAction(
-                'scholarship_application',
-                $application->id,
-                'rejected',
-                "Scholarship application #{$application->application_number} rejected",
-                $reviewedBy,
-                [
-                    'rejection_reason' => $request->rejection_reason,
-                    'previous_status' => $application->getOriginal('status'),
-                    'new_status' => 'rejected'
-                ]
-            );
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Application rejected',
-                'data' => $application
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to reject application',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Review application
-     */
-    public function review(Request $request, ScholarshipApplication $application): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'notes' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        if (!$application->canBeReviewed()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Application must be submitted for documents to be reviewed'
-            ], 400);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $authUser = $request->get('auth_user');
-            $reviewedBy = $authUser['id'] ?? null;
-            $previousStatus = $application->status;
-            $application->review(
-                $request->notes,
-                $reviewedBy
-            );
-
-            // Automatic enrollment verification has been removed
-            // Applications with status 'approved_pending_verification' will require manual verification
-
-            DB::commit();
-
-            AuditLogService::logAction(
-                'APPLICATION_REVIEWED',
-                'Application marked as reviewed',
-                'ScholarshipApplication',
-                (string) $application->id,
-                ['status' => $previousStatus],
-                ['status' => $application->status, 'notes' => $request->notes],
-                [
-                    'application_number' => $application->application_number,
-                    'reviewed_by' => $reviewedBy,
-                ]
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Application reviewed successfully',
-                'data' => $application
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to review application',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Process application for disbursement
-     */
-    public function process(Request $request, ScholarshipApplication $application): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'notes' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        if (!$application->canBeProcessed()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Application must be approved to be processed'
-            ], 400);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $authUser = $request->get('auth_user');
-            $processedBy = $authUser['id'] ?? null;
-            $application->process(
-                $request->notes,
-                $processedBy
-            );
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Grants processing started successfully',
-                'data' => $application
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to process application',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Release funds to student
-     */
-    public function release(Request $request, ScholarshipApplication $application): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'notes' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        if (!$application->canBeReleased()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Application must be in grants processing to disburse funds'
-            ], 400);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $authUser = $request->get('auth_user');
-            $releasedBy = $authUser['id'] ?? null;
-            $application->release(
-                $request->notes,
-                $releasedBy
-            );
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Grants disbursed successfully',
-                'data' => $application
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to release funds',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Remove the specified application
@@ -1192,6 +1259,15 @@ class ScholarshipApplicationController extends Controller
                 ]
             );
 
+            // Send notification
+            $this->notificationService->sendApplicationStatusNotification($application, 'interview_scheduled', null, [
+                'interview_date' => $interviewData['interview_date'],
+                'interview_time' => $interviewData['interview_time'],
+                'interview_type' => $interviewData['interview_type'],
+                'meeting_link' => $interviewData['meeting_link'] ?? null,
+                'interviewer_name' => $interviewData['interviewer_name'],
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Interview scheduled successfully',
@@ -1425,6 +1501,13 @@ class ScholarshipApplicationController extends Controller
                 ]
             );
 
+            // Send notification
+            $this->notificationService->sendApplicationStatusNotification(
+                $application,
+                'endorsed_to_ssc',
+                'Your application has been endorsed to the Scholarship Selection Committee (SSC) for final approval.'
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application successfully endorsed to SSC',
@@ -1525,6 +1608,14 @@ class ScholarshipApplicationController extends Controller
                             'filter_type' => $filterType,
                         ]
                     );
+
+                    // Send notification
+                    $this->notificationService->sendApplicationStatusNotification(
+                        $application,
+                        'endorsed_to_ssc',
+                        'Your application has been endorsed to the Scholarship Selection Committee (SSC) for final approval.'
+                    );
+
                 } catch (\Exception $e) {
                     $failedApplications[] = [
                         'id' => $application->id,
