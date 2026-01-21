@@ -117,7 +117,7 @@ class School extends Model
      */
     public function verificationDocuments(): HasMany
     {
-        return $this->hasMany(PartnerSchoolVerificationDocument::class);
+        return $this->hasMany(PartnerSchoolVerificationDocument::class, 'school_id');
     }
 
     // Accessors
