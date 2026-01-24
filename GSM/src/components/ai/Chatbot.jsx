@@ -45,7 +45,11 @@ export const Chatbot = () => {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/chat', { // Updated URL
+      // Determine API URL: Default to relative (proxy) for dev, but direct port 5000 for prod if proxy fails
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const apiUrl = isDev ? '/api/chat' : `${window.location.protocol}//${window.location.hostname}:5000/api/chat`;
+
+      const res = await fetch(apiUrl, { // Updated URL strategy
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input, sessionId: sessionId.current }),
@@ -200,20 +204,20 @@ export const Chatbot = () => {
 
   // Floating button style
   const floatingStyle = iconPos.x !== null && iconPos.y !== null
-    ? { 
-        left: iconPos.x, 
-        top: iconPos.y, 
-        position: 'fixed', 
-        zIndex: 50,
-        transition: dragging.current ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-      }
-    : { 
-        right: EDGE_PADDING, 
-        bottom: EDGE_PADDING, 
-        position: 'fixed', 
-        zIndex: 50,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-      };
+    ? {
+      left: iconPos.x,
+      top: iconPos.y,
+      position: 'fixed',
+      zIndex: 50,
+      transition: dragging.current ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+    }
+    : {
+      right: EDGE_PADDING,
+      bottom: EDGE_PADDING,
+      position: 'fixed',
+      zIndex: 50,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+    };
 
   // Chat window style (always centered)
   const chatWindowClasses = `
