@@ -47,7 +47,7 @@ export const Chatbot = () => {
     try {
       // Determine API URL: Default to relative (proxy) for dev, but direct port 5000 for prod if proxy fails
       const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const apiUrl = isDev ? '/api/chat' : `${window.location.protocol}//${window.location.hostname}:5000/api/chat`;
+      const apiUrl = isDev ? '/api/chat' : `${window.location.protocol}//${window.location.hostname}/GSM/api/chat_proxy.php`;
 
       const res = await fetch(apiUrl, { // Updated URL strategy
         method: 'POST',
