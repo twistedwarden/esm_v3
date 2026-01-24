@@ -756,7 +756,6 @@ const MonitoringDashboard: React.FC = () => {
         {[
           { id: 'overview', label: 'Overview', icon: BarChart3 },
           { id: 'pipeline', label: 'Pipeline', icon: ClipboardCheck },
-          { id: 'insights', label: 'AI Insights', icon: Sparkles },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}

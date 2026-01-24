@@ -15,7 +15,7 @@ class UserManagementSeeder extends Seeder
         // Create staff records for the staff users created in auth service
         $staffUsers = [
             [
-                'user_id' => 2, // STAFF-001 from auth service
+                'user_id' => 401, // STAFF-001 from auth service
                 'citizen_id' => 'STAFF-001',
                 'system_role' => 'administrator',
                 'department' => 'IT Department',
@@ -23,7 +23,7 @@ class UserManagementSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'user_id' => 5, // STAFF-002 from auth service
+                'user_id' => 402, // STAFF-002 from auth service
                 'citizen_id' => 'STAFF-002',
                 'system_role' => 'interviewer',
                 'department' => 'Scholarship Department',
@@ -31,7 +31,7 @@ class UserManagementSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'user_id' => 6, // STAFF-003 from auth service
+                'user_id' => 403, // STAFF-003 from auth service
                 'citizen_id' => 'STAFF-003',
                 'system_role' => 'reviewer',
                 'department' => 'Scholarship Department',

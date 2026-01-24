@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UserSeeder::class,
             CitizenUsersSeeder::class, // Must run before scholarship service seeders
-                // StaffUserSeeder::class,
+            StaffUserSeeder::class,
                 // CreateCitizenUser::class,
             PartnerSchoolSeeder::class,
             SscMembersSeeder::class,

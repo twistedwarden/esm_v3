@@ -19,13 +19,13 @@ class ArchivedDataController extends Controller
         try {
             // Get archived users from auth service
             $archivedUsers = $this->getArchivedUsers();
-            
+
             // Get archived applications
             $archivedApplications = $this->getArchivedApplications();
-            
+
             // Get archived documents
             $archivedDocuments = $this->getArchivedDocuments();
-            
+
             // Get archived logs
             $archivedLogs = $this->getArchivedLogs();
 
@@ -56,7 +56,7 @@ class ArchivedDataController extends Controller
     {
         try {
             $data = [];
-            
+
             switch ($category) {
                 case 'users':
                     $data = $this->getArchivedUsers();
@@ -99,7 +99,7 @@ class ArchivedDataController extends Controller
     {
         try {
             $restored = false;
-            
+
             switch ($category) {
                 case 'users':
                     $restored = $this->restoreUser($itemId);
@@ -148,7 +148,7 @@ class ArchivedDataController extends Controller
     {
         try {
             $deleted = false;
-            
+
             switch ($category) {
                 case 'users':
                     $deleted = $this->permanentDeleteUser($itemId);
@@ -229,7 +229,7 @@ class ArchivedDataController extends Controller
         try {
             $query = $request->get('q', '');
             $category = $request->get('category', 'all');
-            
+
             if (empty($query)) {
                 return response()->json([
                     'success' => false,
@@ -238,19 +238,19 @@ class ArchivedDataController extends Controller
             }
 
             $results = [];
-            
+
             if ($category === 'all' || $category === 'users') {
                 $results['users'] = $this->searchArchivedUsers($query);
             }
-            
+
             if ($category === 'all' || $category === 'applications') {
                 $results['applications'] = $this->searchArchivedApplications($query);
             }
-            
+
             if ($category === 'all' || $category === 'documents') {
                 $results['documents'] = $this->searchArchivedDocuments($query);
             }
-            
+
             if ($category === 'all' || $category === 'logs') {
                 $results['logs'] = $this->searchArchivedLogs($query);
             }
@@ -368,36 +368,36 @@ class ArchivedDataController extends Controller
     private function searchArchivedUsers(string $query): array
     {
         $users = $this->getArchivedUsers();
-        return array_filter($users, function($user) use ($query) {
-            return stripos($user['name'], $query) !== false || 
-                   stripos($user['email'], $query) !== false;
+        return array_filter($users, function ($user) use ($query) {
+            return stripos($user['name'], $query) !== false ||
+                stripos($user['email'], $query) !== false;
         });
     }
 
     private function searchArchivedApplications(string $query): array
     {
         $applications = $this->getArchivedApplications();
-        return array_filter($applications, function($app) use ($query) {
-            return stripos($app['applicant_name'], $query) !== false || 
-                   stripos($app['scholarship_type'], $query) !== false;
+        return array_filter($applications, function ($app) use ($query) {
+            return stripos($app['applicant_name'], $query) !== false ||
+                stripos($app['scholarship_type'], $query) !== false;
         });
     }
 
     private function searchArchivedDocuments(string $query): array
     {
         $documents = $this->getArchivedDocuments();
-        return array_filter($documents, function($doc) use ($query) {
-            return stripos($doc['name'], $query) !== false || 
-                   stripos($doc['type'], $query) !== false;
+        return array_filter($documents, function ($doc) use ($query) {
+            return stripos($doc['name'], $query) !== false ||
+                stripos($doc['type'], $query) !== false;
         });
     }
 
     private function searchArchivedLogs(string $query): array
     {
         $logs = $this->getArchivedLogs();
-        return array_filter($logs, function($log) use ($query) {
-            return stripos($log['action'], $query) !== false || 
-                   stripos($log['user'], $query) !== false;
+        return array_filter($logs, function ($log) use ($query) {
+            return stripos($log['action'], $query) !== false ||
+                stripos($log['user'], $query) !== false;
         });
     }
 

@@ -16,61 +16,47 @@ class StaffSeeder extends Seeder
         // Based on the current database state, we'll work with existing user IDs
         $expectedStaffUsers = [
             [
-                'user_id' => 2,
-                'email' => 'staff@caloocan.gov.ph',
-                'name' => 'John Doe',
+                'user_id' => 401,
+                'email' => 'maria.reyes@scholarship.gov.ph',
+                'name' => 'Maria Reyes',
                 'citizen_id' => 'STAFF-001',
+                'system_role' => 'interviewer', // Assigned Admin role based on ID 401
+                'position' => 'Interviewer',
             ],
             [
-                'user_id' => 6,
-                'email' => 'mike.johnson@caloocan.gov.ph',
-                'name' => 'Mike Johnson',
-                'citizen_id' => 'STAFF-003',
-            ],
-            [
-                'user_id' => 8,
-                'email' => 'grindshine478@gmail.com',
-                'name' => 'Peter Santos',
+                'user_id' => 402,
+                'email' => 'john.cruz@scholarship.gov.ph',
+                'name' => 'John Cruz',
                 'citizen_id' => 'STAFF-002',
+                'system_role' => 'interviewer',
+                'position' => 'Interviewer',
             ],
-            // Add more staff users as they are created in auth service
-            // You can uncomment these once the users exist in auth service
-            // [
-            //     'user_id' => 10,
-            //     'email' => 'john.cruz@scholarship.gov.ph',
-            //     'name' => 'John Cruz',
-            //     'citizen_id' => 'STAFF-004',
-            // ],
-            // [
-            //     'user_id' => 11,
-            //     'email' => 'ana.lopez@scholarship.gov.ph',
-            //     'name' => 'Ana Lopez',
-            //     'citizen_id' => 'STAFF-005',
-            // ],
-            // [
-            //     'user_id' => 12,
-            //     'email' => 'carlos.mendoza@scholarship.gov.ph',
-            //     'name' => 'Carlos Mendoza',
-            //     'citizen_id' => 'STAFF-006',
-            // ],
+            [
+                'user_id' => 403,
+                'email' => 'ana.lopez@scholarship.gov.ph',
+                'name' => 'Ana Lopez',
+                'citizen_id' => 'STAFF-003',
+                'system_role' => 'interviewer',
+                'position' => 'Interviewer',
+            ],
         ];
 
         // Create or update staff records
         foreach ($expectedStaffUsers as $expectedUser) {
             $existingStaff = DB::table('staff')->where('user_id', $expectedUser['user_id'])->first();
-            
+
             if (!$existingStaff) {
                 DB::table('staff')->insert([
                     'user_id' => $expectedUser['user_id'],
                     'citizen_id' => $expectedUser['citizen_id'],
-                    'system_role' => 'interviewer',
+                    'system_role' => $expectedUser['system_role'] ?? 'interviewer',
                     'department' => 'Scholarship Management',
-                    'position' => 'Interview Coordinator',
+                    'position' => $expectedUser['position'] ?? 'Staff',
                     'is_active' => true,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                
+
                 $this->command->info("Created staff record for {$expectedUser['name']} (User ID: {$expectedUser['user_id']})");
             } else {
                 // Update existing record to ensure it matches
@@ -78,13 +64,13 @@ class StaffSeeder extends Seeder
                     ->where('user_id', $expectedUser['user_id'])
                     ->update([
                         'citizen_id' => $expectedUser['citizen_id'],
-                        'system_role' => 'interviewer',
+                        'system_role' => $expectedUser['system_role'] ?? 'interviewer',
                         'department' => 'Scholarship Management',
-                        'position' => 'Interview Coordinator',
+                        'position' => $expectedUser['position'] ?? 'Staff',
                         'is_active' => true,
                         'updated_at' => now(),
                     ]);
-                
+
                 $this->command->info("Updated staff record for {$expectedUser['name']} (User ID: {$expectedUser['user_id']})");
             }
         }

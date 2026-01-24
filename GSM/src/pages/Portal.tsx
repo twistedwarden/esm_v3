@@ -280,22 +280,39 @@ export const Portal: React.FC = () => {
               </div>
             </div>
 
-            {/* Additional info cards with smooth transitions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-300">
-                <div className="text-4xl mb-4">⚡</div>
-                <h4 className="text-xl font-bold text-gray-900 mb-2 smooth-transition hover:text-orange-600">Quick Application</h4>
-                <p className="text-gray-600 smooth-transition hover:text-gray-800">Complete your application in just a few minutes</p>
+
+
+            {/* Application Process Steps */}
+            <div className="mt-8 mb-8">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">🚀 How It Works</h3>
+                <p className="text-gray-600">Your simple 6-step journey to scholarship</p>
               </div>
-              <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-300">
-                <div className="text-4xl mb-4">🔍</div>
-                <h4 className="text-xl font-bold text-gray-900 mb-2 smooth-transition hover:text-orange-600">Track Progress</h4>
-                <p className="text-gray-600 smooth-transition hover:text-gray-800">Monitor your application status in real-time</p>
-              </div>
-              <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-300">
-                <div className="text-4xl mb-4">💬</div>
-                <h4 className="text-xl font-bold text-gray-900 mb-2 smooth-transition hover:text-orange-600">Get Support</h4>
-                <p className="text-gray-600 smooth-transition hover:text-gray-800">Access our comprehensive directory and support</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-7xl mx-auto">
+                {[
+                  { title: "Fill Application", icon: "📝", desc: "Complete form", step: 1 },
+                  { title: "Submit Docs", icon: "📂", desc: "Upload requirements", step: 2 },
+                  { title: "Initial Review", icon: "🔍", desc: "Doc validation", step: 3 },
+                  { title: "Interview", icon: "🗣️", desc: "Staff assessment", step: 4 },
+                  { title: "Final Approval", icon: "✅", desc: "SSC Endorsement", step: 5 },
+                  { title: "Receive Grant", icon: "🎉", desc: "Disbursement", step: 6 }
+                ].map((item, index) => (
+                  <div key={index} className="bg-white rounded-xl p-4 shadow-md border border-gray-100 relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+                    <div className="absolute top-0 right-0 p-2 opacity-10 font-bold text-5xl group-hover:scale-110 transition-transform">{item.step}</div>
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                      <div className="text-2xl mb-2 bg-green-50 w-10 h-10 rounded-full flex items-center justify-center text-green-600 font-bold">
+                        {item.step}
+                      </div>
+                      <h4 className="font-bold text-gray-800 text-sm mb-1 leading-tight">{item.title}</h4>
+                      <p className="text-gray-500 text-xs">{item.desc}</p>
+                    </div>
+                    {/* Connector line for desktop (except last item) */}
+                    {index < 5 && (
+                      <div className="hidden lg:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gray-200 transform -translate-y-1/2 z-0"></div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 

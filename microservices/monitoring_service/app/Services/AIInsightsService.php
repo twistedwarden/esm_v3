@@ -48,12 +48,12 @@ class AIInsightsService
     {
         $startTime = microtime(true);
         $cacheKey = 'ai_insights_' . md5(json_encode($filters));
-        
+
         // Clear cache if force refresh requested
         if ($forceRefresh) {
             Cache::forget($cacheKey);
         }
-        
+
         if (!$forceRefresh && Cache::has($cacheKey)) {
             $cached = Cache::get($cacheKey);
             $cached['from_cache'] = true;
@@ -62,7 +62,7 @@ class AIInsightsService
 
         try {
             $metricsSummary = $this->gatherMetricsSummary($filters);
-            
+
             if ($this->provider === 'template' || empty($this->apiKey)) {
                 $insights = $this->generateTemplateInsights($metricsSummary);
             } else {
@@ -140,8 +140,8 @@ class AIInsightsService
         $applicationTrend = 0;
         if ($weekAgoApp && $weekAgoApp->total_applications > 0) {
             $applicationTrend = round(
-                (($latestApp->total_applications ?? 0) - $weekAgoApp->total_applications) 
-                / $weekAgoApp->total_applications * 100, 
+                (($latestApp->total_applications ?? 0) - $weekAgoApp->total_applications)
+                / $weekAgoApp->total_applications * 100,
                 1
             );
         }
@@ -450,7 +450,7 @@ class AIInsightsService
         $demographics = $metrics['demographics'];
 
         return <<<PROMPT
-You are an education analytics assistant for a government scholarship management system (GSM) in Caloocan City, Philippines. Analyze these metrics and provide insights for administrators.
+You are an education analytics assistant for a government scholarship management system (GSM). Analyze these metrics and provide insights for administrators.
 
 ## Current Metrics (as of {$metrics['period']['snapshot_date']})
 
@@ -508,14 +508,14 @@ PROMPT;
             'Authorization' => 'Bearer ' . $this->apiKey,
             'Content-Type' => 'application/json',
         ])->timeout(30)->post($this->apiUrl ?? 'https://api.openai.com/v1/chat/completions', [
-            'model' => $this->model,
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are an education analytics assistant. Respond only with valid JSON.'],
-                ['role' => 'user', 'content' => $prompt]
-            ],
-            'temperature' => 0.3,
-            'max_tokens' => 1500,
-        ]);
+                    'model' => $this->model,
+                    'messages' => [
+                        ['role' => 'system', 'content' => 'You are an education analytics assistant. Respond only with valid JSON.'],
+                        ['role' => 'user', 'content' => $prompt]
+                    ],
+                    'temperature' => 0.3,
+                    'max_tokens' => 1500,
+                ]);
 
         if (!$response->successful()) {
             throw new \Exception('OpenAI API error: ' . $response->body());
@@ -532,10 +532,10 @@ PROMPT;
             'Content-Type' => 'application/json',
             'anthropic-version' => '2023-06-01',
         ])->timeout(30)->post($this->apiUrl ?? 'https://api.anthropic.com/v1/messages', [
-            'model' => $this->model,
-            'max_tokens' => 1500,
-            'messages' => [['role' => 'user', 'content' => $prompt]],
-        ]);
+                    'model' => $this->model,
+                    'max_tokens' => 1500,
+                    'messages' => [['role' => 'user', 'content' => $prompt]],
+                ]);
 
         if (!$response->successful()) {
             throw new \Exception('Anthropic API error: ' . $response->body());
@@ -557,18 +557,18 @@ PROMPT;
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
         ])->timeout(30)->post($url, [
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => "You are an education analytics assistant. Respond ONLY with valid JSON, no markdown or explanation.\n\n" . $prompt]
-                    ]
-                ]
-            ],
-            'generationConfig' => [
-                'temperature' => 0.3,
-                'maxOutputTokens' => 2048,
-            ],
-        ]);
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => "You are an education analytics assistant. Respond ONLY with valid JSON, no markdown or explanation.\n\n" . $prompt]
+                            ]
+                        ]
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.3,
+                        'maxOutputTokens' => 2048,
+                    ],
+                ]);
 
         if (!$response->successful()) {
             $error = $response->json('error.message') ?? $response->body();
@@ -576,7 +576,7 @@ PROMPT;
         }
 
         $content = $response->json('candidates.0.content.parts.0.text');
-        
+
         if (!$content) {
             throw new \Exception('Empty response from Gemini API');
         }
@@ -591,19 +591,19 @@ PROMPT;
     private function callGroq(string $prompt): array
     {
         $model = $this->model ?: 'llama-3.1-70b-versatile';
-        
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->apiKey,
             'Content-Type' => 'application/json',
         ])->timeout(30)->post('https://api.groq.com/openai/v1/chat/completions', [
-            'model' => $model,
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are an education analytics assistant. Respond ONLY with valid JSON.'],
-                ['role' => 'user', 'content' => $prompt]
-            ],
-            'temperature' => 0.3,
-            'max_tokens' => 2048,
-        ]);
+                    'model' => $model,
+                    'messages' => [
+                        ['role' => 'system', 'content' => 'You are an education analytics assistant. Respond ONLY with valid JSON.'],
+                        ['role' => 'user', 'content' => $prompt]
+                    ],
+                    'temperature' => 0.3,
+                    'max_tokens' => 2048,
+                ]);
 
         if (!$response->successful()) {
             throw new \Exception('Groq API error: ' . $response->body());
@@ -623,10 +623,10 @@ PROMPT;
             'Authorization' => 'Bearer ' . $this->apiKey,
             'Content-Type' => 'application/json',
         ])->timeout(60)->post($this->apiUrl, [
-            'prompt' => $prompt,
-            'model' => $this->model,
-            'max_tokens' => 1500,
-        ]);
+                    'prompt' => $prompt,
+                    'model' => $this->model,
+                    'max_tokens' => 1500,
+                ]);
 
         if (!$response->successful()) {
             throw new \Exception('Custom API error: ' . $response->body());

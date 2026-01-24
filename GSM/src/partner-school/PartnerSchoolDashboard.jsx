@@ -43,6 +43,7 @@ import {
 import { API_CONFIG, getAuthServiceUrl } from '../config/api';
 import PartnerSchoolApplicationStatus from './PartnerSchoolApplicationStatus';
 import PartnerSchoolFunds from './PartnerSchoolFunds';
+import jsPDF from 'jspdf';
 // import * as XLSX from 'xlsx';
 
 const PartnerSchoolDashboard = () => {
@@ -57,6 +58,7 @@ const PartnerSchoolDashboard = () => {
   const [showFieldGuide, setShowFieldGuide] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // School information state
   const [schoolInfo, setSchoolInfo] = useState(null);
@@ -2764,6 +2766,8 @@ const PartnerSchoolDashboard = () => {
             </div>
           </div>
 
+
+
           {/* Password Change Section */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Change Password</h3>
@@ -2960,6 +2964,59 @@ const PartnerSchoolDashboard = () => {
     </div>
   );
 
+  const handleDownloadMOA = () => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("MEMORANDUM OF AGREEMENT", 105, 20, { align: "center" });
+    doc.setFontSize(12);
+    doc.text("PARTNER SCHOOL SCHOLARSHIP PROGRAM", 105, 30, { align: "center" });
+
+    // Body Text
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    let yPos = 50;
+    const lineHeight = 7;
+    const margin = 20;
+    const pageWidth = 170; // 210 - 2*20
+
+    const addSection = (title, content) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(title, margin, yPos);
+      yPos += lineHeight;
+
+      doc.setFont("helvetica", "normal");
+      const splitText = doc.splitTextToSize(content, pageWidth);
+      doc.text(splitText, margin, yPos);
+      yPos += (splitText.length * 5) + 10;
+    };
+
+    addSection("1. Introduction", "This Agreement establishes the terms and conditions under which the Partner School agrees to collaborate with the City Government of Caloocan for the Scholarship Program.");
+
+    addSection("2. Data Privacy & Confidentiality", "The Partner School agrees to handle all student data in strict compliance with the Data Privacy Act of 2012 (RA 10173). All student records, grades, and financial information must be kept confidential and used solely for scholarship validation purposes.");
+
+    addSection("3. Accuracy of Information", "The Partner School certifies that all enrollment data, grades, and student status reports submitted to the system are accurate and verified against official school records. Any discrepancies must be reported immediately.");
+
+    addSection("4. Termination Policy", "The City Government reserves the right to immediately terminate this partnership and revoke all access privileges upon discovery of: Falsification of student records; Unauthorized sharing of data; Submission of ghost students; or Failure to comply with audit requirements. Zero Tolerance Policy Enforced.");
+
+    addSection("5. Agreement Validity", "This agreement remains valid for the current academic year unless terminated earlier due to violations mentioned in Section 4.");
+
+    // Signature Block
+    yPos += 20;
+    doc.line(margin, yPos, margin + 70, yPos);
+    doc.text("Authorized Representative", margin, yPos + 5);
+    doc.text("Partner School", margin, yPos + 10);
+
+    doc.line(margin + 90, yPos, margin + 160, yPos);
+    doc.text("City Administrator", margin + 90, yPos + 5);
+    doc.text("City Government of Caloocan", margin + 90, yPos + 10);
+
+    doc.save("Partner_School_MOA.pdf");
+  };
+
   // If applicant, show only application status view
   if (isApplicant) {
     return <PartnerSchoolApplicationStatus />;
@@ -3103,6 +3160,36 @@ const PartnerSchoolDashboard = () => {
         {activeTab === 'budget' && renderBudget()}
         {activeTab === 'reports' && renderReports()}
         {activeTab === 'settings' && renderSettings()}
+
+        {/* Partnership Compliance Footer */}
+        <div className="mt-12 border-t border-slate-200 dark:border-slate-700 pt-8 pb-4">
+          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Partnership Agreement</h3>
+          <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-lg p-4 max-w-4xl">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <h4 className="text-sm font-medium text-red-800 dark:text-red-300">Termination Policy</h4>
+                <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                  Strict adherence to the partnership guidelines is required. Any breach of terms, data falsification, or violation of student privacy laws will result in the <strong>immediate termination and revocation</strong> of the partnership agreement.
+                </p>
+                <div className="mt-3 flex space-x-4">
+                  <button
+                    onClick={() => setShowTermsModal(true)}
+                    className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+                  >
+                    View Terms & Conditions
+                  </button>
+                  <button
+                    onClick={handleDownloadMOA}
+                    className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+                  >
+                    Download Agreement (PDF)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Field Guide Modal */}
@@ -3146,6 +3233,78 @@ const PartnerSchoolDashboard = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Terms and Conditions Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col animate-fade-in-up">
+            <div className="p-6 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
+              <div className="flex items-center space-x-3">
+                <ShieldCheck className="w-6 h-6 text-[#4CAF50]" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Partner School Agreement</h2>
+              </div>
+              <button
+                onClick={() => setShowTermsModal(false)}
+                className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full transition-colors"
+              >
+                <XCircle className="w-6 h-6 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 text-gray-700 dark:text-gray-300 leading-relaxed">
+              <div className="space-y-4">
+                <section>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">1. Introduction</h3>
+                  <p>This Agreement establishes the terms and conditions under which the Partner School agrees to collaborate with the City Government of Caloocan for the Scholarship Program.</p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">2. Data Privacy & Confidentiality</h3>
+                  <p>The Partner School agrees to handle all student data in strict compliance with the Data Privacy Act of 2012 (RA 10173). All student records, grades, and financial information must be kept confidential and used solely for scholarship validation purposes.</p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">3. Accuracy of Information</h3>
+                  <p>The Partner School certifies that all enrollment data, grades, and student status reports submitted to the system are accurate and verified against official school records. Any discrepancies must be reported immediately.</p>
+                </section>
+
+                <section className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-100 dark:border-red-900/30">
+                  <h3 className="text-lg font-bold text-red-800 dark:text-red-400 mb-2 flex items-center">
+                    <AlertCircle className="w-5 h-5 mr-2" />
+                    4. Termination Policy
+                  </h3>
+                  <p className="text-red-700 dark:text-red-300 font-medium">
+                    The City Government reserves the right to immediately terminate this partnership and revoke all access privileges upon discovery of:
+                  </p>
+                  <ul className="list-disc ml-5 mt-2 space-y-1 text-red-700 dark:text-red-300">
+                    <li>Falsification of student records or grades.</li>
+                    <li>Unauthorized sharing or selling of student data.</li>
+                    <li>Submission of ghost students or non-existent enrollments.</li>
+                    <li>Failure to comply with audit requirements.</li>
+                  </ul>
+                  <p className="mt-3 text-red-800 dark:text-red-300 font-bold uppercase text-xs tracking-wider">
+                    Zero Tolerance Policy Enforced
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">5. Agreement Validity</h3>
+                  <p>This agreement remains valid for the current academic year unless terminated earlier due to violations mentioned in Section 4.</p>
+                </section>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-end">
+              <button
+                onClick={() => setShowTermsModal(false)}
+                className="px-6 py-2.5 bg-[#4CAF50] hover:bg-[#45A049] text-white font-medium rounded-lg shadow-sm transition-all transform active:scale-95"
+              >
+                I Understand & Agree
+              </button>
             </div>
           </div>
         </div>

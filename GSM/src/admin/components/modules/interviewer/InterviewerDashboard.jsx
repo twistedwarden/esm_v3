@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  Clock, 
-  CheckCircle, 
+import {
+  Calendar,
+  Clock,
+  CheckCircle,
   TrendingUp,
   Users,
   Star,
@@ -14,7 +14,7 @@ import { scholarshipApiService } from '../../../../services/scholarshipApiServic
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 
 function InterviewerDashboard() {
-  const { showError } = useToastContext();
+  const { error: showError } = useToastContext();
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,15 +32,17 @@ function InterviewerDashboard() {
     } catch (e) {
       console.error('Error fetching interviewer statistics:', e);
       setError('Failed to load dashboard statistics');
-      showError('Failed to load dashboard statistics');
+      if (typeof showError === 'function') {
+        showError('Failed to load dashboard statistics');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-        return <LoadingDashboard />;
-    }
+    return <LoadingDashboard />;
+  }
 
   if (error) {
     return (
@@ -147,8 +149,8 @@ function InterviewerDashboard() {
               <span className="text-sm text-gray-600 dark:text-gray-400">Academic Motivation</span>
               <div className="flex items-center space-x-2">
                 <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full" 
+                  <div
+                    className="bg-blue-500 h-2 rounded-full"
                     style={{ width: `${(statistics.average_scores.academic_motivation / 10) * 100}%` }}
                   ></div>
                 </div>
@@ -161,8 +163,8 @@ function InterviewerDashboard() {
               <span className="text-sm text-gray-600 dark:text-gray-400">Leadership Involvement</span>
               <div className="flex items-center space-x-2">
                 <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full" 
+                  <div
+                    className="bg-green-500 h-2 rounded-full"
                     style={{ width: `${(statistics.average_scores.leadership_involvement / 10) * 100}%` }}
                   ></div>
                 </div>
@@ -175,8 +177,8 @@ function InterviewerDashboard() {
               <span className="text-sm text-gray-600 dark:text-gray-400">Financial Need</span>
               <div className="flex items-center space-x-2">
                 <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-yellow-500 h-2 rounded-full" 
+                  <div
+                    className="bg-yellow-500 h-2 rounded-full"
                     style={{ width: `${(statistics.average_scores.financial_need / 10) * 100}%` }}
                   ></div>
                 </div>
@@ -189,8 +191,8 @@ function InterviewerDashboard() {
               <span className="text-sm text-gray-600 dark:text-gray-400">Character Values</span>
               <div className="flex items-center space-x-2">
                 <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-purple-500 h-2 rounded-full" 
+                  <div
+                    className="bg-purple-500 h-2 rounded-full"
                     style={{ width: `${(statistics.average_scores.character_values / 10) * 100}%` }}
                   ></div>
                 </div>
@@ -220,11 +222,10 @@ function InterviewerDashboard() {
                       {new Date(interview.interview_date).toLocaleDateString()} at {interview.interview_time}
                     </p>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    interview.interview_type === 'online' 
+                  <span className={`px-2 py-1 text-xs rounded-full ${interview.interview_type === 'online'
                       ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                       : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                  }`}>
+                    }`}>
                     {interview.interview_type}
                   </span>
                 </div>

@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'scholarship_service' => [
+        'url' => env('SCHOLARSHIP_SERVICE_URL', 'http://127.0.0.1:8001'),
+        'timeout' => env('SCHOLARSHIP_SERVICE_TIMEOUT', 10),
+    ],
+
 ];

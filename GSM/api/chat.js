@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import path, { dirname } from 'path';
 
 // Load environment variables (optional; used for language only)
 dotenv.config();
@@ -11,13 +11,13 @@ dotenv.config();
 // Load service account JSON from local file instead of .env
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const serviceAccount = JSON.parse(readFileSync(`${__dirname}/bpmproject-51620-16f5485edbe4.json`, 'utf8'));
+const serviceAccount = JSON.parse(readFileSync(`${__dirname}/bpmproject-51620-ea52e0cd83fe.json`, 'utf8'));
 
 const projectId = process.env.DIALOGFLOW_PROJECT_ID || 'bpmproject-51620';
 const languageCode = process.env.DIALOGFLOW_LANGUAGE_CODE || 'en';
 
 const sessionClient = new dialogflow.SessionsClient({
-  keyFilename: path.join(__dirname, './bpmproject-51620-16f5485edbe4.json'),
+	keyFilename: path.join(__dirname, './bpmproject-51620-ea52e0cd83fe.json'),
 });
 
 function buildFallback(message) {
@@ -36,6 +36,19 @@ function buildFallback(message) {
 }
 
 export default async function handler(req, res) {
+	// Handle CORS
+	res.setHeader('Access-Control-Allow-Credentials', true);
+	res.setHeader('Access-Control-Allow-Origin', '*'); // Adjust as needed
+	res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+	res.setHeader(
+		'Access-Control-Allow-Headers',
+		'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+	);
+
+	if (req.method === 'OPTIONS') {
+		return res.status(200).end();
+	}
+
 	if (req.method !== 'POST') {
 		res.setHeader('Allow', 'POST');
 		return res.status(405).json({ error: 'Method Not Allowed' });
@@ -63,7 +76,7 @@ export default async function handler(req, res) {
 			const [response] = await sessionsClient.detectIntent(request);
 			const result = response.queryResult;
 			console.log('Dialogflow response:', result.fulfillmentText);
-			
+
 			// Check if we got a response from Dialogflow
 			if (result.fulfillmentText && result.fulfillmentText.trim()) {
 				return res.status(200).json({ reply: result.fulfillmentText });

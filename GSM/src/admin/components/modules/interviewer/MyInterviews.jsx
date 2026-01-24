@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Filter, 
-  Calendar, 
-  Clock, 
-  Users, 
-  Eye, 
-  CheckCircle, 
+import {
+  Search,
+  Filter,
+  Calendar,
+  Clock,
+  Users,
+  Eye,
+  CheckCircle,
   XCircle,
   RefreshCw,
   AlertTriangle,
@@ -26,7 +26,7 @@ import InterviewEvaluationModal from './InterviewEvaluationModal';
 import ApplicationViewModal from './ApplicationViewModal';
 
 function MyInterviews({ filter = 'all' }) {
-  const { showError } = useToastContext();
+  const { error: showError } = useToastContext();
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,7 +40,7 @@ function MyInterviews({ filter = 'all' }) {
   const [sortBy, setSortBy] = useState('interview_date');
   const [sortOrder, setSortOrder] = useState('asc');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  
+
   // Modal states
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
@@ -97,10 +97,10 @@ function MyInterviews({ filter = 'all' }) {
   };
 
   const hasActiveFilters = () => {
-    return filters.status !== 'all' || 
-           filters.dateFrom !== '' || 
-           filters.dateTo !== '' || 
-           searchTerm !== '';
+    return filters.status !== 'all' ||
+      filters.dateFrom !== '' ||
+      filters.dateTo !== '' ||
+      searchTerm !== '';
   };
 
   const handleViewApplication = (interview) => {
@@ -168,8 +168,8 @@ function MyInterviews({ filter = 'all' }) {
   };
 
   if (loading) {
-        return <LoadingData />;
-    }
+    return <LoadingData />;
+  }
 
   if (error) {
     return (
@@ -226,11 +226,10 @@ function MyInterviews({ filter = 'all' }) {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${
-                showAdvancedFilters 
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${showAdvancedFilters
                   ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
                   : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-              }`}
+                }`}
             >
               <Filter className="w-4 h-4" />
               <span>Advanced</span>
@@ -238,21 +237,19 @@ function MyInterviews({ filter = 'all' }) {
             <div className="flex items-center space-x-1 border border-gray-300 dark:border-slate-600 rounded-lg">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-l-lg transition-colors ${
-                  viewMode === 'grid' 
-                    ? 'bg-orange-500 text-white' 
+                className={`p-2 rounded-l-lg transition-colors ${viewMode === 'grid'
+                    ? 'bg-orange-500 text-white'
                     : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-                }`}
+                  }`}
               >
                 <Grid3X3 className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-r-lg transition-colors ${
-                  viewMode === 'list' 
-                    ? 'bg-orange-500 text-white' 
+                className={`p-2 rounded-r-lg transition-colors ${viewMode === 'list'
+                    ? 'bg-orange-500 text-white'
                     : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
-                }`}
+                  }`}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -352,7 +349,7 @@ function MyInterviews({ filter = 'all' }) {
                       <span className="ml-1 capitalize">{interview.status}</span>
                     </span>
                   </div>
-                  
+
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                       <Calendar className="w-4 h-4 mr-2" />
@@ -374,7 +371,7 @@ function MyInterviews({ filter = 'all' }) {
 
                   <div className="flex flex-col space-y-2">
                     <div className="flex space-x-2">
-                      <button 
+                      <button
                         onClick={() => handleViewApplication(interview)}
                         className="flex-1 px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                       >
@@ -382,7 +379,7 @@ function MyInterviews({ filter = 'all' }) {
                         View Details
                       </button>
                       {interview.status === 'scheduled' && (
-                        <button 
+                        <button
                           onClick={() => handleEvaluate(interview)}
                           className="flex-1 px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                         >
@@ -391,7 +388,7 @@ function MyInterviews({ filter = 'all' }) {
                       )}
                     </div>
                     {interview.interview_type === 'online' && interview.status === 'scheduled' && interview.meeting_link && (
-                      <button 
+                      <button
                         onClick={() => handleJoinMeeting(interview)}
                         className="w-full px-3 py-2 text-sm bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center justify-center"
                       >
@@ -461,11 +458,10 @@ function MyInterviews({ filter = 'all' }) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          interview.interview_type === 'online' 
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${interview.interview_type === 'online'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                             : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                        }`}>
+                          }`}>
                           {interview.interview_type === 'online' ? (
                             <Video className="w-3 h-3 mr-1" />
                           ) : (
@@ -483,14 +479,14 @@ function MyInterviews({ filter = 'all' }) {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex flex-col space-y-1">
                           <div className="flex space-x-2">
-                            <button 
+                            <button
                               onClick={() => handleViewApplication(interview)}
                               className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 transition-colors"
                             >
                               View
                             </button>
                             {interview.status === 'scheduled' && (
-                              <button 
+                              <button
                                 onClick={() => handleEvaluate(interview)}
                                 className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors"
                               >
@@ -499,7 +495,7 @@ function MyInterviews({ filter = 'all' }) {
                             )}
                           </div>
                           {interview.interview_type === 'online' && interview.status === 'scheduled' && interview.meeting_link && (
-                            <button 
+                            <button
                               onClick={() => handleJoinMeeting(interview)}
                               className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 transition-colors flex items-center"
                             >

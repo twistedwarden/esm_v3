@@ -25,12 +25,12 @@ function EMROverview() {
     // Fetch student data from auth_registry
     useEffect(() => {
         fetchStudentData();
-        
+
         // Set up real-time refresh every 5 minutes
         const interval = setInterval(() => {
             fetchStudentData();
         }, 5 * 60 * 1000); // 5 minutes
-        
+
         return () => clearInterval(interval);
     }, []);
 
@@ -38,7 +38,7 @@ function EMROverview() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-            
+
             // Fetch analytics chart data from monitoring service
             const analyticsResponse = await fetch(getMonitoringServiceUrl('/api/analytics/analytics-charts'), {
                 headers: {
@@ -47,13 +47,13 @@ function EMROverview() {
                     'Accept': 'application/json'
                 }
             });
-            
+
             if (!analyticsResponse.ok) {
                 throw new Error(`HTTP error! status: ${analyticsResponse.status}`);
             }
-            
+
             const analyticsData = await analyticsResponse.json();
-            
+
             if (analyticsData.success) {
                 setChartData(analyticsData.data || {});
             } else {
@@ -69,54 +69,54 @@ function EMROverview() {
     };
 
     const calculateAcademicStats = (studentData) => {
-        
+
         const total = studentData.length;
-        
+
         // Try different possible status field names and values
         const active = studentData.filter(s => {
             const status = s.status || s.student_status || s.enrollment_status;
             const isActive = s.is_active;
-            
+
             // Check various possible active status values
-            return status === 'active' || 
-                   status === 'enrolled' || 
-                   status === 'current' ||
-                   status === '1' ||
-                   isActive === true ||
-                   isActive === 1;
+            return status === 'active' ||
+                status === 'enrolled' ||
+                status === 'current' ||
+                status === '1' ||
+                isActive === true ||
+                isActive === 1;
         }).length;
-        
+
         const graduated = studentData.filter(s => {
             const status = s.status || s.student_status || s.enrollment_status;
             const isGraduated = s.is_graduated;
-            
+
             // Check various possible graduated status values
-            return status === 'completed' || 
-                   status === 'graduated' || 
-                   status === 'finished' ||
-                   status === '0' ||
-                   isGraduated === true ||
-                   isGraduated === 1;
+            return status === 'completed' ||
+                status === 'graduated' ||
+                status === 'finished' ||
+                status === '0' ||
+                isGraduated === true ||
+                isGraduated === 1;
         }).length;
-        
+
         // Fallback: If no students are marked as active or graduated, 
         // assume all students are active (common in educational systems)
         const finalActive = active > 0 ? active : (graduated > 0 ? total - graduated : total);
         const finalGraduated = graduated;
-        
-        
+
+
         // Process student data for statistics
-        
+
         // Calculate average GPA from grades
         let totalGPA = 0;
         let studentsWithGrades = 0;
-        
+
         studentData.forEach(student => {
             if (student.grades && student.grades.length > 0) {
                 const numericGrades = student.grades
                     .map(grade => parseFloat(grade.grade))
                     .filter(grade => !isNaN(grade));
-                
+
                 if (numericGrades.length > 0) {
                     const studentGPA = numericGrades.reduce((sum, grade) => sum + grade, 0) / numericGrades.length;
                     totalGPA += studentGPA;
@@ -124,16 +124,16 @@ function EMROverview() {
                 }
             }
         });
-        
+
         const averageGPA = studentsWithGrades > 0 ? (totalGPA / studentsWithGrades).toFixed(2) : 0;
-        
+
         const stats = {
             totalStudents: total,
             activeStudents: finalActive,
             graduatedStudents: finalGraduated,
             averageGPA: averageGPA
         };
-        
+
         setAcademicStats(stats);
     };
 
@@ -166,7 +166,7 @@ function EMROverview() {
                 const numericGrades = student.grades
                     .map(grade => parseFloat(grade.grade))
                     .filter(grade => !isNaN(grade));
-                
+
                 if (numericGrades.length > 0) {
                     const studentGPA = numericGrades.reduce((sum, grade) => sum + grade, 0) / numericGrades.length;
                     if (studentGPA >= 90) gpaDistribution['A (90-100)']++;
@@ -193,36 +193,36 @@ function EMROverview() {
 
         // Calculate trends (simulated)
         const totalStudents = studentData.length;
-        
+
         // Calculate active and graduated students using the same logic as calculateAcademicStats
         const activeStudents = studentData.filter(s => {
             const status = s.status || s.student_status || s.enrollment_status;
             const isActive = s.is_active;
-            
-            return status === 'active' || 
-                   status === 'enrolled' || 
-                   status === 'current' ||
-                   status === '1' ||
-                   isActive === true ||
-                   isActive === 1;
+
+            return status === 'active' ||
+                status === 'enrolled' ||
+                status === 'current' ||
+                status === '1' ||
+                isActive === true ||
+                isActive === 1;
         }).length;
-        
+
         const graduatedStudents = studentData.filter(s => {
             const status = s.status || s.student_status || s.enrollment_status;
             const isGraduated = s.is_graduated;
-            
-            return status === 'completed' || 
-                   status === 'graduated' || 
-                   status === 'finished' ||
-                   status === '0' ||
-                   isGraduated === true ||
-                   isGraduated === 1;
+
+            return status === 'completed' ||
+                status === 'graduated' ||
+                status === 'finished' ||
+                status === '0' ||
+                isGraduated === true ||
+                isGraduated === 1;
         }).length;
-        
+
         // Fallback: If no students are marked as active or graduated, assume all students are active
         const finalActive = activeStudents > 0 ? activeStudents : (graduatedStudents > 0 ? totalStudents - graduatedStudents : totalStudents);
         const finalGraduated = graduatedStudents;
-        
+
         const averageGPA = academicStats.averageGPA || 0;
 
         return {
@@ -264,105 +264,105 @@ function EMROverview() {
 
     const allReports = [
         // Academic Performance Reports
-        { 
-            id: 1, 
-            title: 'Student Academic Performance Summary', 
-            category: 'Academic Performance', 
+        {
+            id: 1,
+            title: 'Student Academic Performance Summary',
+            category: 'Academic Performance',
             categoryId: 'academic',
-            date: new Date().toISOString().split('T')[0], 
-            status: 'completed', 
-            downloads: 0, 
-            size: '1.2 MB', 
+            date: new Date().toISOString().split('T')[0],
+            status: 'completed',
+            downloads: 0,
+            size: '1.2 MB',
             type: 'PDF',
             description: 'Overview of student grades and academic progress'
         },
-        { 
-            id: 2, 
-            title: 'Grade Distribution Analysis', 
-            category: 'Academic Performance', 
+        {
+            id: 2,
+            title: 'Grade Distribution Analysis',
+            category: 'Academic Performance',
             categoryId: 'academic',
-            date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-            status: 'completed', 
-            downloads: 0, 
-            size: '0.9 MB', 
+            date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'completed',
+            downloads: 0,
+            size: '0.9 MB',
             type: 'Excel',
             description: 'Statistical analysis of grade distributions across programs'
         },
-        { 
-            id: 3, 
-            title: 'Subject Performance Report', 
-            category: 'Academic Performance', 
+        {
+            id: 3,
+            title: 'Subject Performance Report',
+            category: 'Academic Performance',
             categoryId: 'academic',
-            date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-            status: 'completed', 
-            downloads: 0, 
-            size: '1.1 MB', 
+            date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'completed',
+            downloads: 0,
+            size: '1.1 MB',
             type: 'PDF',
             description: 'Performance metrics by subject and instructor'
         },
-        
+
         // Enrollment Statistics Reports
-        { 
-            id: 4, 
-            title: 'Enrollment Statistics Report', 
-            category: 'Enrollment Statistics', 
+        {
+            id: 4,
+            title: 'Enrollment Statistics Report',
+            category: 'Enrollment Statistics',
             categoryId: 'enrollment',
-            date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-            status: 'completed', 
-            downloads: 0, 
-            size: '0.8 MB', 
+            date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'completed',
+            downloads: 0,
+            size: '0.8 MB',
             type: 'Excel',
             description: 'Current enrollment numbers and trends'
         },
-        { 
-            id: 5, 
-            title: 'Program Enrollment Analysis', 
-            category: 'Enrollment Statistics', 
+        {
+            id: 5,
+            title: 'Program Enrollment Analysis',
+            category: 'Enrollment Statistics',
             categoryId: 'enrollment',
-            date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-            status: 'completed', 
-            downloads: 0, 
-            size: '0.7 MB', 
+            date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'completed',
+            downloads: 0,
+            size: '0.7 MB',
             type: 'Excel',
             description: 'Detailed breakdown of enrollment by program and year level'
         },
-        
+
         // Student Progress Reports
-        { 
-            id: 6, 
-            title: 'Student Progress Tracking', 
-            category: 'Student Progress', 
+        {
+            id: 6,
+            title: 'Student Progress Tracking',
+            category: 'Student Progress',
             categoryId: 'progress',
-            date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-            status: 'completed', 
-            downloads: 0, 
-            size: '1.5 MB', 
+            date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'completed',
+            downloads: 0,
+            size: '1.5 MB',
             type: 'PDF',
             description: 'Individual student progress and milestones'
         },
-        { 
-            id: 7, 
-            title: 'Attendance and Engagement Report', 
-            category: 'Student Progress', 
+        {
+            id: 7,
+            title: 'Attendance and Engagement Report',
+            category: 'Student Progress',
             categoryId: 'progress',
-            date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-            status: 'completed', 
-            downloads: 0, 
-            size: '1.3 MB', 
+            date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'completed',
+            downloads: 0,
+            size: '1.3 MB',
             type: 'PDF',
             description: 'Student attendance patterns and engagement metrics'
         },
-        
+
         // Achievement Reports
-        { 
-            id: 8, 
-            title: 'Student Achievement Summary', 
-            category: 'Achievements', 
+        {
+            id: 8,
+            title: 'Student Achievement Summary',
+            category: 'Achievements',
             categoryId: 'achievements',
-            date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
-            status: 'completed', 
-            downloads: 0, 
-            size: '0.6 MB', 
+            date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'completed',
+            downloads: 0,
+            size: '0.6 MB',
             type: 'PDF',
             description: 'Summary of student achievements and recognitions'
         }
@@ -386,9 +386,9 @@ function EMROverview() {
         try {
             // Simulate report generation
             await new Promise(resolve => setTimeout(resolve, 2000));
-            
+
             // In a real implementation, this would call your backend API
-            
+
             // Show success message
             showSuccess(`${reportType} report generated successfully!`);
         } catch (error) {
@@ -414,7 +414,7 @@ function EMROverview() {
                 'Program': student.program || 'N/A',
                 'Year Level': student.year_level || 'N/A',
                 'Status': student.status || student.student_status || student.enrollment_status || 'N/A',
-                'Average Grade': student.grades && student.grades.length > 0 
+                'Average Grade': student.grades && student.grades.length > 0
                     ? (student.grades.reduce((sum, grade) => sum + parseFloat(grade.grade || 0), 0) / student.grades.length).toFixed(2)
                     : 'N/A',
                 'Total Subjects': student.grades ? student.grades.length : 0,
@@ -433,7 +433,7 @@ function EMROverview() {
                 academicData.length > 0 ? Object.keys(academicData[0]).join(',') : 'No data available',
                 ...academicData.map(row => Object.values(row).join(','))
             ].join('\n');
-            
+
             const blob = new Blob([reportContent], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -441,7 +441,7 @@ function EMROverview() {
             a.download = `academic_performance_report_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             window.URL.revokeObjectURL(url);
-            
+
             showSuccess('Academic Performance Report downloaded successfully!');
         } catch (error) {
             console.error('Error downloading academic report:', error);
@@ -507,7 +507,7 @@ function EMROverview() {
                 Object.keys(enrollmentData['Year Level Distribution'][0] || {}).join(','),
                 ...enrollmentData['Year Level Distribution'].map(row => Object.values(row).join(','))
             ].join('\n');
-            
+
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -515,7 +515,7 @@ function EMROverview() {
             a.download = `enrollment_statistics_report_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             window.URL.revokeObjectURL(url);
-            
+
             showSuccess('Enrollment Statistics Report downloaded successfully!');
         } catch (error) {
             console.error('Error downloading enrollment report:', error);
@@ -534,7 +534,7 @@ function EMROverview() {
             const progressData = students.map(student => {
                 const grades = student.grades || [];
                 const recentGrades = grades.slice(-3); // Last 3 grades
-                const progressTrend = recentGrades.length >= 2 
+                const progressTrend = recentGrades.length >= 2
                     ? (parseFloat(recentGrades[recentGrades.length - 1]?.grade || 0) - parseFloat(recentGrades[0]?.grade || 0)).toFixed(2)
                     : 'N/A';
 
@@ -549,8 +549,8 @@ function EMROverview() {
                     'Progress Trend': progressTrend,
                     'Milestones Completed': student.milestones ? student.milestones.length : 0,
                     'Last Activity': student.last_activity || 'N/A',
-                    'Progress Status': progressTrend !== 'N/A' && parseFloat(progressTrend) > 0 ? 'Improving' : 
-                                     progressTrend !== 'N/A' && parseFloat(progressTrend) < 0 ? 'Declining' : 'Stable'
+                    'Progress Status': progressTrend !== 'N/A' && parseFloat(progressTrend) > 0 ? 'Improving' :
+                        progressTrend !== 'N/A' && parseFloat(progressTrend) < 0 ? 'Declining' : 'Stable'
                 };
             });
 
@@ -563,7 +563,7 @@ function EMROverview() {
                 Object.keys(progressData[0] || {}).join(','),
                 ...progressData.map(row => Object.values(row).join(','))
             ].join('\n');
-            
+
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -571,7 +571,7 @@ function EMROverview() {
             a.download = `student_progress_tracking_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             window.URL.revokeObjectURL(url);
-            
+
             showSuccess('Student Progress Tracking Report downloaded successfully!');
         } catch (error) {
             console.error('Error downloading progress report:', error);
@@ -656,7 +656,7 @@ function EMROverview() {
                     Object.keys(yearLevelStats[0]).join(','),
                     ...yearLevelStats.map(row => Object.values(row).join(','))
                 ].join('\n');
-                
+
                 const blob = new Blob([csvContent], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -664,7 +664,7 @@ function EMROverview() {
                 a.download = `education_monitoring_overview_${new Date().toISOString().split('T')[0]}.csv`;
                 a.click();
                 window.URL.revokeObjectURL(url);
-                
+
                 showSuccess('Education monitoring overview exported successfully!');
             }
         } catch (error) {
@@ -676,7 +676,7 @@ function EMROverview() {
     return (
         <div className="space-y-6 pb-6">
             {/* Header */}
-            <DashboardHeader 
+            <DashboardHeader
                 onExportData={exportData}
                 onGenerateReport={generateReport}
                 loading={loading}
@@ -684,7 +684,7 @@ function EMROverview() {
             />
 
             {/* KPI Cards - Z-Pattern Row 1 */}
-            <KPICards 
+            <KPICards
                 academicStats={academicStats}
                 chartData={chartData}
             />
@@ -697,13 +697,13 @@ function EMROverview() {
 
             {/* Reports Section - Z-Pattern Row 3 */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
-                <ReportCategories 
+                <ReportCategories
                     selectedCategory={selectedCategory}
                     onCategoryChange={setSelectedCategory}
                     allReports={allReports}
                 />
 
-                <ReportsList 
+                <ReportsList
                     filteredReports={filteredReports}
                     selectedCategory={selectedCategory}
                     reportCategories={[]}
@@ -718,7 +718,7 @@ function EMROverview() {
             <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                 <h3 className="text-sm sm:text-base font-semibold text-slate-800 dark:text-white mb-4">Quick Report Generation</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <button 
+                    <button
                         onClick={() => generateReport('Academic Performance')}
                         className="flex items-center gap-3 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors group"
                     >
@@ -730,7 +730,7 @@ function EMROverview() {
                             <div className="text-xs text-slate-600 dark:text-slate-400 truncate">Academic grades</div>
                         </div>
                     </button>
-                    <button 
+                    <button
                         onClick={() => generateReport('Enrollment Statistics')}
                         className="flex items-center gap-3 p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors group"
                     >
@@ -742,7 +742,7 @@ function EMROverview() {
                             <div className="text-xs text-slate-600 dark:text-slate-400 truncate">Registration data</div>
                         </div>
                     </button>
-                    <button 
+                    <button
                         onClick={() => generateReport('Student Progress')}
                         className="flex items-center gap-3 p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors group"
                     >
