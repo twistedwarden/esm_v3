@@ -2,8 +2,8 @@
 export const API_CONFIG = {
     AUTH_SERVICE: {
         // Local auth service
-        BASE_URL: 'http://localhost:8000',
-        // BASE_URL: 'https://auth-educ.goserveph.com',
+        // BASE_URL: 'http://localhost:8000',
+        BASE_URL: 'https://auth-educ.goserveph.com',
         ENDPOINTS: {
             LOGIN: '/api/login',
             LOGOUT: '/api/logout',
@@ -12,8 +12,8 @@ export const API_CONFIG = {
         }
     },
     SCHOLARSHIP_SERVICE: {
-        BASE_URL: 'http://localhost:8001',
-        // BASE_URL: 'https://scholarship-educ.goserveph.com',
+        // BASE_URL: 'http://localhost:8001',
+        BASE_URL: 'https://scholarship-educ.goserveph.com',
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health',
@@ -106,8 +106,8 @@ export const API_CONFIG = {
         }
     },
     AID_SERVICE: {
-        BASE_URL: 'http://localhost:8002',
-        // BASE_URL: 'https://aid-educ.goserveph.com',
+        // BASE_URL: 'http://localhost:8002',
+        BASE_URL: 'https://aid-educ.goserveph.com',
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health',
@@ -133,8 +133,8 @@ export const API_CONFIG = {
         }
     },
     MONITORING_SERVICE: {
-        BASE_URL: 'http://localhost:8003',
-        // BASE_URL: 'https://monitoring-educ.goserveph.com',
+        // BASE_URL: 'http://localhost:8003',
+        BASE_URL: 'https://monitoring-educ.goserveph.com',
         ENDPOINTS: {
             // Health check
             HEALTH: '/api/health',
