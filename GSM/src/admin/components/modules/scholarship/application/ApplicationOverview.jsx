@@ -30,7 +30,9 @@ function ApplicationOverview() {
     rejected: 0,
     verifiedStudents: 0,
     scheduledInterviews: 0,
-    endorsedToSSC: 0
+    endorsedToSSC: 0,
+    activeSchoolYear: 'N/A',
+    activeSemester: 'N/A'
   });
 
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,9 @@ function ApplicationOverview() {
         rejected: data.stats.rejected || 0,
         verifiedStudents: data.stats.verifiedStudents || 0,
         scheduledInterviews: data.stats.scheduledInterviews || 0,
-        endorsedToSSC: data.stats.endorsedToSSC || 0
+        endorsedToSSC: data.stats.endorsedToSSC || 0,
+        activeSchoolYear: data.stats.activeSchoolYear || 'N/A',
+        activeSemester: data.stats.activeSemester || 'N/A'
       });
 
       setRecentActivities(data.recentActivities || []);
@@ -184,11 +188,19 @@ function ApplicationOverview() {
   return (
     <AnimatedContainer variant="page" className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between border-b border-gray-100 dark:border-slate-700 pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Application Management Overview
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Application Management Overview
+            </h1>
+            <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/40 dark:to-indigo-900/40 text-blue-700 dark:text-blue-300 px-4 py-1.5 rounded-full text-lg font-bold border border-blue-100/50 dark:border-blue-800/50 shadow-sm transition-all hover:shadow-md">
+              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <span>S.Y. {stats.activeSchoolYear}</span>
+              <span className="text-blue-300 dark:text-blue-700 mx-2">|</span>
+              <span>{stats.activeSemester}</span>
+            </div>
+          </div>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Monitor and manage scholarship applications across all stages
           </p>

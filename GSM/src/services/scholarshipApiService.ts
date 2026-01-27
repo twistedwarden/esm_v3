@@ -156,11 +156,26 @@ export interface ScholarshipSubcategory {
   name: string;
   description?: string;
   amount?: number;
-  type: 'merit' | 'need_based' | 'special' | 'renewal';
   requirements?: string[];
   benefits?: string[];
   is_active?: boolean;
 }
+
+export interface AcademicPeriod {
+  id: number;
+  academic_year: string;
+  period_type: 'Semester' | 'Trimester';
+  period_number: number;
+  start_date: string;
+  end_date: string;
+  application_deadline: string;
+  status: 'open' | 'closed';
+  is_current: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+
 
 export interface ScholarshipApplication {
   id?: number;
@@ -282,16 +297,13 @@ class ScholarshipApiService {
       // Add user information headers for SSC role detection
       try {
         const userData = localStorage.getItem('user_data');
-        console.log('ScholarshipApiService - User data from localStorage:', userData);
         if (userData) {
           const user = JSON.parse(userData);
-          console.log('ScholarshipApiService - Parsed user:', user);
           defaultHeaders['X-User-ID'] = user.id;
           defaultHeaders['X-User-Role'] = user.role;
           defaultHeaders['X-User-Email'] = user.email;
           defaultHeaders['X-User-First-Name'] = user.first_name;
           defaultHeaders['X-User-Last-Name'] = user.last_name;
-          console.log('ScholarshipApiService - Headers being sent:', defaultHeaders);
         }
       } catch (error) {
         console.warn('Failed to parse user data from localStorage:', error);
@@ -430,6 +442,45 @@ class ScholarshipApiService {
   async deleteScholarshipSubcategory(id: number): Promise<void> {
     await this.makeRequest(
       API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOLARSHIP_SUBCATEGORY(id),
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
+  // Academic Periods
+  async getAcademicPeriods(): Promise<AcademicPeriod[]> {
+    const response = await this.makeRequest<AcademicPeriod[]>(
+      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).ACADEMIC_PERIODS
+    );
+    return response.data || [];
+  }
+
+  async createAcademicPeriod(data: Partial<AcademicPeriod>): Promise<AcademicPeriod> {
+    const response = await this.makeRequest<AcademicPeriod>(
+      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).ACADEMIC_PERIODS,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data || (response as any);
+  }
+
+  async updateAcademicPeriod(id: number, data: Partial<AcademicPeriod>): Promise<AcademicPeriod> {
+    const response = await this.makeRequest<AcademicPeriod>(
+      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).ACADEMIC_PERIOD(id),
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data || (response as any);
+  }
+
+  async deleteAcademicPeriod(id: number): Promise<void> {
+    await this.makeRequest(
+      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).ACADEMIC_PERIOD(id),
       {
         method: 'DELETE',
       }

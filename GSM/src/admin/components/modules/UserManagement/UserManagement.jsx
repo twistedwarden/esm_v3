@@ -134,7 +134,7 @@ const UserManagement = () => {
 
     const [filteredSchools, setFilteredSchools] = useState([]);
 
-    
+
 
     // Modal and Toast states
 
@@ -146,15 +146,15 @@ const UserManagement = () => {
 
     // Use global toast context
 
-    const { showSuccess, showError, showWarning } = useToastContext();
+    const { success: showSuccess, error: showError, warning: showWarning } = useToastContext();
 
-    
+
 
     // Check if a role is selected to enable/disable form fields
 
     const isRoleSelected = formData.role && formData.role !== '';
 
-    
+
 
     // Helper function to get disabled state and styling for form fields
 
@@ -264,13 +264,13 @@ const UserManagement = () => {
 
             console.log('Users API response:', response.data);
 
-            
+
 
             if (response.data.success) {
 
                 let userData = response.data.data;
 
-                
+
 
                 // Check if data is already categorized or if it's a flat array
 
@@ -362,7 +362,7 @@ const UserManagement = () => {
 
                 }
 
-                
+
 
                 console.log('Setting users data:', userData);
 
@@ -540,7 +540,7 @@ const UserManagement = () => {
 
         let allUsers = [];
 
-        
+
 
         if (selectedRole === 'all') {
 
@@ -658,7 +658,7 @@ const UserManagement = () => {
 
         if (searchTerm) {
 
-            allUsers = allUsers.filter(user => 
+            allUsers = allUsers.filter(user =>
 
                 user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
 
@@ -688,7 +688,7 @@ const UserManagement = () => {
 
         e.preventDefault();
 
-        
+
 
         if (!validateForm()) {
 
@@ -696,7 +696,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         setIsSubmitting(true);
 
@@ -732,7 +732,7 @@ const UserManagement = () => {
 
             };
 
-            
+
 
             // Handle system_role for staff users
 
@@ -766,15 +766,15 @@ const UserManagement = () => {
 
             });
 
-            
+
 
             console.log('Sending user data:', sanitizedData);
 
-            
+
 
             const response = await axios.post(`${SCHOLARSHIP_API}/users`, sanitizedData);
 
-            
+
 
             if (response.data.success) {
 
@@ -794,7 +794,7 @@ const UserManagement = () => {
 
             console.error('Error creating user:', error);
 
-            
+
 
             // Handle specific error cases
 
@@ -1110,7 +1110,7 @@ const UserManagement = () => {
 
         const errors = {};
 
-        
+
 
         // Email validation
 
@@ -1128,7 +1128,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         // Password validation
 
@@ -1162,7 +1162,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         // Password confirmation
 
@@ -1176,7 +1176,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         // Name validation
 
@@ -1198,7 +1198,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         if (!formData.last_name.trim()) {
 
@@ -1218,7 +1218,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         // Middle name validation (optional)
 
@@ -1232,7 +1232,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         // Mobile validation
 
@@ -1242,7 +1242,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         // Staff role validation
 
@@ -1252,7 +1252,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         // Department validation for staff - required field
 
@@ -1264,13 +1264,13 @@ const UserManagement = () => {
 
             } else if (formData.department.length > 100) {
 
-            errors.department = 'Department name must be less than 100 characters';
+                errors.department = 'Department name must be less than 100 characters';
 
             }
 
         }
 
-        
+
 
         // Position validation for staff - required field
 
@@ -1282,7 +1282,7 @@ const UserManagement = () => {
 
             } else if (formData.position.length > 100) {
 
-            errors.position = 'Position must be less than 100 characters';
+                errors.position = 'Position must be less than 100 characters';
 
             }
 
@@ -1302,7 +1302,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         setFormErrors(errors);
 
@@ -1316,7 +1316,7 @@ const UserManagement = () => {
 
         if (!password) return { strength: 0, label: '', color: '', requirements: [] };
 
-        
+
 
         const requirements = [
 
@@ -1332,19 +1332,19 @@ const UserManagement = () => {
 
         ];
 
-        
+
 
         const metRequirements = requirements.filter(req => req.met).length;
 
         const strength = metRequirements;
 
-        
+
 
         const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
 
         const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'];
 
-        
+
 
         return {
 
@@ -1374,7 +1374,7 @@ const UserManagement = () => {
 
         }
 
-        setFormData({...formData, password, password_confirmation: password});
+        setFormData({ ...formData, password, password_confirmation: password });
 
     };
 
@@ -1386,7 +1386,7 @@ const UserManagement = () => {
 
         const errors = { ...formErrors };
 
-        
+
 
         switch (fieldName) {
 
@@ -1412,7 +1412,7 @@ const UserManagement = () => {
 
                 break;
 
-                
+
 
             case 'password':
 
@@ -1452,7 +1452,7 @@ const UserManagement = () => {
 
                 break;
 
-                
+
 
             case 'password_confirmation':
 
@@ -1472,7 +1472,7 @@ const UserManagement = () => {
 
                 break;
 
-                
+
 
             case 'first_name':
 
@@ -1500,7 +1500,7 @@ const UserManagement = () => {
 
                 break;
 
-                
+
 
             case 'last_name':
 
@@ -1528,7 +1528,7 @@ const UserManagement = () => {
 
                 break;
 
-                
+
 
             case 'mobile':
 
@@ -1546,7 +1546,7 @@ const UserManagement = () => {
 
         }
 
-        
+
 
         setFormErrors(errors);
 
@@ -1598,7 +1598,7 @@ const UserManagement = () => {
 
         const prefix = rolePrefix[role] || 'USER';
 
-        
+
 
         // Get all users of the same role to find the highest number
 
@@ -1668,7 +1668,7 @@ const UserManagement = () => {
 
         setGeneratedId(newId);
 
-        setFormData({...formData, citizen_id: newId});
+        setFormData({ ...formData, citizen_id: newId });
 
     };
 
@@ -1722,19 +1722,19 @@ const UserManagement = () => {
 
     const getTotalUsers = () => {
 
-        return (users.citizens?.length || 0) + 
+        return (users.citizens?.length || 0) +
 
-               (users.staff?.length || 0) + 
+            (users.staff?.length || 0) +
 
-               (users.admins?.length || 0) + 
+            (users.admins?.length || 0) +
 
-               (users.ps_reps?.length || 0) +
+            (users.ps_reps?.length || 0) +
 
-               (users.ssc_city_council?.length || 0) +
+            (users.ssc_city_council?.length || 0) +
 
-               (users.ssc_budget_dept?.length || 0) +
+            (users.ssc_budget_dept?.length || 0) +
 
-               (users.ssc_education_affairs?.length || 0);
+            (users.ssc_education_affairs?.length || 0);
 
     };
 
@@ -1804,7 +1804,7 @@ const UserManagement = () => {
 
                 </div>
 
-                
+
 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
 
@@ -1824,7 +1824,7 @@ const UserManagement = () => {
 
                 </div>
 
-                
+
 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
 
@@ -1844,7 +1844,7 @@ const UserManagement = () => {
 
                 </div>
 
-                
+
 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
 
@@ -1864,7 +1864,7 @@ const UserManagement = () => {
 
                 </div>
 
-                
+
 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
 
@@ -1884,7 +1884,7 @@ const UserManagement = () => {
 
                 </div>
 
-                
+
 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
 
@@ -1904,7 +1904,7 @@ const UserManagement = () => {
 
                 </div>
 
-                
+
 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
 
@@ -1924,7 +1924,7 @@ const UserManagement = () => {
 
                 </div>
 
-                
+
 
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow">
 
@@ -1974,7 +1974,7 @@ const UserManagement = () => {
 
                     </div>
 
-                    
+
 
                     <div className="flex items-center gap-2">
 
@@ -2030,7 +2030,7 @@ const UserManagement = () => {
 
                     </div>
 
-                    
+
 
                     <div className="flex items-center gap-2">
 
@@ -2182,7 +2182,7 @@ const UserManagement = () => {
 
                                                 <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs sm:text-sm">
 
-                                                    <UserCheck size={14} className="sm:w-4 sm:h-4" /> 
+                                                    <UserCheck size={14} className="sm:w-4 sm:h-4" />
 
                                                     <span className="hidden sm:inline">Active</span>
 
@@ -2192,7 +2192,7 @@ const UserManagement = () => {
 
                                                 <span className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs sm:text-sm">
 
-                                                    <UserX size={14} className="sm:w-4 sm:h-4" /> 
+                                                    <UserX size={14} className="sm:w-4 sm:h-4" />
 
                                                     <span className="hidden sm:inline">Inactive</span>
 
@@ -2224,15 +2224,13 @@ const UserManagement = () => {
 
                                                     onClick={() => openActionModal(user)}
 
-                                                    className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
+                                                    className={`p-1.5 sm:p-2 rounded-lg transition-colors ${user.is_active
 
-                                                        user.is_active 
-
-                                                            ? "text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20" 
+                                                            ? "text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
 
                                                             : "text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
 
-                                                    }`}
+                                                        }`}
 
                                                     title={user.is_active ? "User Actions" : "User Actions"}
 
@@ -2314,7 +2312,7 @@ const UserManagement = () => {
 
                         </div>
 
-                        
+
 
                         <div className="flex-1 overflow-y-auto p-6">
 
@@ -2332,7 +2330,7 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -2388,7 +2386,7 @@ const UserManagement = () => {
 
                                         </div>
 
-                                    
+
 
                                         <div>
 
@@ -2412,7 +2410,7 @@ const UserManagement = () => {
 
                                                     onChange={(e) => {
 
-                                                        setFormData({...formData, email: e.target.value});
+                                                        setFormData({ ...formData, email: e.target.value });
 
                                                         validateField('email', e.target.value);
 
@@ -2420,11 +2418,9 @@ const UserManagement = () => {
 
                                                     onBlur={(e) => validateField('email', e.target.value)}
 
-                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${formErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
 
-                                                        formErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-
-                                                    }`}
+                                                        }`}
 
                                                     placeholder="user@example.com"
 
@@ -2466,7 +2462,7 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -2488,7 +2484,7 @@ const UserManagement = () => {
 
                                                     value={formData.role}
 
-                                                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
 
                                                     className="w-full px-4 py-3 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white transition-colors appearance-none"
 
@@ -2586,7 +2582,7 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -2612,7 +2608,7 @@ const UserManagement = () => {
 
                                                 onChange={(e) => {
 
-                                                    setFormData({...formData, first_name: e.target.value});
+                                                    setFormData({ ...formData, first_name: e.target.value });
 
                                                     validateField('first_name', e.target.value);
 
@@ -2646,7 +2642,7 @@ const UserManagement = () => {
 
                                         </div>
 
-                                        
+
 
                                         <div>
 
@@ -2668,7 +2664,7 @@ const UserManagement = () => {
 
                                                 onChange={(e) => {
 
-                                                    setFormData({...formData, last_name: e.target.value});
+                                                    setFormData({ ...formData, last_name: e.target.value });
 
                                                     validateField('last_name', e.target.value);
 
@@ -2676,11 +2672,9 @@ const UserManagement = () => {
 
                                                 onBlur={(e) => validateField('last_name', e.target.value)}
 
-                                                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                                                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${formErrors.last_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
 
-                                                    formErrors.last_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-
-                                                }`}
+                                                    }`}
 
                                                 placeholder="Enter last name"
 
@@ -2700,7 +2694,7 @@ const UserManagement = () => {
 
                                         </div>
 
-                                        
+
 
                                         <div>
 
@@ -2718,13 +2712,11 @@ const UserManagement = () => {
 
                                                 value={formData.middle_name}
 
-                                                onChange={(e) => setFormData({...formData, middle_name: e.target.value})}
+                                                onChange={(e) => setFormData({ ...formData, middle_name: e.target.value })}
 
-                                                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                                                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${formErrors.middle_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
 
-                                                    formErrors.middle_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-
-                                                }`}
+                                                    }`}
 
                                                 placeholder="Enter middle name (optional)"
 
@@ -2744,7 +2736,7 @@ const UserManagement = () => {
 
                                         </div>
 
-                                        
+
 
                                         <div>
 
@@ -2766,7 +2758,7 @@ const UserManagement = () => {
 
                                                     onChange={(e) => {
 
-                                                        setFormData({...formData, mobile: e.target.value});
+                                                        setFormData({ ...formData, mobile: e.target.value });
 
                                                         validateField('mobile', e.target.value);
 
@@ -2774,11 +2766,9 @@ const UserManagement = () => {
 
                                                     onBlur={(e) => validateField('mobile', e.target.value)}
 
-                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${formErrors.mobile ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
 
-                                                        formErrors.mobile ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-
-                                                    }`}
+                                                        }`}
 
                                                     placeholder="+63 912 345 6789"
 
@@ -2820,11 +2810,11 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                                    
+
 
                                         <div>
 
@@ -2848,7 +2838,7 @@ const UserManagement = () => {
 
                                                     onChange={(e) => {
 
-                                                        setFormData({...formData, password: e.target.value});
+                                                        setFormData({ ...formData, password: e.target.value });
 
                                                         validateField('password', e.target.value);
 
@@ -2856,11 +2846,9 @@ const UserManagement = () => {
 
                                                     onBlur={(e) => validateField('password', e.target.value)}
 
-                                                    className={`w-full px-4 py-3 pl-10 pr-24 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                                                    className={`w-full px-4 py-3 pl-10 pr-24 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${formErrors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
 
-                                                        formErrors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-
-                                                    }`}
+                                                        }`}
 
                                                     placeholder="Enter secure password"
 
@@ -2922,7 +2910,7 @@ const UserManagement = () => {
 
                                                         <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
 
-                                                            <div 
+                                                            <div
 
                                                                 className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrength(formData.password).color}`}
 
@@ -2974,7 +2962,7 @@ const UserManagement = () => {
 
                                         </div>
 
-                                    
+
 
                                         <div>
 
@@ -2998,7 +2986,7 @@ const UserManagement = () => {
 
                                                     onChange={(e) => {
 
-                                                        setFormData({...formData, password_confirmation: e.target.value});
+                                                        setFormData({ ...formData, password_confirmation: e.target.value });
 
                                                         validateField('password_confirmation', e.target.value);
 
@@ -3006,11 +2994,9 @@ const UserManagement = () => {
 
                                                     onBlur={(e) => validateField('password_confirmation', e.target.value)}
 
-                                                    className={`w-full px-4 py-3 pl-10 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                                                    className={`w-full px-4 py-3 pl-10 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${formErrors.password_confirmation ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
 
-                                                        formErrors.password_confirmation ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-
-                                                    }`}
+                                                        }`}
 
                                                     placeholder="Confirm your password"
 
@@ -3058,11 +3044,11 @@ const UserManagement = () => {
 
                                 <div className="space-y-4">
 
-                                    
+
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                                    
+
 
                                         {formData.role === 'staff' && (
 
@@ -3078,7 +3064,7 @@ const UserManagement = () => {
 
                                                     </div>
 
-                                                    
+
 
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -3098,13 +3084,11 @@ const UserManagement = () => {
 
                                                                     value={formData.system_role}
 
-                                                                    onChange={(e) => setFormData({...formData, system_role: e.target.value})}
+                                                                    onChange={(e) => setFormData({ ...formData, system_role: e.target.value })}
 
-                                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors appearance-none ${
+                                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors appearance-none ${formErrors.system_role ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
 
-                                                                        formErrors.system_role ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-
-                                                                    }`}
+                                                                        }`}
 
                                                                 >
 
@@ -3138,7 +3122,7 @@ const UserManagement = () => {
 
                                                         </div>
 
-                                                        
+
 
                                                         <div>
 
@@ -3156,13 +3140,11 @@ const UserManagement = () => {
 
                                                                     value={formData.department}
 
-                                                                    onChange={(e) => setFormData({...formData, department: e.target.value})}
+                                                                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
 
-                                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${formErrors.department ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
 
-                                                                        formErrors.department ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-
-                                                                    }`}
+                                                                        }`}
 
                                                                     required
 
@@ -3216,7 +3198,7 @@ const UserManagement = () => {
 
                                                         </div>
 
-                                                        
+
 
                                                         <div>
 
@@ -3234,13 +3216,11 @@ const UserManagement = () => {
 
                                                                     value={formData.position}
 
-                                                                    onChange={(e) => setFormData({...formData, position: e.target.value})}
+                                                                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
 
-                                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${
+                                                                    className={`w-full px-4 py-3 pl-10 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-colors ${formErrors.position ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
 
-                                                                        formErrors.position ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'
-
-                                                                    }`}
+                                                                        }`}
 
                                                                     required
 
@@ -3332,7 +3312,7 @@ const UserManagement = () => {
 
                                                     </div>
 
-                                                    
+
 
                                                     <div className="space-y-4">
 
@@ -3366,7 +3346,7 @@ const UserManagement = () => {
 
                                                         </div>
 
-                                                        
+
 
                                                         <div>
 
@@ -3394,17 +3374,15 @@ const UserManagement = () => {
 
                                                                             key={school.id}
 
-                                                                            onClick={() => setFormData({...formData, assigned_school_id: school.id})}
+                                                                            onClick={() => setFormData({ ...formData, assigned_school_id: school.id })}
 
-                                                                            className={`p-3 border-b border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-
-                                                                                formData.assigned_school_id === school.id
+                                                                            className={`p-3 border-b border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${formData.assigned_school_id === school.id
 
                                                                                     ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-l-orange-500'
 
                                                                                     : ''
 
-                                                                            }`}
+                                                                                }`}
 
                                                                         >
 
@@ -3434,15 +3412,13 @@ const UserManagement = () => {
 
                                                                                 <div className="flex items-center space-x-2">
 
-                                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-
-                                                                                        school.is_partner_school 
+                                                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${school.is_partner_school
 
                                                                                             ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
 
                                                                                             : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
 
-                                                                                    }`}>
+                                                                                        }`}>
 
                                                                                         {school.is_partner_school ? 'Partner' : 'Regular'}
 
@@ -3474,7 +3450,7 @@ const UserManagement = () => {
 
                                                         </div>
 
-                                                        
+
 
                                                         {formData.assigned_school_id && (
 
@@ -3512,7 +3488,7 @@ const UserManagement = () => {
 
                         </div>
 
-                        
+
 
                         {/* Fixed Footer with Action Buttons - Outside scrollable area */}
 
@@ -3550,15 +3526,13 @@ const UserManagement = () => {
 
                                     disabled={isSubmitting || !isRoleSelected}
 
-                                    className={`px-6 py-3 rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg hover:shadow-xl ${
+                                    className={`px-6 py-3 rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg hover:shadow-xl ${isSubmitting || !isRoleSelected
 
-                                        isSubmitting || !isRoleSelected
-
-                                            ? 'bg-gray-400 cursor-not-allowed' 
+                                            ? 'bg-gray-400 cursor-not-allowed'
 
                                             : 'bg-blue-600 hover:bg-blue-700'
 
-                                    } text-white`}
+                                        } text-white`}
 
                                 >
 
@@ -3618,7 +3592,7 @@ const UserManagement = () => {
 
                                             value={formData.email}
 
-                                            onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
 
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 
@@ -3626,7 +3600,7 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     <div>
 
@@ -3642,7 +3616,7 @@ const UserManagement = () => {
 
                                             value={formData.role}
 
-                                            onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
 
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 
@@ -3666,7 +3640,7 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     <div>
 
@@ -3684,7 +3658,7 @@ const UserManagement = () => {
 
                                             value={formData.first_name}
 
-                                            onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
 
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 
@@ -3692,7 +3666,7 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     <div>
 
@@ -3710,7 +3684,7 @@ const UserManagement = () => {
 
                                             value={formData.last_name}
 
-                                            onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
 
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 
@@ -3718,7 +3692,7 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     <div>
 
@@ -3734,7 +3708,7 @@ const UserManagement = () => {
 
                                             value={formData.middle_name}
 
-                                            onChange={(e) => setFormData({...formData, middle_name: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, middle_name: e.target.value })}
 
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 
@@ -3742,7 +3716,7 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     <div>
 
@@ -3758,7 +3732,7 @@ const UserManagement = () => {
 
                                             value={formData.mobile}
 
-                                            onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
 
                                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 
@@ -3766,7 +3740,7 @@ const UserManagement = () => {
 
                                     </div>
 
-                                    
+
 
                                     {(formData.role === 'staff' || selectedUser.role === 'staff') && (
 
@@ -3784,7 +3758,7 @@ const UserManagement = () => {
 
                                                     value={formData.system_role}
 
-                                                    onChange={(e) => setFormData({...formData, system_role: e.target.value})}
+                                                    onChange={(e) => setFormData({ ...formData, system_role: e.target.value })}
 
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 
@@ -3802,7 +3776,7 @@ const UserManagement = () => {
 
                                             </div>
 
-                                            
+
 
                                             <div>
 
@@ -3816,7 +3790,7 @@ const UserManagement = () => {
 
                                                     value={formData.department}
 
-                                                    onChange={(e) => setFormData({...formData, department: e.target.value})}
+                                                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
 
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 
@@ -3856,7 +3830,7 @@ const UserManagement = () => {
 
                                             </div>
 
-                                            
+
 
                                             <div>
 
@@ -3870,7 +3844,7 @@ const UserManagement = () => {
 
                                                     value={formData.position}
 
-                                                    onChange={(e) => setFormData({...formData, position: e.target.value})}
+                                                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
 
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
 
@@ -3930,7 +3904,7 @@ const UserManagement = () => {
 
                                 </div>
 
-                                
+
 
                                 <div className="flex justify-end gap-3 mt-6">
 

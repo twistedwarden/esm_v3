@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Archive, 
-  Search, 
-  Filter, 
-  RotateCcw, 
-  Trash2, 
-  Eye, 
+import {
+  Archive,
+  Search,
+  Filter,
+  RotateCcw,
+  Trash2,
+  Eye,
   Calendar,
   User,
   FileText,
@@ -60,15 +60,15 @@ const ArchivedOverview = () => {
     setLoading(true);
     try {
       const response = await archivedDataService.getArchivedData();
-      
+
       if (response.success) {
         setArchivedData(response.data);
-        
+
         // Update category counts
-        setCategories(prevCategories => 
+        setCategories(prevCategories =>
           prevCategories.map(category => ({
             ...category,
-            count: category.id === 'all' 
+            count: category.id === 'all'
               ? Object.values(response.data).flat().length
               : response.data[category.id]?.length || 0
           }))
@@ -78,7 +78,7 @@ const ArchivedOverview = () => {
       }
     } catch (error) {
       console.error('Error fetching archived data:', error);
-      
+
       // Fallback to mock data if API fails
       const mockData = {
         users: [
@@ -136,17 +136,17 @@ const ArchivedOverview = () => {
       };
 
       setArchivedData(mockData);
-      
+
       // Update category counts
-      setCategories(prevCategories => 
+      setCategories(prevCategories =>
         prevCategories.map(category => ({
           ...category,
-          count: category.id === 'all' 
+          count: category.id === 'all'
             ? Object.values(mockData).flat().length
             : mockData[category.id]?.length || 0
         }))
       );
-      
+
       showError('Using offline data - API connection failed');
     } finally {
       setLoading(false);
@@ -155,7 +155,7 @@ const ArchivedOverview = () => {
 
   const filterData = () => {
     let data = [];
-    
+
     if (selectedCategory === 'all') {
       data = Object.values(archivedData).flat();
     } else {
@@ -163,7 +163,7 @@ const ArchivedOverview = () => {
     }
 
     if (searchTerm) {
-      data = data.filter(item => 
+      data = data.filter(item =>
         item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.applicantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -176,15 +176,15 @@ const ArchivedOverview = () => {
 
   const handleRestore = async (item) => {
     try {
-      const category = selectedCategory === 'all' ? 
-        Object.keys(archivedData).find(key => archivedData[key].includes(item)) : 
+      const category = selectedCategory === 'all' ?
+        Object.keys(archivedData).find(key => archivedData[key].includes(item)) :
         selectedCategory;
-      
+
       const response = await archivedDataService.restoreItem(category, item.id);
-      
+
       if (response.success) {
         showSuccess(`${item.name || item.applicantName || item.action} has been restored successfully`);
-        
+
         // Remove from archived data
         if (category && archivedData[category]) {
           setArchivedData(prev => ({
@@ -195,7 +195,7 @@ const ArchivedOverview = () => {
       } else {
         throw new Error(response.message || 'Failed to restore item');
       }
-      
+
       setShowRestoreModal(false);
       setItemToRestore(null);
     } catch (error) {
@@ -206,15 +206,15 @@ const ArchivedOverview = () => {
 
   const handlePermanentDelete = async (item) => {
     try {
-      const category = selectedCategory === 'all' ? 
-        Object.keys(archivedData).find(key => archivedData[key].includes(item)) : 
+      const category = selectedCategory === 'all' ?
+        Object.keys(archivedData).find(key => archivedData[key].includes(item)) :
         selectedCategory;
-      
+
       const response = await archivedDataService.permanentDeleteItem(category, item.id);
-      
+
       if (response.success) {
         showSuccess(`${item.name || item.applicantName || item.action} has been permanently deleted`);
-        
+
         // Remove from archived data
         if (category && archivedData[category]) {
           setArchivedData(prev => ({
@@ -225,7 +225,7 @@ const ArchivedOverview = () => {
       } else {
         throw new Error(response.message || 'Failed to permanently delete item');
       }
-      
+
       setShowDeleteModal(false);
       setItemToRestore(null);
     } catch (error) {
@@ -268,7 +268,7 @@ const ArchivedOverview = () => {
   }
 
   return (
-    <AnimatedContainer variant="page" className="space-y-6">
+    <AnimatedContainer variant="page" className="">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -360,7 +360,7 @@ const ArchivedOverview = () => {
             Archived Items ({filteredData.length})
           </h2>
         </div>
-        
+
         <div className="divide-y divide-gray-200 dark:divide-slate-700">
           <AnimatePresence>
             {filteredData.map((item, index) => {
@@ -401,7 +401,7 @@ const ArchivedOverview = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => {
@@ -459,7 +459,7 @@ const ArchivedOverview = () => {
               </h3>
             </div>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to restore "{getItemTitle(itemToRestore)}"? 
+              Are you sure you want to restore "{getItemTitle(itemToRestore)}"?
               This will move it back to its original location.
             </p>
             <div className="flex justify-end space-x-3">
@@ -498,7 +498,7 @@ const ArchivedOverview = () => {
               </h3>
             </div>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to permanently delete "{getItemTitle(itemToRestore)}"? 
+              Are you sure you want to permanently delete "{getItemTitle(itemToRestore)}"?
               This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">

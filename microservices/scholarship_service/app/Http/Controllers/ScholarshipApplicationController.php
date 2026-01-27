@@ -11,6 +11,7 @@ use App\Models\AcademicRecord;
 use App\Models\PartnerSchoolRepresentative;
 use App\Models\EnrollmentVerification;
 use App\Models\InterviewSchedule;
+use App\Models\AcademicPeriod;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -578,18 +579,79 @@ class ScholarshipApplicationController extends Controller
             ], 422);
         }
 
+        // Academic Period Validation
+        $currentPeriod = AcademicPeriod::current()->open()->first();
+
+        if (!$currentPeriod) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active and open academic period found.'
+            ], 400);
+        }
+
+        if (now()->gt($currentPeriod->application_deadline)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The application deadline for this period has passed.'
+            ], 400);
+        }
+
+
+
+        // Rule: Check if student already has an application for this period
+        $existingApplication = ScholarshipApplication::where('student_id', $request->student_id)
+            ->where('academic_period_id', $currentPeriod->id)
+            ->exists();
+
+        if ($existingApplication) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You have already submitted an application for this academic period.'
+            ], 400);
+        }
+
+        // Rule: Renewal Eligibility
+        if ($request->type === 'renewal') {
+            $latestApplication = ScholarshipApplication::where('student_id', $request->student_id)
+                ->where('id', '!=', $request->parent_application_id) // Exclude current if parent mapping (though this is new store)
+                ->latest()
+                ->first();
+
+            if (!$latestApplication) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Renewal invalid: No previous scholarship record found.'
+                ], 400);
+            }
+
+            if ($latestApplication->status === 'rejected' || $latestApplication->status === 'revoked') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are not eligible for renewal due to a previous disqualification or rejection.'
+                ], 400);
+            }
+        }
+
         try {
             DB::beginTransaction();
 
             // Generate application number
-            $applicationNumber = 'APP-' . date('Y') . '-' . str_pad(
-                ScholarshipApplication::count() + 1,
-                6,
-                '0',
-                STR_PAD_LEFT
-            );
+            $lastApp = ScholarshipApplication::where('application_number', 'like', 'APP-' . date('Y') . '-%')
+                ->orderBy('id', 'desc')
+                ->first();
 
-            // Create application
+            $nextNum = 1;
+            if ($lastApp) {
+                // Extract number (APP-YYYY-XXXXX)
+                $parts = explode('-', $lastApp->application_number);
+                if (count($parts) === 3) {
+                    $nextNum = intval($parts[2]) + 1;
+                }
+            }
+
+            $applicationNumber = 'APP-' . date('Y') . '-' . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
+
+            // Prepare application data
             $applicationData = $request->only([
                 'student_id',
                 'category_id',
@@ -608,6 +670,8 @@ class ScholarshipApplicationController extends Controller
                 'is_school_at_caloocan'
             ]);
 
+            $applicationData['academic_period_id'] = $currentPeriod->id;
+
             // Get subcategory to set the correct requested amount
             $subcategory = ScholarshipSubcategory::find($request->subcategory_id);
             if ($subcategory && $subcategory->amount) {
@@ -624,6 +688,12 @@ class ScholarshipApplicationController extends Controller
 
             $applicationData['application_number'] = $applicationNumber;
             $applicationData['status'] = 'draft';
+
+            // Sync legacy fields
+            $applicationData['academic_year'] = $currentPeriod->academic_year;
+            $applicationData['period_type'] = $currentPeriod->period_type;
+            $applicationData['period_number'] = $currentPeriod->period_number;
+            $applicationData['submitted_at'] = null;
 
             $application = ScholarshipApplication::create($applicationData);
 
@@ -3888,6 +3958,23 @@ class ScholarshipApplicationController extends Controller
     {
         try {
             // Calculate statistics
+            // Calculate statistics
+            // Get active school year and semester from the current academic period
+            $activePeriod = AcademicPeriod::current()->first();
+
+            $activeSchoolYear = $activePeriod ? $activePeriod->academic_year : 'N/A';
+            $activeSemester = 'N/A';
+
+            if ($activePeriod) {
+                if ($activePeriod->period_type === 'Semester') {
+                    $activeSemester = $activePeriod->period_number == 1 ? '1st Semester' :
+                        ($activePeriod->period_number == 2 ? '2nd Semester' : 'Summer');
+                } else {
+                    $activeSemester = $activePeriod->period_number == 1 ? '1st Trimester' :
+                        ($activePeriod->period_number == 2 ? '2nd Trimester' : '3rd Trimester');
+                }
+            }
+
             $stats = [
                 'totalApplications' => ScholarshipApplication::count(),
                 'pendingReview' => ScholarshipApplication::where('status', 'submitted')->count(),
@@ -3909,6 +3996,8 @@ class ScholarshipApplicationController extends Controller
                     'ssc_academic_review',
                     'ssc_final_approval'
                 ])->count(),
+                'activeSchoolYear' => $activeSchoolYear,
+                'activeSemester' => $activeSemester,
             ];
 
             // Get recent activities

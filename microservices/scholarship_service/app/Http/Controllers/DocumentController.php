@@ -85,6 +85,15 @@ class DocumentController extends Controller
         }
 
         try {
+            Log::info('📥 Document upload request received', [
+                'has_file' => $request->hasFile('file'),
+                'student_id' => $request->student_id,
+                'application_id' => $request->application_id,
+                'document_type_id' => $request->document_type_id,
+                'all_files' => $request->allFiles(),
+                'request_keys' => array_keys($request->all())
+            ]);
+
             $file = $request->file('file');
 
             // Debug logging for file details
@@ -221,12 +230,12 @@ class DocumentController extends Controller
                 $authUser = $request->get('auth_user');
                 $userId = $authUser['id'] ?? null;
                 AuditLogService::logAction(
-                    'document',
-                    $document->id,
-                    'uploaded',
-                    "Document '{$originalName}' uploaded",
-                    $userId,
-                    [
+                    'uploaded',                                    // action
+                    "Document '{$originalName}' uploaded",         // description
+                    'document',                                    // resourceType
+                    (string) $document->id,                         // resourceId
+                    null,                                          // oldValues
+                    [                                              // newValues
                         'document_type_id' => $document->document_type_id,
                         'file_name' => $originalName,
                         'file_size' => $document->file_size,
@@ -366,12 +375,13 @@ class DocumentController extends Controller
 
             // Audit log
             AuditLogService::logAction(
-                'document',
-                $document->id,
-                'verified',
-                "Document '{$document->file_name}' verified",
-                $verifierId,
-                [
+                'verified',                                        // action
+                "Document '{$document->file_name}' verified",     // description
+                'document',                                        // resourceType
+                (string) $document->id,                             // resourceId
+                ['status' => 'pending'],                           // oldValues
+                [                                                  // newValues
+                    'status' => 'verified',
                     'document_type_id' => $document->document_type_id,
                     'verification_notes' => $request->verification_notes,
                     'student_id' => $document->student_id,
@@ -422,12 +432,13 @@ class DocumentController extends Controller
 
             // Audit log
             AuditLogService::logAction(
-                'document',
-                $document->id,
-                'rejected',
-                "Document '{$document->file_name}' rejected",
-                $reviewerId,
-                [
+                'rejected',                                        // action
+                "Document '{$document->file_name}' rejected",     // description
+                'document',                                        // resourceType
+                (string) $document->id,                             // resourceId
+                ['status' => $document->status],                   // oldValues
+                [                                                  // newValues
+                    'status' => 'rejected',
                     'document_type_id' => $document->document_type_id,
                     'verification_notes' => $request->verification_notes,
                     'student_id' => $document->student_id,
@@ -463,17 +474,18 @@ class DocumentController extends Controller
 
             // Audit log before deletion
             AuditLogService::logAction(
-                'document',
-                $docId,
-                'deleted',
-                "Document '{$fileName}' deleted",
-                $userId,
-                [
+                'deleted',                                     // action
+                "Document '{$fileName}' deleted",              // description
+                'document',                                    // resourceType
+                (string) $docId,                                // resourceId
+                [                                              // oldValues (document being deleted)
                     'document_type_id' => $document->document_type_id,
                     'student_id' => $document->student_id,
                     'application_id' => $document->application_id,
-                    'file_size' => $document->file_size
-                ]
+                    'file_size' => $document->file_size,
+                    'file_name' => $fileName
+                ],
+                null                                           // newValues (null for deletion)
             );
 
             // Delete the file from storage

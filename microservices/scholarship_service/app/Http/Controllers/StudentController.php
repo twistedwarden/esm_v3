@@ -281,11 +281,11 @@ class StudentController extends Controller
             $authUser = $request->get('auth_user');
             $userId = $authUser['id'] ?? null;
             AuditLogService::logAction(
-                'student',
-                $student->id,
                 'created',
                 "Student '{$student->first_name} {$student->last_name}' created",
-                $userId,
+                'student',
+                (string) $student->id,
+                null,
                 [
                     'citizen_id' => $student->citizen_id,
                     'student_id_number' => $student->student_id_number,
@@ -531,11 +531,11 @@ class StudentController extends Controller
             $authUser = $request->get('auth_user');
             $userId = $authUser['id'] ?? null;
             AuditLogService::logAction(
-                'student',
-                $student->id,
                 'updated',
                 "Student '{$student->first_name} {$student->last_name}' updated",
-                $userId,
+                'student',
+                (string) $student->id,
+                null,
                 [
                     'citizen_id' => $student->citizen_id,
                     'updated_sections' => [
@@ -581,15 +581,15 @@ class StudentController extends Controller
 
             // Audit log before deletion
             AuditLogService::logAction(
-                'student',
-                $studentId,
                 'deleted',
                 "Student '{$studentName}' deleted",
-                $userId,
+                'student',
+                (string) $studentId,
                 [
                     'citizen_id' => $student->citizen_id,
                     'student_id_number' => $student->student_id_number
-                ]
+                ],
+                null
             );
 
             $student->delete();

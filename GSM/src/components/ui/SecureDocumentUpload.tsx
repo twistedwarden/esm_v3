@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { Upload, X, AlertCircle, CheckCircle, Clock, Shield, Trash2 } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Upload, X, AlertCircle, CheckCircle, Clock, Shield, Trash2, Loader2 } from 'lucide-react';
 import { validateUploadFile, formatFileSize, getFileTypeIcon, type FileValidationResult } from '../../utils/fileValidation';
 import { API_CONFIG, getScholarshipServiceUrl } from '../../config/api';
 
@@ -40,7 +40,12 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [validationResult, setValidationResult] = useState<FileValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uniqueId] = useState(`file-upload-${documentTypeId}-${Math.random().toString(36).substr(2, 9)}`);
+
+  useEffect(() => {
+    console.log(`🔌 SecureDocumentUpload mounted for ${documentTypeName} (ID: ${documentTypeId})`);
+    return () => console.log(`🔌 SecureDocumentUpload unmounted for ${documentTypeName}`);
+  }, [documentTypeName, documentTypeId]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -52,23 +57,14 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      handleFileSelect(files[0]);
-    }
-  }, []);
-
   const handleFileSelect = async (file: File) => {
+    console.log('🔍 File selected:', file.name, file.type, file.size);
     setIsValidating(true);
     setSelectedFile(file);
     setValidationResult(null);
 
     try {
+      console.log('🔒 Starting validation...');
       const result = await validateUploadFile(file, {
         maxSizeMB,
         allowedTypes: acceptedTypes,
@@ -76,23 +72,38 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
         checkPDFSafety: true
       });
 
+      console.log('✅ Validation result:', result);
       setValidationResult(result);
-      
+
       if (result.isValid) {
+        console.log('📤 Starting upload...');
         // Auto-upload valid files
         await handleUpload(file);
       } else {
+        console.error('❌ Validation failed:', result.error);
         onUploadError(result.error || 'File validation failed');
       }
     } catch (error) {
-      console.error('File validation error:', error);
+      console.error('💥 File validation error:', error);
       onUploadError('File validation failed. Please try again.');
     } finally {
       setIsValidating(false);
     }
   };
 
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      handleFileSelect(files[0]);
+    }
+  }, [handleFileSelect]);
+
   const handleUpload = async (file: File) => {
+    console.log('🚀 Upload started for:', file.name);
     onUploadStart();
 
     try {
@@ -103,7 +114,7 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
       formData.append('document_type_id', documentTypeId.toString());
 
       const uploadUrl = getScholarshipServiceUrl(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.FORM_UPLOAD_DOCUMENT);
-      
+
       const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
@@ -119,14 +130,14 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
 
       const result = await response.json();
       onUploadSuccess(result.data);
-      
+
       // Reset state
       setSelectedFile(null);
       setValidationResult(null);
     } catch (error) {
       console.error('Upload error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-      
+
       // Enhanced error handling for security rejections
       if (errorMessage.includes('security') || errorMessage.includes('virus')) {
         onUploadError('⚠️ Security Alert: ' + errorMessage);
@@ -137,18 +148,24 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📁 File input changed, files:', e.target.files);
     const file = e.target.files?.[0];
     if (file) {
+      console.log('📄 File found:', file.name);
       handleFileSelect(file);
+    } else {
+      console.warn('⚠️ No file selected');
     }
+    // Reset value to allow selecting the same file again
+    e.target.value = '';
   };
 
   const clearFile = () => {
     setSelectedFile(null);
     setValidationResult(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    // if (fileInputRef.current) {
+    //   fileInputRef.current.value = '';
+    // }
   };
 
   const getStatusIcon = () => {
@@ -177,7 +194,7 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
                 {existingDocument.file_name}
               </p>
               <p className="text-xs text-gray-500">
-                {formatFileSize(existingDocument.file_size || 0)} • 
+                {formatFileSize(existingDocument.file_size || 0)} •
                 {new Date(existingDocument.created_at).toLocaleDateString()}
               </p>
               {existingDocument.verification_notes && (
@@ -188,15 +205,14 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-1">
-            <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
-              existingDocument.status === 'verified' 
-                ? 'bg-green-100 text-green-800'
-                : existingDocument.status === 'rejected'
+            <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${existingDocument.status === 'verified'
+              ? 'bg-green-100 text-green-800'
+              : existingDocument.status === 'rejected'
                 ? 'bg-red-100 text-red-800'
                 : 'bg-blue-100 text-blue-800'
-            }`}>
-              {existingDocument.status === 'verified' ? '✓ Verified' : 
-               existingDocument.status === 'rejected' ? '✗ Rejected' : '⏱ Pending'}
+              }`}>
+              {existingDocument.status === 'verified' ? '✓ Verified' :
+                existingDocument.status === 'rejected' ? '✗ Rejected' : '⏱ Pending'}
             </span>
             {showRemoveButton && onRemove && (
               <button
@@ -217,12 +233,12 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   return (
     <div className={`space-y-2 ${className}`}>
       {/* Upload Area */}
-      <div
-        className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
-          dragActive 
-            ? 'border-orange-400 bg-orange-50' 
-            : 'border-gray-300 hover:border-orange-400 hover:bg-orange-50'
-        } ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+      <label
+        htmlFor={uniqueId}
+        className={`cursor-pointer w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg transition-colors ${dragActive
+          ? 'border-orange-400 bg-orange-50'
+          : 'border-gray-300 hover:border-orange-400 hover:bg-orange-50'
+          } ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -230,20 +246,25 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
       >
         <div className="text-center">
           <div className="flex justify-center mb-2">
-            {getStatusIcon()}
+            {isUploading || isValidating ? (
+              <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
+            ) : (
+              getStatusIcon()
+            )}
           </div>
           <p className="text-sm font-medium text-gray-900 mb-1">
-            {isValidating ? 'Validating file...' : 
-             validationResult?.isValid ? 'File validated ✓' :
-             validationResult && !validationResult.isValid ? 'Validation failed' :
-             `Upload ${documentTypeName}`}
+            {isUploading ? '⏳ Uploading file...' :
+              isValidating ? '🔒 Validating file...' :
+                validationResult?.isValid ? 'File validated ✓' :
+                  validationResult && !validationResult.isValid ? 'Validation failed' :
+                    `Upload ${documentTypeName}`}
           </p>
           <p className="text-xs text-gray-500 mb-3">
             Drag and drop or click to browse
           </p>
-          
+
           {selectedFile && (
-            <div className="mb-3 p-2 bg-gray-50 rounded border">
+            <div className="mb-3 p-2 bg-gray-50 rounded border text-left" onClick={(e) => e.preventDefault()}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 flex-1 min-w-0">
                   <span className="text-lg">{getFileTypeIcon(selectedFile)}</span>
@@ -257,7 +278,10 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={clearFile}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearFile();
+                  }}
                   className="p-1 text-gray-400 hover:text-gray-600"
                 >
                   <X className="h-4 w-4" />
@@ -266,48 +290,49 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
             </div>
           )}
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={acceptedTypes.map(type => `.${type.split('/')[1]}`).join(',')}
-            onChange={handleFileInputChange}
-            className="hidden"
-            disabled={isUploading}
-          />
-          
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading || isValidating}
-            className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              isUploading || isValidating
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'bg-orange-500 text-white hover:bg-orange-600'
-            }`}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? 'Uploading...' : 'Choose File'}
-          </button>
-          
+          <div className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isUploading || isValidating
+            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            : 'bg-orange-500 text-white hover:bg-orange-600'
+            }`}>
+            {isUploading || isValidating ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            <span>{isUploading ? 'Uploading...' : isValidating ? 'Validating...' : 'Choose File'}</span>
+          </div>
+
           <p className="text-xs text-gray-400 mt-2">
             Max {maxSizeMB}MB • {acceptedTypes.join(', ')}
           </p>
         </div>
-      </div>
+      </label>
+
+      <input
+        id={uniqueId}
+        type="file"
+        accept={acceptedTypes.join(',')}
+        onChange={handleFileInputChange}
+        className="hidden"
+        disabled={isUploading || isValidating}
+      />
 
       {/* Validation Warnings */}
-      {validationResult?.warnings && validationResult.warnings.length > 0 && (
-        <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-          {validationResult.warnings.map((warning, index) => (
-            <p key={index}>⚠️ {warning}</p>
-          ))}
-        </div>
-      )}
+      {
+        validationResult?.warnings && validationResult.warnings.length > 0 && (
+          <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+            {validationResult.warnings.map((warning, index) => (
+              <p key={index}>⚠️ {warning}</p>
+            ))}
+          </div>
+        )
+      }
 
       {/* Security Notice */}
       <div className="flex items-center space-x-2 text-xs text-gray-500">
         <Shield className="h-3 w-3" />
         <span>Files are automatically scanned for security threats</span>
       </div>
-    </div>
+    </div >
   );
 };

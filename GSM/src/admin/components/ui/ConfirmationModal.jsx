@@ -1,13 +1,14 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, X } from 'lucide-react';
 
-function ConfirmationModal({ 
-    isOpen, 
-    onClose, 
-    onConfirm, 
-    title = 'Confirm Action', 
-    message = 'Are you sure you want to proceed?', 
-    confirmText = 'Confirm', 
+function ConfirmationModal({
+    isOpen,
+    onClose,
+    onConfirm,
+    title = 'Confirm Action',
+    message = 'Are you sure you want to proceed?',
+    confirmText = 'Confirm',
     cancelText = 'Cancel',
     type = 'danger', // 'danger', 'warning', 'info'
     isLoading = false
@@ -48,20 +49,20 @@ function ConfirmationModal({
 
     const styles = getTypeStyles();
 
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    return createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md mx-4">
                 <div className="p-6 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                         disabled={isLoading}
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
-                
+
                 <div className="p-6">
                     <div className="flex items-start space-x-3">
                         <div className={`flex-shrink-0 ${styles.icon}`}>
@@ -97,8 +98,9 @@ function ConfirmationModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
-export default ConfirmationModal; 
+export default ConfirmationModal;

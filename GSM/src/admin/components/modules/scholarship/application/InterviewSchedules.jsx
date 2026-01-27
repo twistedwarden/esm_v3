@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Calendar,
   Clock,
@@ -2004,1045 +2005,1154 @@ Please check your internet connection and try again. If the problem persists, co
 
       {/* Create Schedule Modal */}
       {
-        isCreateModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateModalOpen(false)} />
-            <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        isCreateModalOpen && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsCreateModalOpen(false)} />
+            <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                   {activeSchedule && activeSchedule.id ? 'Reschedule Interview' : 'Schedule New Interview'}
                 </h3>
                 <button
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateSubmit} className="space-y-6">
-                {/* Interview Type - Online Only */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    Interview Type
-                  </label>
-                  <div className="flex items-center p-4 border-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <Video className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
-                    <div>
-                      <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Online Interview</div>
-                      <div className="text-xs text-blue-600 dark:text-blue-300">Video conference meeting</div>
+              <div className="p-6 overflow-y-auto custom-scrollbar">
+                <form onSubmit={handleCreateSubmit} className="space-y-6">
+                  {/* Interview Type - Online Only */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Interview Type
+                    </label>
+                    <div className="flex items-center p-4 border-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                      <Video className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
+                      <div>
+                        <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Online Interview</div>
+                        <div className="text-xs text-blue-600 dark:text-blue-300">Video conference meeting</div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Online Platform Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Online Platform
-                  </label>
-                  <select
-                    value={createFormData.platform}
-                    onChange={(e) => handleCreateFormChange('platform', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="zoom">Zoom</option>
-                    <option value="teams">Microsoft Teams</option>
-                    <option value="meet">Google Meet</option>
-                    <option value="webex">Cisco Webex</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                {/* Meeting Link */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Meeting Link
-                  </label>
-                  <input
-                    type="url"
-                    value={createFormData.meetingLink}
-                    onChange={(e) => handleCreateFormChange('meetingLink', e.target.value)}
-                    placeholder="https://zoom.us/j/123456789"
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.meetingLink ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                      }`}
-                  />
-                  {createFormErrors.meetingLink && (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.meetingLink}</p>
-                  )}
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Enter the meeting URL that students will use to join the interview
-                  </p>
-                </div>
-
-                {/* Student Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Select Student (Documents Reviewed Only)
-                  </label>
-                  <select
-                    value={createFormData.studentId}
-                    onChange={(e) => handleCreateFormChange('studentId', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.studentId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                      }`}
-                  >
-                    <option value="">Choose a student...</option>
-                    {eligibleApplications.length > 0 ? (
-                      eligibleApplications.map((application) => (
-                        <option key={application.id} value={application.id}>
-                          {application.student ? `${application.student.first_name} ${application.student.last_name}` : 'Unknown Student'}
-                          ({application.application_number || `App-${application.id}`})
-                        </option>
-                      ))
-                    ) : (
-                      <option value="" disabled>No eligible applications found</option>
-                    )}
-                  </select>
-                  {createFormErrors.studentId && (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.studentId}</p>
-                  )}
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Only students with applications in "Documents Reviewed" status can be scheduled for interviews.
-                  </p>
-                </div>
-
-                {/* Interview Date & Time */}
-                <div className="grid grid-cols-2 gap-4">
+                  {/* Online Platform Selection */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Interview Date
+                      Online Platform
                     </label>
-                    <input
-                      type="date"
-                      value={createFormData.interviewDate}
-                      onChange={(e) => handleCreateFormChange('interviewDate', e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.interviewDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                        }`}
-                    />
-                    {createFormErrors.interviewDate && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.interviewDate}</p>
-                    )}
+                    <div className="relative">
+                      <select
+                        value={createFormData.platform}
+                        onChange={(e) => handleCreateFormChange('platform', e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none shadow-sm"
+                      >
+                        <option value="zoom">Zoom</option>
+                        <option value="teams">Microsoft Teams</option>
+                        <option value="meet">Google Meet</option>
+                        <option value="webex">Cisco Webex</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                        <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Meeting Link */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Interview Time
+                      Meeting Link
                     </label>
                     <input
-                      type="time"
-                      value={createFormData.interviewTime}
-                      onChange={(e) => handleCreateFormChange('interviewTime', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.interviewTime ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                      type="url"
+                      value={createFormData.meetingLink}
+                      onChange={(e) => handleCreateFormChange('meetingLink', e.target.value)}
+                      placeholder="https://zoom.us/j/123456789"
+                      className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${createFormErrors.meetingLink ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
                         }`}
                     />
-                    {createFormErrors.interviewTime && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.interviewTime}</p>
+                    {createFormErrors.meetingLink && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{createFormErrors.meetingLink}</p>
+                    )}
+                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      Enter the meeting URL that students will use to join the interview
+                    </p>
+                  </div>
+
+                  {/* Student Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Select Student (Documents Reviewed Only)
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={createFormData.studentId}
+                        onChange={(e) => handleCreateFormChange('studentId', e.target.value)}
+                        className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none shadow-sm ${createFormErrors.studentId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                      >
+                        <option value="">Choose a student...</option>
+                        {eligibleApplications.length > 0 ? (
+                          eligibleApplications.map((application) => (
+                            <option key={application.id} value={application.id}>
+                              {application.student ? `${application.student.first_name} ${application.student.last_name}` : 'Unknown Student'}
+                              ({application.application_number || `App-${application.id}`})
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>No eligible applications found</option>
+                        )}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                        <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      </div>
+                    </div>
+                    {createFormErrors.studentId && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{createFormErrors.studentId}</p>
+                    )}
+                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      Only students with applications in "Documents Reviewed" status can be scheduled for interviews.
+                    </p>
+                  </div>
+
+                  {/* Interview Date & Time */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Interview Date
+                      </label>
+                      <input
+                        type="date"
+                        value={createFormData.interviewDate}
+                        onChange={(e) => handleCreateFormChange('interviewDate', e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${createFormErrors.interviewDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                      />
+                      {createFormErrors.interviewDate && (
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{createFormErrors.interviewDate}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Interview Time
+                      </label>
+                      <input
+                        type="time"
+                        value={createFormData.interviewTime}
+                        onChange={(e) => handleCreateFormChange('interviewTime', e.target.value)}
+                        className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${createFormErrors.interviewTime ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                      />
+                      {createFormErrors.interviewTime && (
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{createFormErrors.interviewTime}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Duration */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Duration (minutes)
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={createFormData.duration}
+                        onChange={(e) => handleCreateFormChange('duration', e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none shadow-sm"
+                      >
+                        <option value="30">30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">60 minutes</option>
+                        <option value="90">90 minutes</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                        <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interviewer */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Interviewer
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={createFormData.staffId}
+                        onChange={(e) => handleCreateFormChange('staffId', e.target.value)}
+                        className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none shadow-sm ${createFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                      >
+                        <option value="">Select an interviewer</option>
+                        {staffMembers.map((staff) => (
+                          <option key={staff.id} value={staff.id} disabled={!staff.user_id}>
+                            {staff.name} {!staff.user_id ? '(Missing User ID)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                        <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      </div>
+                    </div>
+                    {createFormErrors.staffId && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{createFormErrors.staffId}</p>
                     )}
                   </div>
-                </div>
 
-                {/* Duration */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Duration (minutes)
-                  </label>
-                  <select
-                    value={createFormData.duration}
-                    onChange={(e) => handleCreateFormChange('duration', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="30">30 minutes</option>
-                    <option value="45">45 minutes</option>
-                    <option value="60">60 minutes</option>
-                    <option value="90">90 minutes</option>
-                  </select>
-                </div>
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Interview Notes
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={createFormData.notes}
+                      onChange={(e) => handleCreateFormChange('notes', e.target.value)}
+                      placeholder="Any special instructions or notes for the interview..."
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none shadow-sm"
+                    />
+                  </div>
+                </form>
+              </div>
 
-                {/* Interviewer */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Interviewer
-                  </label>
-                  <select
-                    value={createFormData.staffId}
-                    onChange={(e) => handleCreateFormChange('staffId', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${createFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                      }`}
-                  >
-                    <option value="">Select an interviewer</option>
-                    {staffMembers.map((staff) => (
-                      <option key={staff.id} value={staff.id} disabled={!staff.user_id}>
-                        {staff.name} {!staff.user_id ? '(Missing User ID)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {createFormErrors.staffId && (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{createFormErrors.staffId}</p>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    resetCreateForm();
+                  }}
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl transition-colors disabled:opacity-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateSubmit}
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl transition-colors disabled:opacity-50 flex items-center space-x-2 font-bold shadow-lg shadow-orange-500/20"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>{activeSchedule && activeSchedule.id ? 'Rescheduling...' : 'Creating...'}</span>
+                    </>
+                  ) : (
+                    <span>{activeSchedule && activeSchedule.id ? 'Reschedule Interview' : 'Schedule Interview'}</span>
                   )}
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Interview Notes
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={createFormData.notes}
-                    onChange={(e) => handleCreateFormChange('notes', e.target.value)}
-                    placeholder="Any special instructions or notes for the interview..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCreateModalOpen(false);
-                      resetCreateForm();
-                    }}
-                    disabled={isSubmitting}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>{activeSchedule && activeSchedule.id ? 'Rescheduling...' : 'Creating...'}</span>
-                      </>
-                    ) : (
-                      <span>{activeSchedule && activeSchedule.id ? 'Reschedule Interview' : 'Schedule Interview'}</span>
-                    )}
-                  </button>
-                </div>
-              </form>
+                </button>
+              </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 
       {/* View Details Modal */}
       {
-        isViewModalOpen && activeSchedule && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsViewModalOpen(false)} />
-            <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Interview Details</h3>
+        isViewModalOpen && activeSchedule && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsViewModalOpen(false)} />
+            <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Interview Details</h3>
                 <button
                   onClick={() => setIsViewModalOpen(false)}
-                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-6">
-                {/* Student Information */}
-                <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Student Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Name</p>
-                      <p className="font-medium text-gray-900 dark:text-white break-words">{activeSchedule.studentName}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Student ID</p>
-                      <p className="font-medium text-gray-900 dark:text-white break-all">{activeSchedule.studentId}</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                      <p className="font-medium text-gray-900 dark:text-white break-all" title={activeSchedule.studentEmail}>
-                        {activeSchedule.studentEmail}
-                      </p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Phone</p>
-                      <p className="font-medium text-gray-900 dark:text-white break-all" title={activeSchedule.studentPhone}>
-                        {activeSchedule.studentPhone}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Interview Information */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Interview Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Date & Time</p>
-                      <p className="font-medium text-gray-900 dark:text-white break-words">
-                        {formatDate(activeSchedule.interviewDate)} at {formatTime(activeSchedule.interviewTime)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Duration</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.duration || 'N/A'} minutes</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Type</p>
-                      <p className="font-medium text-gray-900 dark:text-white capitalize">{activeSchedule.type || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(activeSchedule.status || 'unknown')}`}>
-                        {getStatusIcon(activeSchedule.status || 'unknown')}
-                        <span className="ml-1 capitalize">{activeSchedule.status || 'Unknown'}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Meeting Details */}
-                {activeSchedule.type === 'online' && (
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Meeting Details</h4>
-                    <div className="space-y-2">
+              <div className="p-6 overflow-y-auto custom-scrollbar">
+                <div className="space-y-6">
+                  {/* Student Information */}
+                  <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-5 border border-gray-100 dark:border-slate-600">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                      <Users className="w-5 h-5 mr-2 text-blue-500" />
+                      Student Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Platform</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.platform}</p>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Name</p>
+                        <p className="font-semibold text-gray-900 dark:text-white break-words text-lg">{activeSchedule.studentName}</p>
                       </div>
-                      {activeSchedule.meetingLink && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Student ID</p>
+                        <p className="font-medium text-gray-900 dark:text-white break-all">{activeSchedule.studentId}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Email</p>
+                        <p className="font-medium text-gray-900 dark:text-white break-all" title={activeSchedule.studentEmail}>
+                          {activeSchedule.studentEmail}
+                        </p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Phone</p>
+                        <p className="font-medium text-gray-900 dark:text-white break-all" title={activeSchedule.studentPhone}>
+                          {activeSchedule.studentPhone}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interview Information */}
+                  <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-5 border border-blue-100 dark:border-blue-900/30">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                      <Clock className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                      Interview Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Date & Time</p>
+                        <p className="font-semibold text-gray-900 dark:text-white break-words">
+                          {formatDate(activeSchedule.interviewDate)} at {formatTime(activeSchedule.interviewTime)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Duration</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{activeSchedule.duration || 'N/A'} minutes</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Type</p>
+                        <p className="font-medium text-gray-900 dark:text-white capitalize">{activeSchedule.type || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${getStatusColor(activeSchedule.status || 'unknown')}`}>
+                          {getStatusIcon(activeSchedule.status || 'unknown')}
+                          <span className="ml-1.5 capitalize">{activeSchedule.status || 'Unknown'}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Meeting Details */}
+                  {activeSchedule.type === 'online' && (
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-5 border border-green-100 dark:border-green-900/30">
+                      <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <Video className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
+                        Meeting Details
+                      </h4>
+                      <div className="space-y-4">
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Meeting Link</p>
-                          <a
-                            href={activeSchedule.meetingLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-medium text-blue-600 dark:text-blue-400 hover:underline break-all"
-                          >
-                            {activeSchedule.meetingLink}
-                          </a>
+                          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Platform</p>
+                          <p className="font-medium text-gray-900 dark:text-white capitalize">{activeSchedule.platform}</p>
                         </div>
+                        {activeSchedule.meetingLink && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Meeting Link</p>
+                            <a
+                              href={activeSchedule.meetingLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-blue-600 dark:text-blue-400 hover:underline break-all flex items-center"
+                            >
+                              {activeSchedule.meetingLink}
+                              <ExternalLink className="w-3 h-3 ml-1" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Interviewer Information */}
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-5 border border-purple-100 dark:border-purple-900/30">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                      <Users className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+                      Interviewer Information
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Name</p>
+                        <p className="font-medium text-gray-900 dark:text-white break-words" title={activeSchedule.interviewer}>
+                          {activeSchedule.interviewer}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Email</p>
+                        <p className="font-medium text-gray-900 dark:text-white break-all" title={activeSchedule.interviewerEmail}>
+                          {activeSchedule.interviewerEmail}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  {activeSchedule.notes && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-xl p-5 border border-yellow-100 dark:border-yellow-900/30">
+                      <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center">
+                        <FileText className="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400" />
+                        Notes
+                      </h4>
+                      <p className="text-gray-700 dark:text-gray-300 break-words whitespace-pre-wrap text-sm" title={activeSchedule.notes}>
+                        {activeSchedule.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Documents */}
+                  <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-5 border border-gray-100 dark:border-slate-600">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center">
+                      <ClipboardList className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
+                      Required Documents
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(activeSchedule.documents || []).length > 0 ? (activeSchedule.documents || []).map((doc, index) => (
+                        <span key={index} className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium shadow-sm">
+                          {doc}
+                        </span>
+                      )) : (
+                        <span className="text-sm text-gray-500 dark:text-gray-400 italic">No documents required</span>
                       )}
                     </div>
-                  </div>
-                )}
-
-                {/* Interviewer Information */}
-                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Interviewer Information</h4>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Name</p>
-                      <p className="font-medium text-gray-900 dark:text-white break-words" title={activeSchedule.interviewer}>
-                        {activeSchedule.interviewer}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                      <p className="font-medium text-gray-900 dark:text-white break-all" title={activeSchedule.interviewerEmail}>
-                        {activeSchedule.interviewerEmail}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {activeSchedule.notes && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Notes</h4>
-                    <p className="text-gray-700 dark:text-gray-300 break-words whitespace-pre-wrap" title={activeSchedule.notes}>
-                      {activeSchedule.notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* Documents */}
-                <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Required Documents</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(activeSchedule.documents || []).map((doc, index) => (
-                      <span key={index} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm">
-                        {doc}
-                      </span>
-                    ))}
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200 dark:border-slate-700">
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
                 <button
                   onClick={() => setIsViewModalOpen(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                  className="px-6 py-2.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl transition-colors font-medium shadow-sm"
                 >
                   Close
                 </button>
                 {activeSchedule.status !== 'pending' && activeSchedule.status !== 'completed' && (
                   <button
                     onClick={() => handleJoinMeeting(activeSchedule)}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+                    className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors flex items-center space-x-2 font-bold shadow-lg shadow-green-600/20"
                   >
-                    <Video className="w-4 h-4" />
+                    <Video className="w-5 h-5" />
                     <span>Join Meeting</span>
                   </button>
                 )}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 
       {/* Join Meeting & Interview Output Modal */}
       {
-        isJoinMeetingModalOpen && activeSchedule && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsJoinMeetingModalOpen(false)} />
-            <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Join Meeting & Interview Output</h3>
+        isJoinMeetingModalOpen && activeSchedule && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsJoinMeetingModalOpen(false)} />
+            <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Join Meeting & Interview Output</h3>
                 <button
                   onClick={() => setIsJoinMeetingModalOpen(false)}
-                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-6">
-                {/* Meeting Link Section */}
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                    <Video className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
-                    {(activeSchedule.type === 'online' ||
-                      activeSchedule.platform?.toLowerCase().includes('zoom') ||
-                      activeSchedule.platform?.toLowerCase().includes('meet') ||
-                      activeSchedule.platform?.toLowerCase().includes('teams') ||
-                      activeSchedule.meetingLink?.includes('zoom') ||
-                      activeSchedule.meetingLink?.includes('meet') ||
-                      activeSchedule.meetingLink?.includes('teams') ||
-                      activeSchedule.meetingLink?.startsWith('http')) ? 'Meeting Link' : 'Interview Location'}
-                  </h4>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {(activeSchedule.type === 'online' ||
-                          activeSchedule.platform?.toLowerCase().includes('zoom') ||
-                          activeSchedule.platform?.toLowerCase().includes('meet') ||
-                          activeSchedule.platform?.toLowerCase().includes('teams') ||
-                          activeSchedule.meetingLink?.includes('zoom') ||
-                          activeSchedule.meetingLink?.includes('meet') ||
-                          activeSchedule.meetingLink?.includes('teams') ||
-                          activeSchedule.meetingLink?.startsWith('http')) ? 'Platform' : 'Type'}
-                      </p>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {activeSchedule.platform ||
-                          ((activeSchedule.type === 'online' ||
+              <div className="p-6 overflow-y-auto custom-scrollbar">
+                <div className="space-y-6">
+                  {/* Meeting Link Section */}
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-6 border border-green-100 dark:border-green-900/30">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center text-lg">
+                      <Video className="w-6 h-6 mr-3 text-green-600 dark:text-green-400" />
+                      {(activeSchedule.type === 'online' ||
+                        activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                        activeSchedule.platform?.toLowerCase().includes('meet') ||
+                        activeSchedule.platform?.toLowerCase().includes('teams') ||
+                        activeSchedule.meetingLink?.includes('zoom') ||
+                        activeSchedule.meetingLink?.includes('meet') ||
+                        activeSchedule.meetingLink?.includes('teams') ||
+                        activeSchedule.meetingLink?.startsWith('http')) ? 'Meeting Link' : 'Interview Location'}
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          {(activeSchedule.type === 'online' ||
                             activeSchedule.platform?.toLowerCase().includes('zoom') ||
                             activeSchedule.platform?.toLowerCase().includes('meet') ||
                             activeSchedule.platform?.toLowerCase().includes('teams') ||
                             activeSchedule.meetingLink?.includes('zoom') ||
                             activeSchedule.meetingLink?.includes('meet') ||
                             activeSchedule.meetingLink?.includes('teams') ||
-                            activeSchedule.meetingLink?.startsWith('http')) ? 'Google Meet' : 'In-Person Interview')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {(activeSchedule.type === 'online' ||
-                          activeSchedule.platform?.toLowerCase().includes('zoom') ||
-                          activeSchedule.platform?.toLowerCase().includes('meet') ||
-                          activeSchedule.platform?.toLowerCase().includes('teams') ||
-                          activeSchedule.meetingLink?.includes('zoom') ||
-                          activeSchedule.meetingLink?.includes('meet') ||
-                          activeSchedule.meetingLink?.includes('teams') ||
-                          activeSchedule.meetingLink?.startsWith('http')) ? 'Meeting Link' : 'Location Details'}
-                      </p>
-                      <div className="flex items-center space-x-2">
-                        {/* Check if it's an online meeting based on platform or meeting link */}
-                        {(activeSchedule.type === 'online' ||
-                          activeSchedule.platform?.toLowerCase().includes('zoom') ||
-                          activeSchedule.platform?.toLowerCase().includes('meet') ||
-                          activeSchedule.platform?.toLowerCase().includes('teams') ||
-                          activeSchedule.meetingLink?.includes('zoom') ||
-                          activeSchedule.meetingLink?.includes('meet') ||
-                          activeSchedule.meetingLink?.includes('teams') ||
-                          activeSchedule.meetingLink?.startsWith('http')) ? (
-                          <>
-                            <div className="flex-1 p-3 bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
-                              <p className="font-medium text-gray-900 dark:text-white break-all">
+                            activeSchedule.meetingLink?.startsWith('http')) ? 'Platform' : 'Type'}
+                        </p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-white">
+                          {activeSchedule.platform ||
+                            ((activeSchedule.type === 'online' ||
+                              activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                              activeSchedule.platform?.toLowerCase().includes('meet') ||
+                              activeSchedule.platform?.toLowerCase().includes('teams') ||
+                              activeSchedule.meetingLink?.includes('zoom') ||
+                              activeSchedule.meetingLink?.includes('meet') ||
+                              activeSchedule.meetingLink?.includes('teams') ||
+                              activeSchedule.meetingLink?.startsWith('http')) ? 'Google Meet' : 'In-Person Interview')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          {(activeSchedule.type === 'online' ||
+                            activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                            activeSchedule.platform?.toLowerCase().includes('meet') ||
+                            activeSchedule.platform?.toLowerCase().includes('teams') ||
+                            activeSchedule.meetingLink?.includes('zoom') ||
+                            activeSchedule.meetingLink?.includes('meet') ||
+                            activeSchedule.meetingLink?.includes('teams') ||
+                            activeSchedule.meetingLink?.startsWith('http')) ? 'Meeting Link' : 'Location Details'}
+                        </p>
+                        <div className="flex items-center space-x-3">
+                          {/* Check if it's an online meeting based on platform or meeting link */}
+                          {(activeSchedule.type === 'online' ||
+                            activeSchedule.platform?.toLowerCase().includes('zoom') ||
+                            activeSchedule.platform?.toLowerCase().includes('meet') ||
+                            activeSchedule.platform?.toLowerCase().includes('teams') ||
+                            activeSchedule.meetingLink?.includes('zoom') ||
+                            activeSchedule.meetingLink?.includes('meet') ||
+                            activeSchedule.meetingLink?.includes('teams') ||
+                            activeSchedule.meetingLink?.startsWith('http')) ? (
+                            <>
+                              <div className="flex-1 p-3 bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600 font-mono text-sm text-gray-600 dark:text-gray-300 break-all">
+                                {activeSchedule.meetingLink}
+                              </div>
+                              {activeSchedule.status !== 'completed' && (
+                                <button
+                                  onClick={() => {
+                                    // Ensure the link has proper protocol
+                                    let meetingUrl = activeSchedule.meetingLink;
+                                    if (!meetingUrl.startsWith('http://') && !meetingUrl.startsWith('https://')) {
+                                      meetingUrl = 'https://' + meetingUrl;
+                                    }
+                                    window.open(meetingUrl, '_blank');
+                                  }}
+                                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-2 font-medium shadow-sm hover:shadow-md flex-shrink-0"
+                                  title="Join Meeting"
+                                >
+                                  <Video className="w-4 h-4" />
+                                  <span>Join Meeting</span>
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <div className="flex-1 p-4 bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
+                              <p className="font-medium text-gray-900 dark:text-white text-lg">
                                 {activeSchedule.meetingLink}
                               </p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                In-person interview location
+                              </p>
                             </div>
-                            {activeSchedule.status !== 'completed' && (
-                              <button
-                                onClick={() => {
-                                  // Ensure the link has proper protocol
-                                  let meetingUrl = activeSchedule.meetingLink;
-                                  if (!meetingUrl.startsWith('http://') && !meetingUrl.startsWith('https://')) {
-                                    meetingUrl = 'https://' + meetingUrl;
-                                  }
-                                  window.open(meetingUrl, '_blank');
-                                }}
-                                className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-1 flex-shrink-0"
-                                title="Join Meeting"
-                              >
-                                <Video className="w-4 h-4" />
-                                <span className="text-sm">Join Meeting</span>
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <div className="flex-1 p-3 bg-white dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
-                            <p className="font-medium text-gray-900 dark:text-white">
-                              {activeSchedule.meetingLink}
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                              In-person interview location
-                            </p>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Interview Output Form */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <ClipboardList className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
-                    Interview Evaluation Record
-                  </h4>
+                  {/* Interview Output Form */}
+                  <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-900/30">
+                    <h4 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center text-lg">
+                      <ClipboardList className="w-6 h-6 mr-3 text-blue-600 dark:text-blue-400" />
+                      Interview Evaluation Record
+                    </h4>
 
-                  <form onSubmit={handleEvaluationSubmit} className="space-y-4">
-                    {/* Basic Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Applicant ID
-                        </label>
-                        <input
-                          type="text"
-                          value={evaluationFormData.applicantId}
-                          readOnly
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Application ID
-                        </label>
-                        <input
-                          type="text"
-                          value={evaluationFormData.applicationId}
-                          readOnly
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Interviewer Name
-                        </label>
-                        <input
-                          type="text"
-                          value={evaluationFormData.interviewerName}
-                          readOnly
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Interview Date
-                        </label>
-                        <input
-                          type="text"
-                          value={evaluationFormData.interviewDate}
-                          readOnly
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 text-gray-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Scoring Section */}
-                    <div className="space-y-4">
-                      <h5 className="font-medium text-gray-900 dark:text-white">Scoring (1-5 scale)</h5>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <form onSubmit={handleEvaluationSubmit} className="space-y-6">
+                      {/* Basic Information */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Academic Motivation Score
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Applicant ID
                           </label>
-                          <select
-                            value={evaluationFormData.academicMotivationScore}
-                            onChange={(e) => handleEvaluationFormChange('academicMotivationScore', e.target.value)}
-                            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.academicMotivationScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                              }`}
-                          >
-                            <option value="">Select score...</option>
-                            <option value="1">1 - Poor</option>
-                            <option value="2">2 - Below Average</option>
-                            <option value="3">3 - Average</option>
-                            <option value="4">4 - Good</option>
-                            <option value="5">5 - Excellent</option>
-                          </select>
-                          {evaluationFormErrors.academicMotivationScore && (
-                            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.academicMotivationScore}</p>
-                          )}
+                          <input
+                            type="text"
+                            value={evaluationFormData.applicantId}
+                            readOnly
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-sm font-medium"
+                          />
                         </div>
-
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Leadership & Involvement Score
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Application ID
                           </label>
-                          <select
-                            value={evaluationFormData.leadershipInvolvementScore}
-                            onChange={(e) => handleEvaluationFormChange('leadershipInvolvementScore', e.target.value)}
-                            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.leadershipInvolvementScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                              }`}
-                          >
-                            <option value="">Select score...</option>
-                            <option value="1">1 - Poor</option>
-                            <option value="2">2 - Below Average</option>
-                            <option value="3">3 - Average</option>
-                            <option value="4">4 - Good</option>
-                            <option value="5">5 - Excellent</option>
-                          </select>
-                          {evaluationFormErrors.leadershipInvolvementScore && (
-                            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.leadershipInvolvementScore}</p>
-                          )}
+                          <input
+                            type="text"
+                            value={evaluationFormData.applicationId}
+                            readOnly
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-sm font-medium"
+                          />
                         </div>
-
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Financial Need Score
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Interviewer Name
                           </label>
-                          <select
-                            value={evaluationFormData.financialNeedScore}
-                            onChange={(e) => handleEvaluationFormChange('financialNeedScore', e.target.value)}
-                            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.financialNeedScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                              }`}
-                          >
-                            <option value="">Select score...</option>
-                            <option value="1">1 - Poor</option>
-                            <option value="2">2 - Below Average</option>
-                            <option value="3">3 - Average</option>
-                            <option value="4">4 - Good</option>
-                            <option value="5">5 - Excellent</option>
-                          </select>
-                          {evaluationFormErrors.financialNeedScore && (
-                            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.financialNeedScore}</p>
-                          )}
+                          <input
+                            type="text"
+                            value={evaluationFormData.interviewerName}
+                            readOnly
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-sm font-medium"
+                          />
                         </div>
-
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Character & Values Score
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Interview Date
                           </label>
-                          <select
-                            value={evaluationFormData.characterValuesScore}
-                            onChange={(e) => handleEvaluationFormChange('characterValuesScore', e.target.value)}
-                            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.characterValuesScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                              }`}
-                          >
-                            <option value="">Select score...</option>
-                            <option value="1">1 - Poor</option>
-                            <option value="2">2 - Below Average</option>
-                            <option value="3">3 - Average</option>
-                            <option value="4">4 - Good</option>
-                            <option value="5">5 - Excellent</option>
-                          </select>
-                          {evaluationFormErrors.characterValuesScore && (
-                            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.characterValuesScore}</p>
-                          )}
+                          <input
+                            type="text"
+                            value={evaluationFormData.interviewDate}
+                            readOnly
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-sm font-medium"
+                          />
                         </div>
                       </div>
-                    </div>
 
-                    {/* Overall Recommendation */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Overall Recommendation
-                      </label>
-                      <select
-                        value={evaluationFormData.overallRecommendation}
-                        onChange={(e) => handleEvaluationFormChange('overallRecommendation', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${evaluationFormErrors.overallRecommendation ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                          }`}
-                      >
-                        <option value="">Select recommendation...</option>
-                        <option value="recommended">✅ Recommended for SSC Review</option>
-                        <option value="not_recommended">❌ Not Recommended</option>
-                        <option value="needs_followup">⚠️ Conditional Recommendation</option>
-                      </select>
-                      {evaluationFormErrors.overallRecommendation && (
-                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.overallRecommendation}</p>
-                      )}
-                    </div>
+                      <div className="h-px bg-blue-200 dark:bg-blue-800/50 my-6"></div>
 
-                    {/* Remarks */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Remarks
-                      </label>
-                      <textarea
-                        rows={4}
-                        value={evaluationFormData.remarks}
-                        onChange={(e) => handleEvaluationFormChange('remarks', e.target.value)}
-                        placeholder="Provide detailed feedback about the candidate's performance, strengths, areas for improvement, and any other relevant observations..."
-                        className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${evaluationFormErrors.remarks ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                          }`}
-                      />
-                      {evaluationFormErrors.remarks && (
-                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{evaluationFormErrors.remarks}</p>
-                      )}
-                    </div>
-                  </form>
+                      {/* Scoring Section */}
+                      <div className="space-y-6">
+                        <h5 className="font-bold text-gray-900 dark:text-white flex items-center">
+                          <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mr-3 text-sm font-bold">1</span>
+                          Scoring (1-5 scale)
+                        </h5>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-11">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Academic Motivation Score
+                            </label>
+                            <select
+                              value={evaluationFormData.academicMotivationScore}
+                              onChange={(e) => handleEvaluationFormChange('academicMotivationScore', e.target.value)}
+                              className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${evaluationFormErrors.academicMotivationScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                                }`}
+                            >
+                              <option value="">Select score...</option>
+                              <option value="1">1 - Poor</option>
+                              <option value="2">2 - Below Average</option>
+                              <option value="3">3 - Average</option>
+                              <option value="4">4 - Good</option>
+                              <option value="5">5 - Excellent</option>
+                            </select>
+                            {evaluationFormErrors.academicMotivationScore && (
+                              <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{evaluationFormErrors.academicMotivationScore}</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Leadership & Involvement Score
+                            </label>
+                            <select
+                              value={evaluationFormData.leadershipInvolvementScore}
+                              onChange={(e) => handleEvaluationFormChange('leadershipInvolvementScore', e.target.value)}
+                              className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${evaluationFormErrors.leadershipInvolvementScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                                }`}
+                            >
+                              <option value="">Select score...</option>
+                              <option value="1">1 - Poor</option>
+                              <option value="2">2 - Below Average</option>
+                              <option value="3">3 - Average</option>
+                              <option value="4">4 - Good</option>
+                              <option value="5">5 - Excellent</option>
+                            </select>
+                            {evaluationFormErrors.leadershipInvolvementScore && (
+                              <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{evaluationFormErrors.leadershipInvolvementScore}</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Financial Need Score
+                            </label>
+                            <select
+                              value={evaluationFormData.financialNeedScore}
+                              onChange={(e) => handleEvaluationFormChange('financialNeedScore', e.target.value)}
+                              className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${evaluationFormErrors.financialNeedScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                                }`}
+                            >
+                              <option value="">Select score...</option>
+                              <option value="1">1 - Poor</option>
+                              <option value="2">2 - Below Average</option>
+                              <option value="3">3 - Average</option>
+                              <option value="4">4 - Good</option>
+                              <option value="5">5 - Excellent</option>
+                            </select>
+                            {evaluationFormErrors.financialNeedScore && (
+                              <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{evaluationFormErrors.financialNeedScore}</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Character & Values Score
+                            </label>
+                            <select
+                              value={evaluationFormData.characterValuesScore}
+                              onChange={(e) => handleEvaluationFormChange('characterValuesScore', e.target.value)}
+                              className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${evaluationFormErrors.characterValuesScore ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                                }`}
+                            >
+                              <option value="">Select score...</option>
+                              <option value="1">1 - Poor</option>
+                              <option value="2">2 - Below Average</option>
+                              <option value="3">3 - Average</option>
+                              <option value="4">4 - Good</option>
+                              <option value="5">5 - Excellent</option>
+                            </select>
+                            {evaluationFormErrors.characterValuesScore && (
+                              <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{evaluationFormErrors.characterValuesScore}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-blue-200 dark:bg-blue-800/50 my-6"></div>
+
+                      <div className="space-y-6">
+                        <h5 className="font-bold text-gray-900 dark:text-white flex items-center">
+                          <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center mr-3 text-sm font-bold">2</span>
+                          Result & Feedback
+                        </h5>
+
+                        <div className="pl-11 space-y-6">
+                          {/* Overall Recommendation */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Overall Recommendation
+                            </label>
+                            <select
+                              value={evaluationFormData.overallRecommendation}
+                              onChange={(e) => handleEvaluationFormChange('overallRecommendation', e.target.value)}
+                              className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${evaluationFormErrors.overallRecommendation ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                                }`}
+                            >
+                              <option value="">Select recommendation...</option>
+                              <option value="recommended">✅ Recommended for SSC Review</option>
+                              <option value="not_recommended">❌ Not Recommended</option>
+                              <option value="needs_followup">⚠️ Conditional Recommendation</option>
+                            </select>
+                            {evaluationFormErrors.overallRecommendation && (
+                              <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{evaluationFormErrors.overallRecommendation}</p>
+                            )}
+                          </div>
+
+                          {/* Remarks */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Remarks
+                            </label>
+                            <textarea
+                              rows={4}
+                              value={evaluationFormData.remarks}
+                              onChange={(e) => handleEvaluationFormChange('remarks', e.target.value)}
+                              placeholder="Provide detailed feedback about the candidate's performance, strengths, areas for improvement, and any other relevant observations..."
+                              className={`w-full px-4 py-3 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none shadow-sm ${evaluationFormErrors.remarks ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                                }`}
+                            />
+                            {evaluationFormErrors.remarks && (
+                              <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{evaluationFormErrors.remarks}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200 dark:border-slate-700">
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
                 <button
+                  type="button"
                   onClick={() => setIsJoinMeetingModalOpen(false)}
                   disabled={isSubmittingEvaluation}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-50"
+                  className="px-6 py-2.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl transition-colors disabled:opacity-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleEvaluationSubmit}
                   disabled={isSubmittingEvaluation}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
+                  className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl transition-colors disabled:opacity-50 flex items-center space-x-2 font-bold shadow-lg shadow-orange-500/20"
                 >
                   {isSubmittingEvaluation ? (
                     <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <RefreshCw className="w-5 h-5 animate-spin" />
                       <span>Submitting...</span>
                     </>
                   ) : (
                     <>
-                      <ClipboardList className="w-4 h-4" />
+                      <ClipboardList className="w-5 h-5" />
                       <span>Submit Evaluation</span>
                     </>
                   )}
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 
       {/* Delete Confirmation Modal */}
       {
-        isDeleteModalOpen && activeSchedule && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsDeleteModalOpen(false)} />
-            <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Interview Schedule</h3>
+        isDeleteModalOpen && activeSchedule && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
+            <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Delete Interview Schedule</h3>
                 <button
                   onClick={() => setIsDeleteModalOpen(false)}
-                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="mb-6">
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Are you sure you want to delete the interview schedule for <strong>{activeSchedule.studentName}</strong>?
-                </p>
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                  <p className="text-sm text-red-800 dark:text-red-200">
-                    <strong>Warning:</strong> This action cannot be undone. The interview schedule will be permanently deleted.
+              <div className="p-6">
+                <div className="mb-6">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Are you sure you want to delete the interview schedule for <strong>{activeSchedule.studentName}</strong>?
                   </p>
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-start gap-3">
+                    <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-lg flex-shrink-0">
+                      <Trash2 className="h-5 w-5 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-red-900 dark:text-red-100 mb-1">Warning</h4>
+                      <p className="text-sm text-red-700 dark:text-red-300">
+                        This action cannot be undone. The interview schedule will be permanently deleted.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    disabled={actionLoading}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl transition-colors disabled:opacity-50 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteSchedule}
+                    disabled={actionLoading}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors disabled:opacity-50 flex items-center space-x-2 font-bold shadow-lg shadow-red-600/20"
+                  >
+                    {actionLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        <span>Delete Schedule</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  disabled={actionLoading}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDeleteSchedule}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
-                >
-                  {actionLoading ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Deleting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      <span>Delete Schedule</span>
-                    </>
-                  )}
-                </button>
-              </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 
       {/* Bulk Schedule Modal */}
       {
-        isBulkScheduleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsBulkScheduleModalOpen(false)} />
-            <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Bulk Schedule Interviews</h3>
+        isBulkScheduleModalOpen && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsBulkScheduleModalOpen(false)} />
+            <div className="relative z-10 w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Bulk Schedule Interviews</h3>
                 <button
                   onClick={() => setIsBulkScheduleModalOpen(false)}
-                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                <p className="text-sm text-orange-800 dark:text-orange-200">
-                  <strong>Scheduling {selectedSchedules.length} pending application(s)</strong> with consecutive interview times.
-                </p>
-              </div>
-
-              {/* Schedule Preview */}
-              {bulkFormData.interviewDate && bulkFormData.interviewTime && selectedSchedules.length > 0 && (
-                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">
-                    Schedule Preview
-                  </h4>
-                  <div className="space-y-2">
-                    {(() => {
-                      const selectedItems = getAllItems().filter(item => selectedSchedules.includes(item.id));
-                      const pendingItems = selectedItems.filter(item => item.status === 'pending' && item.type === 'pending');
-                      const times = calculateConsecutiveTimes(
-                        bulkFormData.interviewTime,
-                        bulkFormData.duration,
-                        bulkFormData.gapTime,
-                        pendingItems.length
-                      );
-
-                      return pendingItems.map((item, index) => (
-                        <div key={item.id} className="flex items-center justify-between text-sm">
-                          <span className="text-blue-800 dark:text-blue-200 font-medium">
-                            {item.studentName}
-                          </span>
-                          <span className="text-blue-700 dark:text-blue-300">
-                            {times[index].displayTime} - {formatTimeForDisplay(times[index].endTime)}
-                          </span>
-                        </div>
-                      ));
-                    })()}
+              <div className="p-6 overflow-y-auto custom-scrollbar">
+                <div className="mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-100 dark:border-orange-900/30 flex items-start gap-3">
+                  <div className="bg-orange-100 dark:bg-orange-900/50 p-2 rounded-lg flex-shrink-0">
+                    <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
-                    <p className="text-xs text-blue-600 dark:text-blue-400">
-                      Total time: {(() => {
-                        const totalMinutes = selectedSchedules.length * parseInt(bulkFormData.duration) +
-                          (selectedSchedules.length - 1) * parseInt(bulkFormData.gapTime);
-                        const hours = Math.floor(totalMinutes / 60);
-                        const minutes = totalMinutes % 60;
-                        return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-                      })()}
+                  <div>
+                    <h4 className="text-sm font-bold text-orange-900 dark:text-orange-100 mb-1">Bulk Action</h4>
+                    <p className="text-sm text-orange-800 dark:text-orange-200">
+                      <strong>Scheduling {selectedSchedules.length} pending application(s)</strong> with consecutive interview times.
                     </p>
                   </div>
                 </div>
-              )}
 
-              <form onSubmit={handleBulkScheduleSubmit} className="space-y-6">
-                {/* Interview Type - Online Only */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    Interview Type
-                  </label>
-                  <div className="flex items-center p-4 border-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <Video className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
-                    <div>
-                      <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Online Interview</div>
-                      <div className="text-xs text-blue-600 dark:text-blue-300">Video conference meeting</div>
+                {/* Schedule Preview */}
+                {bulkFormData.interviewDate && bulkFormData.interviewTime && selectedSchedules.length > 0 && (
+                  <div className="mb-6 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30 overflow-hidden">
+                    <div className="px-4 py-3 bg-blue-100/50 dark:bg-blue-900/30 border-b border-blue-100 dark:border-blue-800/50">
+                      <h4 className="text-sm font-bold text-blue-900 dark:text-blue-100 flex items-center">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Schedule Preview
+                      </h4>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      {(() => {
+                        const selectedItems = getAllItems().filter(item => selectedSchedules.includes(item.id));
+                        const pendingItems = selectedItems.filter(item => item.status === 'pending' && item.type === 'pending');
+                        const times = calculateConsecutiveTimes(
+                          bulkFormData.interviewTime,
+                          bulkFormData.duration,
+                          bulkFormData.gapTime,
+                          pendingItems.length
+                        );
+
+                        return pendingItems.map((item, index) => (
+                          <div key={item.id} className="flex items-center justify-between text-sm py-1 border-b border-blue-100 dark:border-blue-800/30 last:border-0">
+                            <span className="text-blue-800 dark:text-blue-200 font-medium flex items-center">
+                              <span className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-xs mr-2 text-blue-600 dark:text-blue-300">
+                                {index + 1}
+                              </span>
+                              {item.studentName}
+                            </span>
+                            <span className="text-blue-700 dark:text-blue-300 font-mono bg-blue-50 dark:bg-blue-900/50 px-2 py-0.5 rounded text-xs">
+                              {times[index].displayTime} - {formatTimeForDisplay(times[index].endTime)}
+                            </span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                    <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-t border-blue-100 dark:border-blue-800/50 flex justify-end">
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                        Total time: {(() => {
+                          const totalMinutes = selectedSchedules.length * parseInt(bulkFormData.duration) +
+                            (selectedSchedules.length - 1) * parseInt(bulkFormData.gapTime);
+                          const hours = Math.floor(totalMinutes / 60);
+                          const minutes = totalMinutes % 60;
+                          return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                        })()}
+                      </p>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Online Platform Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Online Platform
-                  </label>
-                  <select
-                    value={bulkFormData.platform}
-                    onChange={(e) => handleBulkFormChange('platform', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="zoom">Zoom</option>
-                    <option value="teams">Microsoft Teams</option>
-                    <option value="meet">Google Meet</option>
-                    <option value="webex">Cisco Webex</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
+                <form onSubmit={handleBulkScheduleSubmit} className="space-y-6">
+                  {/* Interview Type - Online Only */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Interview Type
+                    </label>
+                    <div className="flex items-center p-4 border-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                      <Video className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
+                      <div>
+                        <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Online Interview</div>
+                        <div className="text-xs text-blue-600 dark:text-blue-300">Video conference meeting</div>
+                      </div>
+                    </div>
+                  </div>
 
-                {/* Meeting Link */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Meeting Link
-                  </label>
-                  <input
-                    type="url"
-                    value={bulkFormData.meetingLink}
-                    onChange={(e) => handleBulkFormChange('meetingLink', e.target.value)}
-                    placeholder="https://zoom.us/j/123456789"
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${bulkFormErrors.meetingLink ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                      }`}
-                  />
-                  {bulkFormErrors.meetingLink && (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.meetingLink}</p>
-                  )}
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Enter the meeting URL that students will use to join the interview
-                  </p>
-                </div>
-
-                {/* Interview Date & Time */}
-                <div className="grid grid-cols-2 gap-4">
+                  {/* Online Platform Selection */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Interview Date
+                      Online Platform
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={bulkFormData.platform}
+                        onChange={(e) => handleBulkFormChange('platform', e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none shadow-sm"
+                      >
+                        <option value="zoom">Zoom</option>
+                        <option value="teams">Microsoft Teams</option>
+                        <option value="meet">Google Meet</option>
+                        <option value="webex">Cisco Webex</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                        <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Meeting Link */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Meeting Link
                     </label>
                     <input
-                      type="date"
-                      value={bulkFormData.interviewDate}
-                      onChange={(e) => handleBulkFormChange('interviewDate', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${bulkFormErrors.interviewDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                      type="url"
+                      value={bulkFormData.meetingLink}
+                      onChange={(e) => handleBulkFormChange('meetingLink', e.target.value)}
+                      placeholder="https://zoom.us/j/123456789"
+                      className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${bulkFormErrors.meetingLink ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
                         }`}
                     />
-                    {bulkFormErrors.interviewDate && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.interviewDate}</p>
+                    {bulkFormErrors.meetingLink && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{bulkFormErrors.meetingLink}</p>
                     )}
+                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      Enter the meeting URL that students will use to join the interview
+                    </p>
                   </div>
+
+                  {/* Interview Date & Time */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Interview Date
+                      </label>
+                      <input
+                        type="date"
+                        value={bulkFormData.interviewDate}
+                        onChange={(e) => handleBulkFormChange('interviewDate', e.target.value)}
+                        className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${bulkFormErrors.interviewDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                      />
+                      {bulkFormErrors.interviewDate && (
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{bulkFormErrors.interviewDate}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Interview Time (Start)
+                      </label>
+                      <input
+                        type="time"
+                        value={bulkFormData.interviewTime}
+                        onChange={(e) => handleBulkFormChange('interviewTime', e.target.value)}
+                        className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${bulkFormErrors.interviewTime ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                      />
+                      {bulkFormErrors.interviewTime && (
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{bulkFormErrors.interviewTime}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Duration and Gap Time */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Duration (minutes)
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={bulkFormData.duration}
+                          onChange={(e) => handleBulkFormChange('duration', e.target.value)}
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none shadow-sm"
+                        >
+                          <option value="30">30 minutes</option>
+                          <option value="45">45 minutes</option>
+                          <option value="60">60 minutes</option>
+                          <option value="90">90 minutes</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                          <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Gap Between Interviews
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={bulkFormData.gapTime}
+                          onChange={(e) => handleBulkFormChange('gapTime', e.target.value)}
+                          className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none shadow-sm"
+                        >
+                          <option value="5">5 minutes</option>
+                          <option value="10">10 minutes</option>
+                          <option value="15">15 minutes</option>
+                          <option value="20">20 minutes</option>
+                          <option value="30">30 minutes</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                          <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interviewer */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Interview Time
+                      Interviewer
                     </label>
-                    <input
-                      type="time"
-                      value={bulkFormData.interviewTime}
-                      onChange={(e) => handleBulkFormChange('interviewTime', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${bulkFormErrors.interviewTime ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                        }`}
+                    <div className="relative">
+                      <select
+                        value={bulkFormData.staffId}
+                        onChange={(e) => handleBulkFormChange('staffId', e.target.value)}
+                        className={`w-full px-4 py-2.5 border rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none shadow-sm ${bulkFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
+                          }`}
+                      >
+                        <option value="">Select an interviewer</option>
+                        {staffMembers.map((staff) => (
+                          <option key={staff.id} value={staff.id} disabled={!staff.user_id}>
+                            {staff.name} {!staff.user_id ? '(Missing User ID)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                        <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      </div>
+                    </div>
+                    {bulkFormErrors.staffId && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{bulkFormErrors.staffId}</p>
+                    )}
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Interview Notes
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={bulkFormData.notes}
+                      onChange={(e) => handleBulkFormChange('notes', e.target.value)}
+                      placeholder="Any special instructions or notes for the interviews..."
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none shadow-sm"
                     />
-                    {bulkFormErrors.interviewTime && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.interviewTime}</p>
-                    )}
                   </div>
-                </div>
+                </form>
+              </div>
 
-                {/* Duration and Gap Time */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Duration (minutes)
-                    </label>
-                    <select
-                      value={bulkFormData.duration}
-                      onChange={(e) => handleBulkFormChange('duration', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="30">30 minutes</option>
-                      <option value="45">45 minutes</option>
-                      <option value="60">60 minutes</option>
-                      <option value="90">90 minutes</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Gap Between Interviews (minutes)
-                    </label>
-                    <select
-                      value={bulkFormData.gapTime}
-                      onChange={(e) => handleBulkFormChange('gapTime', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="5">5 minutes</option>
-                      <option value="10">10 minutes</option>
-                      <option value="15">15 minutes</option>
-                      <option value="20">20 minutes</option>
-                      <option value="30">30 minutes</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Interviewer */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Interviewer
-                  </label>
-                  <select
-                    value={bulkFormData.staffId}
-                    onChange={(e) => handleBulkFormChange('staffId', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${bulkFormErrors.staffId ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-slate-600'
-                      }`}
-                  >
-                    <option value="">Select an interviewer</option>
-                    {staffMembers.map((staff) => (
-                      <option key={staff.id} value={staff.id} disabled={!staff.user_id}>
-                        {staff.name} {!staff.user_id ? '(Missing User ID)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {bulkFormErrors.staffId && (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bulkFormErrors.staffId}</p>
+              <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsBulkScheduleModalOpen(false);
+                    resetBulkForm();
+                  }}
+                  disabled={isSubmittingBulk}
+                  className="px-6 py-2.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl transition-colors disabled:opacity-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkScheduleSubmit}
+                  disabled={isSubmittingBulk}
+                  className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl transition-colors disabled:opacity-50 flex items-center space-x-2 font-bold shadow-lg shadow-orange-500/20"
+                >
+                  {isSubmittingBulk ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Scheduling...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5" />
+                      <span>Schedule {selectedSchedules.length} Interview(s)</span>
+                    </>
                   )}
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Interview Notes
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={bulkFormData.notes}
-                    onChange={(e) => handleBulkFormChange('notes', e.target.value)}
-                    placeholder="Any special instructions or notes for the interviews..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsBulkScheduleModalOpen(false);
-                      resetBulkForm();
-                    }}
-                    disabled={isSubmittingBulk}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingBulk}
-                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
-                  >
-                    {isSubmittingBulk ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Scheduling...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        <span>Schedule {selectedSchedules.length} Interview(s)</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+                </button>
+              </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 

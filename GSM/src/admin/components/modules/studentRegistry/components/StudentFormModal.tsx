@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Loader2, User, Mail, School, Hash, Check, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import studentApiService from '../../../../../services/studentApiService';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
@@ -13,7 +14,8 @@ interface StudentFormModalProps {
 
 const StudentFormModal: React.FC<StudentFormModalProps> = ({ isOpen, onClose, initialData, onSuccess }) => {
     const { showSuccess, showError } = useToastContext();
-    const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [formData, setFormData] = useState({
         first_name: '',
         middle_name: '',
@@ -56,16 +58,23 @@ const StudentFormModal: React.FC<StudentFormModalProps> = ({ isOpen, onClose, in
                 scholarship_status: 'none',
             });
         }
+        setErrors({}); // Clear errors when modal opens or initialData changes
     }, [initialData, isOpen]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        // Clear error when user types
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
+        setIsSubmitting(true);
+        setErrors({}); // Clear previous errors
+
         try {
             if (initialData?.student_uuid) {
                 await studentApiService.updateStudent(initialData.student_uuid, formData);
@@ -76,181 +85,225 @@ const StudentFormModal: React.FC<StudentFormModalProps> = ({ isOpen, onClose, in
             }
             onSuccess();
             onClose();
-        } catch (error) {
-            showError(initialData ? 'Failed to update student' : 'Failed to create student');
+        } catch (error: any) {
+            console.error('Submit error:', error);
+            if (error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+            } else {
+                showError(initialData ? 'Failed to update student' : 'Failed to create student');
+            }
         } finally {
-            setLoading(false);
+            setIsSubmitting(false);
         }
     };
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    return createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-100 dark:border-slate-700"
             >
-                <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                        {initialData ? 'Edit Student' : 'Add New Student'}
-                    </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 flex justify-between items-center flex-shrink-0">
+                    <div>
+                        <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-orange-500">
+                            {initialData ? 'Edit Student Profile' : 'New Student Registration'}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                            {initialData ? 'Update student information and records' : 'Enter the student\'s personal and academic details'}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
+                    >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
-                    <div className="space-y-6">
-                        {/* Personal Information */}
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        {/* Personal Information Section */}
                         <div className="space-y-4">
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Personal Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name *</label>
-                                    <input
-                                        required
-                                        name="first_name"
-                                        value={formData.first_name}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                    />
+                            <div className="flex items-center gap-2 text-gray-900 dark:text-white pb-2 border-b border-gray-100 dark:border-slate-700">
+                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                    <User className="w-5 h-5 text-blue-500" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Middle Name</label>
-                                    <input
-                                        name="middle_name"
-                                        value={formData.middle_name}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name *</label>
-                                    <input
-                                        required
-                                        name="last_name"
-                                        value={formData.last_name}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                    />
-                                </div>
+                                <h4 className="font-semibold">Personal Information</h4>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
-                                    <input
-                                        required
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                    />
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* First Name */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        First Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            name="first_name"
+                                            placeholder="e.g. Juan"
+                                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white transition-all focus:bg-white dark:focus:bg-slate-800 ${errors.first_name
+                                                ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
+                                                : 'border-gray-200 dark:border-slate-700 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10'
+                                                }`}
+                                            value={formData.first_name}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+                                    {errors.first_name && (
+                                        <p className="text-xs text-red-500 pl-1">{errors.first_name}</p>
+                                    )}
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Number</label>
-                                    <input
-                                        name="contact_number"
-                                        value={formData.contact_number}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                    />
+
+                                {/* Last Name */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Last Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            name="last_name"
+                                            placeholder="e.g. Dela Cruz"
+                                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white transition-all focus:bg-white dark:focus:bg-slate-800 ${errors.last_name
+                                                ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
+                                                : 'border-gray-200 dark:border-slate-700 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10'
+                                                }`}
+                                            value={formData.last_name}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+                                    {errors.last_name && (
+                                        <p className="text-xs text-red-500 pl-1">{errors.last_name}</p>
+                                    )}
+                                </div>
+
+                                {/* Email */}
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Email Address <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            placeholder="e.g. juan.delacruz@email.com"
+                                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white transition-all focus:bg-white dark:focus:bg-slate-800 ${errors.email
+                                                ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
+                                                : 'border-gray-200 dark:border-slate-700 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10'
+                                                }`}
+                                            value={formData.email}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+                                    {errors.email && (
+                                        <p className="text-xs text-red-500 pl-1">{errors.email}</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Academic Information */}
+                        {/* Academic Information Section */}
                         <div className="space-y-4">
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Academic Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Student ID *</label>
-                                    <input
-                                        required
-                                        name="student_number"
-                                        value={formData.student_number}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                    />
+                            <div className="flex items-center gap-2 text-gray-900 dark:text-white pb-2 border-b border-gray-100 dark:border-slate-700">
+                                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                    <School className="w-5 h-5 text-green-500" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School</label>
-                                    <input
-                                        name="school_name"
-                                        value={formData.school_name}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                    />
+                                <h4 className="font-semibold">Academic Information</h4>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Student ID */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Student ID Number
+                                    </label>
+                                    <div className="relative">
+                                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            name="student_number"
+                                            placeholder="e.g. 2023-0001"
+                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white transition-all focus:bg-white dark:focus:bg-slate-800 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
+                                            value={formData.student_number}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Program</label>
-                                    <input
-                                        name="program"
-                                        value={formData.program}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Year Level</label>
-                                    <select
-                                        name="year_level"
-                                        value={formData.year_level}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                    >
-                                        <option value="1st Year">1st Year</option>
-                                        <option value="2nd Year">2nd Year</option>
-                                        <option value="3rd Year">3rd Year</option>
-                                        <option value="4th Year">4th Year</option>
-                                        <option value="5th Year">5th Year</option>
-                                    </select>
+
+                                {/* Status */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Scholarship Status
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            name="scholarship_status"
+                                            className="w-full pl-4 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white transition-all focus:bg-white dark:focus:bg-slate-800 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 appearance-none"
+                                            value={formData.scholarship_status}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value="none">None</option>
+                                            <option value="applicant">Applicant</option>
+                                            <option value="scholar">Scholar</option>
+                                            <option value="alumni">Alumni</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Status */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Status</h3>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Scholarship Status</label>
-                                <select
-                                    name="scholarship_status"
-                                    value={formData.scholarship_status}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-                                >
-                                    <option value="none">None</option>
-                                    <option value="applicant">Applicant</option>
-                                    <option value="scholar">Scholar</option>
-                                    <option value="alumni">Alumni</option>
-                                </select>
+                        {/* Form Error */}
+                        {errors.submit && (
+                            <div className="p-4 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center gap-3">
+                                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                <p className="text-sm font-medium">{errors.submit}</p>
                             </div>
-                        </div>
-                    </div>
-                </form>
+                        )}
+                    </form>
+                </div>
 
-                <div className="p-6 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3">
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/50 flex justify-end gap-3 flex-shrink-0">
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors dark:text-gray-300 dark:hover:bg-slate-700"
+                        disabled={isSubmitting}
+                        className="px-5 py-2.5 rounded-xl font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
                     >
                         Cancel
                     </button>
                     <button
+                        type="submit"
+                        disabled={isSubmitting}
                         onClick={handleSubmit}
-                        disabled={loading}
-                        className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="px-5 py-2.5 rounded-xl font-medium text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                        {initialData ? 'Update Student' : 'Create Student'}
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Saving Student...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Check className="w-4 h-4" />
+                                <span>{initialData ? 'Update Profile' : 'Register Student'}</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </motion.div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

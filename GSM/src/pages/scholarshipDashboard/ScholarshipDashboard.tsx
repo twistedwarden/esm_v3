@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/v1authStore';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '../../config/api';
-import { GraduationCap, Calendar, PhilippinePeso, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, ExternalLink, Download, Eye } from 'lucide-react';
+import { GraduationCap, Calendar, PhilippinePeso, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, Download, Eye } from 'lucide-react';
 import { SecureDocumentUpload } from '../../components/ui/SecureDocumentUpload';
 import { SkeletonDashboard } from '../../components/ui/Skeleton';
 // EnrollmentVerificationCard removed - automatic verification disabled
@@ -272,18 +272,25 @@ export const ScholarshipDashboard: React.FC = () => {
     };
   }, [showNotifications]);
 
-  // Fetch user applications and documents
+  const [hasOpenPeriod, setHasOpenPeriod] = useState(false);
+
+  // Fetch user applications, documents, and academic periods
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const [userApplications, requiredDocumentsData] = await Promise.all([
+        const [userApplications, requiredDocumentsData, periodsData] = await Promise.all([
           scholarshipApiService.getUserApplications(),
-          scholarshipApiService.getRequiredDocuments()
+          scholarshipApiService.getRequiredDocuments(),
+          scholarshipApiService.getAcademicPeriods()
         ]);
         setApplications(userApplications);
         setRequiredDocuments(requiredDocumentsData);
+
+        // Check for any open and current academic period
+        const openPeriod = periodsData.find(p => p.status === 'open' && p.is_current);
+        setHasOpenPeriod(!!openPeriod);
 
         // Fetch documents if there's a current application
         if (userApplications.length > 0) {
@@ -1159,18 +1166,33 @@ export const ScholarshipDashboard: React.FC = () => {
           )}
 
           {!isLoading && !error && applications.length === 0 && (
-            <div className="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
+            <div className={`mt-3 p-4 border rounded-lg shadow-sm ${hasOpenPeriod ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-500" />
-                  <span className="text-sm text-yellow-700">No applications found. Submit a new application to get started.</span>
+                  {hasOpenPeriod ? (
+                    <AlertCircle className="h-5 w-5 text-yellow-500" />
+                  ) : (
+                    <Clock className="h-5 w-5 text-gray-500" />
+                  )}
+                  <div className="flex flex-col">
+                    <span className={`text-sm font-medium ${hasOpenPeriod ? 'text-yellow-800' : 'text-gray-800'}`}>
+                      {hasOpenPeriod ? "Start Your Journey" : "Applications Closed"}
+                    </span>
+                    <span className={`text-sm ${hasOpenPeriod ? 'text-yellow-700' : 'text-gray-600'}`}>
+                      {hasOpenPeriod
+                        ? "Submit a new scholarship application to get started."
+                        : "Scholarship applications are currently closed. Please wait for the next academic period."}
+                    </span>
+                  </div>
                 </div>
-                <button
-                  onClick={() => navigate('/new-application')}
-                  className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
-                >
-                  Apply Now
-                </button>
+                {hasOpenPeriod && (
+                  <button
+                    onClick={() => navigate('/new-application')}
+                    className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+                  >
+                    Apply Now
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1672,7 +1694,7 @@ export const ScholarshipDashboard: React.FC = () => {
                                     showRemoveButton={item.isSubmitted && ['draft', 'for_compliance'].includes(currentApplication.status)}
                                     onRemove={() => handleRemoveDocument(item.document)}
                                     maxSizeMB={10}
-                                    acceptedTypes={['application/pdf', 'image/jpeg', 'image/png']}
+                                    acceptedTypes={['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
                                     className="min-w-0 flex-1"
                                   />
                                 ) : (

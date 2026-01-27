@@ -1,6 +1,7 @@
 import Dashboard from './modules/Dashboard/DashboardOverview'
 import ApplicationManagement from './modules/scholarship/application/ApplicationManagement'
 import ScholarshipPrograms from './modules/scholarship/ScholarshipPrograms'
+import AcademicPeriods from './modules/scholarship/AcademicPeriods'
 import SSCManagement from './modules/scholarship/ssc/SSCManagement'
 import SchoolAidDistribution from './modules/schoolAid/SchoolAidDistribution'
 import DisbursementHistory from './modules/schoolAid/DisbursementHistory'
@@ -87,6 +88,8 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 			return <div><ApplicationManagement initialTab={activeTab} /></div>
 		case 'scholarship-programs':
 			return <div><ScholarshipPrograms /></div>
+		case 'scholarship-periods':
+			return <div><AcademicPeriods /></div>
 		case 'scholarship-ssc':
 			return <div><SSCManagement /></div>
 		case 'sad-overview':

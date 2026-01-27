@@ -77,6 +77,7 @@ export const RenewalForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [previousApplication, setPreviousApplication] = useState<any>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isEligible, setIsEligible] = useState<boolean | null>(null);
 
   const {
     register,
@@ -100,15 +101,70 @@ export const RenewalForm: React.FC = () => {
 
   // Watch fields for conditional rendering
   const paymentMethod = watch('paymentMethod');
+  const [hasOpenPeriod, setHasOpenPeriod] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchPreviousApplication = async () => {
       try {
         setIsLoadingData(true);
-        const applications = await scholarshipApiService.getUserApplications();
 
-        // Find the latest application (approved or otherwise) to pre-fill
-        const latestApp = applications.length > 0 ? applications[0] : null;
+        // Parallel fetch
+        const [applications, periods] = await Promise.all([
+          scholarshipApiService.getUserApplications(),
+          scholarshipApiService.getAcademicPeriods()
+        ]);
+
+        // Check for open period and get it
+        const openPeriod = periods.find(p => p.status === 'open' && p.is_current);
+        const open = !!openPeriod;
+        setHasOpenPeriod(open);
+
+        if (!open) {
+          setIsEligible(false);
+          return;
+        }
+
+        // Auto-populate School Year and Semester from the active academic period
+        if (openPeriod) {
+          console.log('Auto-populating renewal academic period:', openPeriod);
+          setValue('schoolYear', openPeriod.academic_year);
+
+          let term = '';
+          if (openPeriod.period_type === 'Semester') {
+            if (openPeriod.period_number === 1) term = '1st Semester';
+            else if (openPeriod.period_number === 2) term = '2nd Semester';
+            else if (openPeriod.period_number === 3) term = 'Summer';
+          } else {
+            // Fallback
+            if (openPeriod.period_number === 1) term = `1st ${openPeriod.period_type}`;
+            else if (openPeriod.period_number === 2) term = `2nd ${openPeriod.period_type}`;
+            else if (openPeriod.period_number === 3) term = `3rd ${openPeriod.period_type}`;
+          }
+
+          if (term) setValue('schoolTerm', term);
+        }
+
+        // Check if user has any completed applications
+        const completedStatuses = ['approved', 'grants_disbursed'];
+        const completedApps = applications.filter(app =>
+          completedStatuses.includes(app.status?.toLowerCase())
+        );
+
+        if (completedApps.length === 0) {
+          // User is not eligible for renewal
+          setIsEligible(false);
+          setError('You are not eligible for renewal. Please submit a new application first.');
+          // Redirect after 3 seconds
+          setTimeout(() => {
+            navigate('/portal');
+          }, 3000);
+          return;
+        }
+
+        setIsEligible(true);
+
+        // Find the latest completed application to pre-fill
+        const latestApp = completedApps[0];
 
         if (latestApp) {
           setPreviousApplication(latestApp);
@@ -152,6 +208,7 @@ export const RenewalForm: React.FC = () => {
       } catch (err) {
         console.error('Error fetching previous application:', err);
         setError('Failed to load previous application data. You may need to fill in all fields manually.');
+        setIsEligible(false);
       } finally {
         setIsLoadingData(false);
       }
@@ -160,7 +217,7 @@ export const RenewalForm: React.FC = () => {
     if (currentUser) {
       fetchPreviousApplication();
     }
-  }, [currentUser, setValue]);
+  }, [currentUser, setValue, navigate]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -208,6 +265,48 @@ export const RenewalForm: React.FC = () => {
 
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 3));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+
+  // Access check for academic period
+  if (hasOpenPeriod === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
+          <div className="p-3 bg-yellow-100 rounded-full inline-block mb-4">
+            {/* Clock is imported above in original file */}
+            <div className="w-12 h-12 text-yellow-600 flex items-center justify-center font-bold text-2xl">!</div>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Applications Closed</h1>
+          <p className="text-gray-600 mb-6">
+            Scholarship renewal applications are currently closed. Please wait for the next academic period to open.
+          </p>
+          <Button onClick={() => navigate('/portal')} className="w-full">
+            Return to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show ineligibility message if user is not eligible for renewal (and period logic didn't catch it)
+  if (isEligible === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Not Eligible for Renewal</h1>
+          <p className="text-gray-600 mb-6">
+            You need to have a completed scholarship application from a previous semester before you can renew. Please submit a new application first.
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            Redirecting you back to the portal...
+          </p>
+          <Button onClick={() => navigate('/portal')} className="w-full">
+            Return to Portal Now
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoadingData) {
     return (

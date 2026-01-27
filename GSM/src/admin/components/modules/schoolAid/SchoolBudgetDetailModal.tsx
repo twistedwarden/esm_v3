@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
     X,
     Calendar,
@@ -72,7 +73,7 @@ export const BudgetDetailModal: React.FC<BudgetDetailModalProps> = ({
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
             <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
                 {/* Header */}
@@ -234,7 +235,8 @@ export const BudgetDetailModal: React.FC<BudgetDetailModalProps> = ({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

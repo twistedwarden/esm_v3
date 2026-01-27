@@ -20,8 +20,8 @@ class DatabaseSeeder extends Seeder
             PartnerSchoolApplicationTestSeeder::class, // Generate verification documents for partner schools
                 // StaffSeederWithRealIds::class, // Use the seeder with real user IDs
             StaffSeeder::class, // Use the seeder with real user IDs
-            SampleApplicationSeeder::class,
-            SampleDocumentSeeder::class, // Generate sample documents for applications
+                // SampleApplicationSeeder::class, // DISABLED: Creates test applications - comment out to prevent auto-seeding
+                // SampleDocumentSeeder::class, // DISABLED: Generate sample documents - comment out to prevent auto-seeding
                 //EnrollmentVerificationSeeder::class, // Must run after SampleApplicationSeeder
             InterviewScheduleSeeder::class, // Must run after SampleApplicationSeeder
             SscMembersSeeder::class, // SSC member profiles (for reference)

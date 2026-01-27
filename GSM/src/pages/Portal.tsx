@@ -83,6 +83,8 @@ export const Portal: React.FC = () => {
   const navigate = useNavigate();
   const [showDirectoryModal, setShowDirectoryModal] = useState(false);
   const [hasActiveApplication, setHasActiveApplication] = useState(false);
+  const [canRenew, setCanRenew] = useState(false);
+  const [hasOpenPeriod, setHasOpenPeriod] = useState<boolean | null>(null);
   const [categories, setCategories] = useState<ScholarshipCategory[]>([]);
   const [isCheckingApplications, setIsCheckingApplications] = useState(true);
   const [showToast, setShowToast] = useState(false);
@@ -100,9 +102,9 @@ export const Portal: React.FC = () => {
     }
   }, [currentUser, navigate]);
 
-  // Check for existing applications on component mount
+  // Check for existing applications and renewal eligibility on component mount
   useEffect(() => {
-    const checkExistingApplications = async () => {
+    const checkApplicationsAndRenewal = async () => {
       if (!currentUser) {
         setIsCheckingApplications(false);
         return;
@@ -112,25 +114,57 @@ export const Portal: React.FC = () => {
         setIsCheckingApplications(true);
         const applications = await scholarshipApiService.getUserApplications();
 
-        // Check if user has any pending or active applications
-        // Pending/Active statuses: draft, submitted, documents_reviewed, interview_scheduled, interview_completed, endorsed_to_ssc, approved, grants_processing, grants_disbursed, on_hold
-        // Only rejected and cancelled applications allow new applications
-        const activeStatuses = ['draft', 'submitted', 'documents_reviewed', 'interview_scheduled', 'interview_completed', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'for_compliance', 'compliance_documents_submitted'];
+        // Check if user has any pending or IN-PROGRESS applications
+        // Active/In-Progress statuses that block new applications:
+        // - draft, submitted, documents_reviewed, interview_scheduled, interview_completed
+        // - endorsed_to_ssc, grants_processing, on_hold, for_compliance, compliance_documents_submitted
+        // 
+        // EXCLUDED from active: approved, grants_disbursed (these are COMPLETED scholarships)
+        // Users with completed scholarships should be able to apply for renewal OR new applications
+        const activeStatuses = [
+          'draft',
+          'submitted',
+          'documents_reviewed',
+          'interview_scheduled',
+          'interview_completed',
+          'endorsed_to_ssc',
+          'grants_processing',
+          'on_hold',
+          'for_compliance',
+          'compliance_documents_submitted'
+        ];
         const hasActive = applications.some(app => activeStatuses.includes(app.status?.toLowerCase()));
 
+        // Check if user can renew: must have at least one COMPLETED application from previous semester
+        // Completed statuses: approved, grants_disbursed (scholarships that were successfully completed)
+        const completedStatuses = ['approved', 'grants_disbursed'];
+        const hasCompletedApplication = applications.some(app =>
+          completedStatuses.includes(app.status?.toLowerCase())
+        );
+
+        // Check active period
+        const periods = await scholarshipApiService.getAcademicPeriods();
+        const openPeriod = periods.some(p => p.status === 'open' && p.is_current);
+        setHasOpenPeriod(openPeriod);
+
         setHasActiveApplication(hasActive);
+        setCanRenew(hasCompletedApplication);
+
         console.log('User applications:', applications);
         console.log('Has active application:', hasActive);
+        console.log('Can renew:', hasCompletedApplication);
+        console.log('Open period:', openPeriod);
       } catch (error) {
         console.error('Error checking existing applications:', error);
         // If there's an error, allow access (fail open)
         setHasActiveApplication(false);
+        setCanRenew(false);
       } finally {
         setIsCheckingApplications(false);
       }
     };
 
-    checkExistingApplications();
+    checkApplicationsAndRenewal();
   }, [currentUser]);
 
   // Fetch scholarship categories
@@ -240,6 +274,19 @@ export const Portal: React.FC = () => {
                   <div className="w-full h-10 sm:h-11 lg:h-12">
                     <Skeleton variant="rectangular" height="100%" />
                   </div>
+                ) : !hasOpenPeriod ? (
+                  <div className="relative group">
+                    <Button
+                      size="lg"
+                      disabled
+                      className="bg-gray-300 text-gray-500 border-0 shadow-md px-4 sm:px-6 lg:px-8 py-3 sm:py-4 text-sm sm:text-base lg:text-lg font-semibold w-full h-12 sm:h-14 lg:h-16 flex items-center justify-center whitespace-nowrap uppercase tracking-wide cursor-not-allowed opacity-60"
+                    >
+                      New Application
+                    </Button>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Applications are currently closed
+                    </div>
+                  </div>
                 ) : hasActiveApplication ? (
                   <Button
                     size="lg"
@@ -260,14 +307,46 @@ export const Portal: React.FC = () => {
               </div>
 
               <div className="bg-gray-100 rounded-xl p-3 sm:p-4 shadow-lg">
-                <Link to="/renewal" className="block w-full">
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
-                  >
-                    Renewal Application
-                  </Button>
-                </Link>
+                {isCheckingApplications ? (
+                  <div className="w-full h-10 sm:h-11 lg:h-12">
+                    <Skeleton variant="rectangular" height="100%" />
+                  </div>
+                ) : !hasOpenPeriod ? (
+                  <div className="relative group">
+                    <Button
+                      size="lg"
+                      disabled
+                      className="bg-gray-300 text-gray-500 border-0 shadow-md px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide cursor-not-allowed opacity-60"
+                    >
+                      Renewal Application
+                    </Button>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Applications are currently closed
+                    </div>
+                  </div>
+                ) : canRenew ? (
+                  <Link to="/renewal" className="block w-full">
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
+                    >
+                      Renewal Application
+                    </Button>
+                  </Link>
+                ) : (
+                  <div className="relative group">
+                    <Button
+                      size="lg"
+                      disabled
+                      className="bg-gray-300 text-gray-500 border-0 shadow-md px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide cursor-not-allowed opacity-60"
+                    >
+                      Renewal Application
+                    </Button>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Only available for returning scholars with completed applications
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="bg-gray-100 rounded-xl p-3 sm:p-4 shadow-lg">

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, AlertCircle } from 'lucide-react';
 
 function StatusUpdateModal({ application, onClose, onUpdate }) {
@@ -9,23 +10,23 @@ function StatusUpdateModal({ application, onClose, onUpdate }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Clear previous errors
         setErrors({});
-        
+
         // Validation
         if (!selectedStatus) {
             setErrors({ status: 'Please select an action' });
             return;
         }
-        
+
         if (selectedStatus === 'denied' && !remarks.trim()) {
             setErrors({ remarks: 'Remarks are required for rejection' });
             return;
         }
 
         setIsSubmitting(true);
-        
+
         try {
             // Map frontend status to backend status
             const backendStatus = selectedStatus === 'denied' ? 'rejected' : selectedStatus;
@@ -51,8 +52,8 @@ function StatusUpdateModal({ application, onClose, onUpdate }) {
         setErrors({});
     };
 
-    return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur flex items-center justify-center p-4 z-50">
+    return createPortal(
+        <div className="fixed inset-0 bg-black/30 backdrop-blur flex items-center justify-center p-4 z-[100]">
             <div className="bg-white dark:bg-slate-800 rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
@@ -84,11 +85,10 @@ function StatusUpdateModal({ application, onClose, onUpdate }) {
                                 {statusOptions.map((option) => (
                                     <label
                                         key={option.value}
-                                        className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                                            selectedStatus === option.value
-                                                ? `border-orange-500 ${option.bgColor}`
-                                                : 'border-slate-200 dark:border-slate-600 hover:border-orange-300'
-                                        }`}
+                                        className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${selectedStatus === option.value
+                                            ? `border-orange-500 ${option.bgColor}`
+                                            : 'border-slate-200 dark:border-slate-600 hover:border-orange-300'
+                                            }`}
                                     >
                                         <input
                                             type="radio"
@@ -117,9 +117,8 @@ function StatusUpdateModal({ application, onClose, onUpdate }) {
                                 value={remarks}
                                 onChange={(e) => setRemarks(e.target.value)}
                                 placeholder={selectedStatus === 'denied' ? 'Please provide reason for rejection...' : 'Optional remarks...'}
-                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 dark:bg-slate-700 dark:text-white ${
-                                    errors.remarks ? 'border-red-500 focus:ring-red-300' : 'border-slate-200 dark:border-slate-600'
-                                }`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 dark:bg-slate-700 dark:text-white ${errors.remarks ? 'border-red-500 focus:ring-red-300' : 'border-slate-200 dark:border-slate-600'
+                                    }`}
                                 rows="3"
                                 required={selectedStatus === 'denied'}
                             />
@@ -166,20 +165,20 @@ function StatusUpdateModal({ application, onClose, onUpdate }) {
                         type="submit"
                         disabled={!selectedStatus || isSubmitting || (selectedStatus === 'denied' && !remarks.trim())}
                         onClick={handleSubmit}
-                        className={`px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
-                            selectedStatus === 'approved'
-                                ? 'bg-green-500 hover:bg-green-600 text-white'
-                                : selectedStatus === 'denied'
+                        className={`px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed ${selectedStatus === 'approved'
+                            ? 'bg-green-500 hover:bg-green-600 text-white'
+                            : selectedStatus === 'denied'
                                 ? 'bg-red-500 hover:bg-red-600 text-white'
                                 : 'bg-orange-500 hover:bg-orange-600 text-white'
-                        }`}
+                            }`}
                     >
                         {isSubmitting ? 'Processing...' : `${selectedStatus === 'approved' ? 'Approve' : selectedStatus === 'denied' ? 'Deny' : 'Update'} Application`}
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
-export default StatusUpdateModal; 
+export default StatusUpdateModal;

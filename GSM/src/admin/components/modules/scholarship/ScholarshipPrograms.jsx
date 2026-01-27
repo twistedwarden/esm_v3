@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { scholarshipApiService } from '../../../../services/scholarshipApiService';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 import {
@@ -644,8 +645,8 @@ function ScholarshipPrograms() {
       )}
 
       {/* Create Program Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50 p-4">
+      {showCreateModal && createPortal(
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-[100] p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -755,12 +756,13 @@ function ScholarshipPrograms() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Program Modal */}
-      {showEditModal && selectedProgram && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50 p-4">
+      {showEditModal && selectedProgram && createPortal(
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-[100] p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -870,12 +872,13 @@ function ScholarshipPrograms() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Details, Delete Modals ... (Unchanged logic, kept same structure) */}
-      {showDetailsModal && selectedProgram && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50 p-4">
+      {/* Details Program Modal */}
+      {showDetailsModal && selectedProgram && createPortal(
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-[100] p-4">
           {/* Details Modal Content */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-100 dark:border-slate-700">
             <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800">
@@ -935,11 +938,12 @@ function ScholarshipPrograms() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {showDeleteModal && selectedProgram && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50 p-4">
+      {showDeleteModal && selectedProgram && createPortal(
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-[110] p-4">
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-slate-700">
             <div className="p-6 text-center">
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -966,7 +970,8 @@ function ScholarshipPrograms() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

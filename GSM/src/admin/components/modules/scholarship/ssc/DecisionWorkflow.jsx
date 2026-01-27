@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  FileText, 
-  User, 
+import { createPortal } from 'react-dom';
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+  User,
   MessageSquare,
   Edit,
   Send,
@@ -30,7 +31,7 @@ function DecisionWorkflow() {
       try {
         setLoading(true);
         setError('');
-        
+
         // Mock data - replace with actual API calls
         const mockDecisions = [
           {
@@ -101,7 +102,7 @@ function DecisionWorkflow() {
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(decision => 
+      filtered = filtered.filter(decision =>
         decision.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         decision.applicationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         decision.decisionMaker.toLowerCase().includes(searchTerm.toLowerCase())
@@ -209,7 +210,7 @@ function DecisionWorkflow() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center">
             <CheckCircle className="h-8 w-8 text-green-500" />
@@ -221,7 +222,7 @@ function DecisionWorkflow() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center">
             <XCircle className="h-8 w-8 text-red-500" />
@@ -233,7 +234,7 @@ function DecisionWorkflow() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <div className="flex items-center">
             <Edit className="h-8 w-8 text-blue-500" />
@@ -260,7 +261,7 @@ function DecisionWorkflow() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
@@ -285,7 +286,7 @@ function DecisionWorkflow() {
             Decisions ({filteredDecisions.length})
           </h3>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -393,8 +394,8 @@ function DecisionWorkflow() {
       </div>
 
       {/* Decision Modal */}
-      {showDecisionModal && selectedDecision && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      {showDecisionModal && selectedDecision && createPortal(
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[100]">
           <div className="relative top-10 mx-auto p-6 border w-full max-w-2xl shadow-lg rounded-md bg-white">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">
@@ -407,7 +408,7 @@ function DecisionWorkflow() {
                 <XCircle className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Decision</label>
@@ -418,7 +419,7 @@ function DecisionWorkflow() {
                   <option value="for_review">For Review</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Score (1-10)</label>
                 <input
@@ -429,7 +430,7 @@ function DecisionWorkflow() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Comments & Justification</label>
                 <textarea
@@ -439,7 +440,7 @@ function DecisionWorkflow() {
                 />
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 onClick={() => setShowDecisionModal(false)}
@@ -455,12 +456,13 @@ function DecisionWorkflow() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Digital Signature Modal */}
-      {showSignatureModal && selectedDecision && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      {showSignatureModal && selectedDecision && createPortal(
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[100]">
           <div className="relative top-10 mx-auto p-6 border w-full max-w-md shadow-lg rounded-md bg-white">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">Digital Signature</h3>
@@ -471,13 +473,13 @@ function DecisionWorkflow() {
                 <XCircle className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                By signing this decision, you confirm that you have reviewed the application 
+                By signing this decision, you confirm that you have reviewed the application
                 and agree with the decision made.
               </p>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Signature</label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
@@ -486,7 +488,7 @@ function DecisionWorkflow() {
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 onClick={() => setShowSignatureModal(false)}
@@ -502,7 +504,8 @@ function DecisionWorkflow() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

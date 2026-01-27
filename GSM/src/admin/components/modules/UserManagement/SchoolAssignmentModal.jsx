@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, School, Search, CheckCircle, AlertCircle } from 'lucide-react';
 import { getAuthServiceUrl, getScholarshipServiceUrl } from '../../../../config/api';
 
@@ -144,8 +145,8 @@ const SchoolAssignmentModal = ({ isOpen, onClose, user, onSuccess }) => {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
@@ -160,7 +161,7 @@ const SchoolAssignmentModal = ({ isOpen, onClose, user, onSuccess }) => {
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             disabled={submitting}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
@@ -231,11 +232,10 @@ const SchoolAssignmentModal = ({ isOpen, onClose, user, onSuccess }) => {
                 <div
                   key={school.id}
                   onClick={() => setSelectedSchoolId(school.id)}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedSchoolId === school.id
-                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                      : 'border-gray-200 dark:border-slate-600 hover:border-orange-300 dark:hover:border-orange-600 hover:bg-gray-50 dark:hover:bg-slate-700'
-                  }`}
+                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedSchoolId === school.id
+                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                    : 'border-gray-200 dark:border-slate-600 hover:border-orange-300 dark:hover:border-orange-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
@@ -254,18 +254,16 @@ const SchoolAssignmentModal = ({ isOpen, onClose, user, onSuccess }) => {
                         {[school.city, school.region].filter(Boolean).join(', ')}
                       </p>
                       <div className="flex items-center space-x-2 mt-1">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          school.is_partner_school 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                        }`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${school.is_partner_school
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+                          }`}>
                           {school.is_partner_school ? 'Partner School' : 'Regular School'}
                         </span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          school.is_active 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                        }`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${school.is_active
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                          }`}>
                           {school.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </div>
@@ -273,7 +271,7 @@ const SchoolAssignmentModal = ({ isOpen, onClose, user, onSuccess }) => {
                   </div>
                 </div>
               ))}
-              
+
               {filteredSchools.length === 0 && !loading && (
                 <div className="text-center py-8">
                   <School className="mx-auto h-8 w-8 text-gray-400" />
@@ -311,7 +309,8 @@ const SchoolAssignmentModal = ({ isOpen, onClose, user, onSuccess }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

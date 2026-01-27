@@ -77,7 +77,9 @@ Route::prefix('public')->group(function () {
     Route::get('/schools', [SchoolController::class, 'index']);
     Route::get('/scholarship-categories', [ScholarshipCategoryController::class, 'index']);
     Route::get('/document-types', [DocumentController::class, 'getDocumentTypes']);
+    Route::get('/document-types', [DocumentController::class, 'getDocumentTypes']);
     Route::get('/required-documents', [DocumentController::class, 'getRequiredDocuments']);
+
 
     // Staff verification endpoint for auth service
     Route::get('/staff/verify/{userId}', [StaffController::class, 'verifyStaff']);
@@ -298,6 +300,15 @@ Route::prefix('scholarship-subcategories')->group(function () {
     Route::delete('/{subcategory}', [\App\Http\Controllers\ScholarshipSubcategoryController::class, 'destroy'])->middleware(['auth.auth_service']);
 });
 
+// Academic Period routes
+Route::prefix('academic-periods')->group(function () {
+    Route::get('/', [\App\Http\Controllers\AcademicPeriodController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\AcademicPeriodController::class, 'store'])->middleware(['auth.auth_service']);
+    Route::get('/{academicPeriod}', [\App\Http\Controllers\AcademicPeriodController::class, 'show']);
+    Route::put('/{academicPeriod}', [\App\Http\Controllers\AcademicPeriodController::class, 'update'])->middleware(['auth.auth_service']);
+    Route::delete('/{academicPeriod}', [\App\Http\Controllers\AcademicPeriodController::class, 'destroy'])->middleware(['auth.auth_service']);
+});
+
 
 // Enrollment Verification routes have been removed - automatic verification is disabled
 
@@ -405,8 +416,8 @@ Route::get('/test/users', function () {
 Route::prefix('forms')->middleware(['auth.auth_service'])->group(function () {
     // New Application Form
     Route::post('/new-application', function (Request $request) {
-        $studentController = new StudentController();
-        $applicationController = new ScholarshipApplicationController();
+        $studentController = app(StudentController::class);
+        $applicationController = app(ScholarshipApplicationController::class);
 
         // First create the student
         $studentResponse = $studentController->store($request);
@@ -432,7 +443,7 @@ Route::prefix('forms')->middleware(['auth.auth_service'])->group(function () {
 
     // Renewal Application Form
     Route::post('/renewal-application', function (Request $request) {
-        $applicationController = new ScholarshipApplicationController();
+        $applicationController = app(ScholarshipApplicationController::class);
 
         // Set type to renewal
         $request->merge(['type' => 'renewal']);

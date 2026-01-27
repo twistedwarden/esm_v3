@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { scholarshipApiService } from '../../../../../services/scholarshipApiService';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import { useNotifications } from '../../../../contexts/NotificationContext';
@@ -1440,8 +1441,8 @@ function ScholarshipApplications() {
       )}
 
       {/* Review Modal - Large Modal */}
-      {isReviewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+      {isReviewModalOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsReviewModalOpen(false)} />
           <div className="relative z-10 w-full max-w-7xl h-[95vh] sm:h-[90vh] bg-white dark:bg-slate-800 rounded-xl shadow-2xl flex flex-col lg:flex-row overflow-hidden">
             {/* Left Sidebar - Actions */}
@@ -1856,11 +1857,12 @@ function ScholarshipApplications() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Bulk Action Modal */}
-      {isBulkActionModalOpen && (
+      {isBulkActionModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsBulkActionModalOpen(false)} />
           <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
@@ -1941,11 +1943,12 @@ function ScholarshipApplications() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Quick Action Modal */}
-      {isQuickActionModalOpen && (
+      {isQuickActionModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsQuickActionModalOpen(false)} />
           <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
@@ -2017,7 +2020,8 @@ function ScholarshipApplications() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

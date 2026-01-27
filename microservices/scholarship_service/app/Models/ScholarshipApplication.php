@@ -29,6 +29,7 @@ class ScholarshipApplication extends Model
         'approved_amount',
         'rejection_reason',
         'notes',
+        'academic_period_id',
         'marginalized_groups',
         'digital_wallets',
         'wallet_account_number',
@@ -85,6 +86,11 @@ class ScholarshipApplication extends Model
     public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
+    }
+
+    public function academicPeriod(): BelongsTo
+    {
+        return $this->belongsTo(AcademicPeriod::class);
     }
 
     public function parentApplication(): BelongsTo

@@ -9,6 +9,7 @@ const allSidebarItems = [
         subItems: [
             { id: 'scholarship-applications', label: 'Applications' },
             { id: 'scholarship-programs', label: 'Programs' },
+            { id: 'scholarship-periods', label: 'Academic Periods' },
             { id: 'scholarship-ssc', label: 'SSC Management' }
         ]
     },

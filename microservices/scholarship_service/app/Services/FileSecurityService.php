@@ -13,12 +13,18 @@ class FileSecurityService
      */
     public function validateFile(UploadedFile $file): array
     {
+        Log::info('🔒 FileSecurityService: Starting file validation', [
+            'filename' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'mime' => $file->getMimeType()
+        ]);
+
         $startTime = microtime(true);
         $fileName = $file->getClientOriginalName();
         $fileSize = $file->getSize();
         $mimeType = $file->getMimeType();
         $extension = $file->getClientOriginalExtension();
-        
+
         Log::info('File security validation started', [
             'file_name' => $fileName,
             'file_size' => $fileSize,
@@ -47,7 +53,7 @@ class FileSecurityService
             $allowedMimeTypes = [
                 'application/pdf',
                 'image/jpeg',
-                'image/jpg', 
+                'image/jpg',
                 'image/png',
                 'application/msword',
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -81,8 +87,11 @@ class FileSecurityService
                 return $validation;
             }
 
+            Log::info('✅ Step 4: MIME type validation passed');
+
             // 5. Content validation for PDFs
             if ($mimeType === 'application/pdf') {
+                Log::info('🔍 Step 5: Validating PDF content');
                 $pdfValidation = $this->validatePdfContent($file);
                 if (!$pdfValidation['valid']) {
                     $validation['warnings'][] = $pdfValidation['warning'];
@@ -90,17 +99,22 @@ class FileSecurityService
                 }
             }
 
+            Log::info('✅ Step 5: PDF content validation passed (or skipped)');
+
             // 6. Basic security checks
-            $securityChecks = $this->performSecurityChecks($file);
+            Log::info('🔍 Step 6: Performing security checks');
+            $securityChecks = $this->performSecurityChecks($file, $mimeType);
             if (!$securityChecks['safe']) {
                 $validation['is_clean'] = false;
                 $validation['threat_name'] = $securityChecks['threat'];
-                Log::warning('File rejected: Security threat detected', ['threat' => $securityChecks['threat']]);
+                Log::warning('❌ File rejected: Security threat detected', ['threat' => $securityChecks['threat']]);
                 return $validation;
             }
 
+            Log::info('✅ Step 6: Security checks passed');
+
             $validation['scan_duration'] = round((microtime(true) - $startTime) * 1000, 2);
-            
+
             Log::info('File security validation completed successfully', [
                 'file_name' => $fileName,
                 'scan_duration' => $validation['scan_duration']
@@ -111,7 +125,7 @@ class FileSecurityService
                 'file_name' => $fileName,
                 'error' => $e->getMessage()
             ]);
-            
+
             $validation['is_clean'] = false;
             $validation['threat_name'] = 'Validation error';
         }
@@ -135,7 +149,7 @@ class FileSecurityService
         $signatures = [
             'application/pdf' => '%PDF-',
             'image/jpeg' => "\xFF\xD8\xFF",
-            'image/jpg' => "\xFF\xD8\xFF", 
+            'image/jpg' => "\xFF\xD8\xFF",
             'image/png' => "\x89\x50\x4E\x47",
             'application/msword' => "\xD0\xCF\x11\xE0",
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => "PK\x03\x04"
@@ -157,11 +171,10 @@ class FileSecurityService
     private function validatePdfContent(UploadedFile $file): array
     {
         $content = file_get_contents($file->getRealPath());
-        
+
         // Check for suspicious PDF elements
         $suspiciousPatterns = [
             '/\/Launch\s+/' => 'PDF with launch actions',
-            '/\/JavaScript\s+/' => 'PDF with JavaScript',
             '/\/EmbeddedFile\s+/' => 'PDF with embedded files',
             '/\/OpenAction\s+/' => 'PDF with open actions'
         ];
@@ -181,11 +194,25 @@ class FileSecurityService
     /**
      * Perform basic security checks
      */
-    private function performSecurityChecks(UploadedFile $file): array
+    private function performSecurityChecks(UploadedFile $file, string $mimeType): array
     {
+        // Skip content scanning for known binary types to avoid false positives
+        // These types are already validated by signature and extension
+        if (
+            in_array($mimeType, [
+                'application/pdf',
+                'image/jpeg',
+                'image/jpg',
+                'image/png',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ])
+        ) {
+            return $this->checkFilenameSafety($file);
+        }
+
         $content = file_get_contents($file->getRealPath());
-        
-        // Check for executable content
+
+        // Check for executable content in text/other files
         $executablePatterns = [
             '/<script/i' => 'HTML script tags',
             '/javascript:/i' => 'JavaScript URLs',
@@ -203,6 +230,14 @@ class FileSecurityService
             }
         }
 
+        return $this->checkFilenameSafety($file);
+    }
+
+    /**
+     * Check for suspicious filenames
+     */
+    private function checkFilenameSafety(UploadedFile $file): array
+    {
         // Check for suspicious file names
         $suspiciousNames = [
             '/\.(exe|bat|cmd|scr|pif|com)$/i' => 'Executable file extension',

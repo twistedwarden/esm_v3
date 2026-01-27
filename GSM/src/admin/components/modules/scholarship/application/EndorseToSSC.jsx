@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Award,
   CheckCircle,
@@ -1172,9 +1173,9 @@ function EndorseToSSC() {
 
       {/* Endorse Modal */}
       {
-        isEndorseModalOpen && activeApplication && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsEndorseModalOpen(false)} />
+        isEndorseModalOpen && activeApplication && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsEndorseModalOpen(false)} />
             <div className="relative z-10 w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] bg-white dark:bg-slate-800 rounded-xl shadow-2xl flex flex-col my-4 sm:my-8">
               {/* Modal Header - Fixed */}
               <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
@@ -1410,15 +1411,17 @@ function EndorseToSSC() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 
       {/* View Details Modal */}
       {
-        isViewModalOpen && activeApplication && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] flex flex-col my-4 sm:my-8">
+        isViewModalOpen && activeApplication && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsViewModalOpen(false)} />
+            <div className="relative z-10 w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl flex flex-col my-4 sm:my-8 animate-in fade-in zoom-in duration-200">
               {/* Modal Header - Fixed */}
               <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
                 <div>
@@ -1795,15 +1798,16 @@ function EndorseToSSC() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 
       {/* Bulk Endorse Modal */}
       {
-        showBulkEndorseModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowBulkEndorseModal(false)} />
+        showBulkEndorseModal && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowBulkEndorseModal(false)} />
             <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl my-4 sm:my-8">
               {/* Modal Header */}
               <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700">
@@ -1878,15 +1882,16 @@ function EndorseToSSC() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 
       {/* Reject Modal */}
       {
-        isRejectModalOpen && activeApplication && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsRejectModalOpen(false)} />
+        isRejectModalOpen && activeApplication && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsRejectModalOpen(false)} />
             <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl my-4 sm:my-8">
               {/* Modal Header */}
               <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700">
@@ -1952,7 +1957,8 @@ function EndorseToSSC() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 

@@ -428,7 +428,52 @@ export const NewApplicationForm: React.FC = () => {
 
       try {
         setIsCheckingApplications(true);
-        const applications = await scholarshipApiService.getUserApplications();
+
+        // Parallel fetch of applications and active periods
+        const [applications, periods] = await Promise.all([
+          scholarshipApiService.getUserApplications(),
+          scholarshipApiService.getAcademicPeriods()
+        ]);
+
+        // Check for open academic period
+        const currentOpenPeriod = periods.find(p => p.status === 'open' && p.is_current);
+        const hasOpenPeriod = !!currentOpenPeriod;
+
+        // Check if user has a draft or for_compliance application that they might want to edit
+        const editableApplication = applications.find(app => ['draft', 'for_compliance'].includes(app.status?.toLowerCase()));
+
+        if (currentOpenPeriod && !isEditMode && !editableApplication) {
+          // Auto-populate School Year and Semester from the active academic period
+          console.log('Auto-populating academic period:', currentOpenPeriod);
+          setValue('schoolYear', currentOpenPeriod.academic_year);
+
+          let term = '';
+          if (currentOpenPeriod.period_type === 'Semester') {
+            if (currentOpenPeriod.period_number === 1) term = '1st Semester';
+            else if (currentOpenPeriod.period_number === 2) term = '2nd Semester';
+            else if (currentOpenPeriod.period_number === 3) term = 'Summer';
+          } else {
+            // Fallback for other types or direct mapping
+            if (currentOpenPeriod.period_number === 1) term = `1st ${currentOpenPeriod.period_type}`;
+            else if (currentOpenPeriod.period_number === 2) term = `2nd ${currentOpenPeriod.period_type}`;
+            else if (currentOpenPeriod.period_number === 3) term = `3rd ${currentOpenPeriod.period_type}`;
+          }
+
+          if (term) {
+            setValue('schoolTerm', term);
+          }
+        }
+
+        if (!hasOpenPeriod) {
+          // Check if we are trying to edit a draft (which might be allowed depending on business rules, 
+          // but usually if period is closed, no activity is allowed. 
+          // However, for "New Application" flow, we definitely block.
+          // We'll see if we set isEditMode later.
+          // For now, let's flag it.
+          // But wait, if we are in edit mode, we might want to allow viewing? 
+          // The prompt says "applicants shouldn't be able to apply".
+          // If I block here, I blocking initializing the form.
+        }
 
         // Check if user has any pending or active applications
         // Check if user has any active applications that would prevent creating a new one
@@ -437,8 +482,16 @@ export const NewApplicationForm: React.FC = () => {
         const blockingStatuses = ['submitted', 'documents_reviewed', 'interview_scheduled', 'endorsed_to_ssc', 'approved', 'grants_processing', 'grants_disbursed', 'on_hold', 'compliance_documents_submitted'];
         const hasBlockingApplication = applications.some(app => blockingStatuses.includes(app.status?.toLowerCase()));
 
-        // Check if user has a draft or for_compliance application that they might want to edit
-        const editableApplication = applications.find(app => ['draft', 'for_compliance'].includes(app.status?.toLowerCase()));
+
+
+        // LOGIC UPDATE:
+        // If NO open period AND NOT editing an existing draft/compliance app -> Deny Access.
+        if (!hasOpenPeriod && !editableApplication) {
+          setAccessDenied(true);
+          setIsCheckingApplications(false);
+          return;
+        }
+
         const hasEditableApplication = !!editableApplication;
 
         // Allow access if:
@@ -778,9 +831,21 @@ export const NewApplicationForm: React.FC = () => {
       if (currentUser.birthdate) {
         setValue('dateOfBirth', new Date(currentUser.birthdate).toISOString().split('T')[0]);
       }
-      if (currentUser.address) {
-        setValue('presentAddress', currentUser.address);
+
+      // Address Population
+      // Construct the address from available components if the main address field is missing or simplistic
+      const houseNumber = currentUser.house_number || '';
+      const street = currentUser.street || '';
+      const fullStreetAddress = [houseNumber, street].filter(Boolean).join(' ');
+
+      // Use the constructed address if available, otherwise fallback to the generic address field
+      // If both are available, we prefer the more granular components combined
+      const addressToUse = fullStreetAddress || currentUser.address || '';
+
+      if (addressToUse) {
+        setValue('presentAddress', addressToUse);
       }
+
       if (currentUser.barangay) {
         setValue('barangay', currentUser.barangay);
       }

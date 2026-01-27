@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, UserCheck, UserX, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
 
-const UserActionModal = ({ 
-    isOpen, 
-    onClose, 
-    user, 
-    onActivate, 
-    onDeactivate, 
+const UserActionModal = ({
+    isOpen,
+    onClose,
+    user,
+    onActivate,
+    onDeactivate,
     onPermanentDelete,
-    isLoading 
+    isLoading
 }) => {
     // Show modal when open and user is available
     if (!isOpen || !user) {
@@ -35,11 +36,10 @@ const UserActionModal = ({
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-full ${
-                            isActive 
-                                ? 'bg-green-100 dark:bg-green-900/20' 
-                                : 'bg-red-100 dark:bg-red-900/20'
-                        }`}>
+                        <div className={`p-2 rounded-full ${isActive
+                            ? 'bg-green-100 dark:bg-green-900/20'
+                            : 'bg-red-100 dark:bg-red-900/20'
+                            }`}>
                             {isActive ? (
                                 <UserCheck className="w-6 h-6 text-green-600 dark:text-green-400" />
                             ) : (
@@ -68,16 +68,15 @@ const UserActionModal = ({
                     <div className="mb-6">
                         <div className="flex items-center space-x-2 mb-2">
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                isActive
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200'
-                                    : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200'
-                            }`}>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isActive
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200'
+                                }`}>
                                 {isActive ? 'Active' : 'Inactive'}
                             </span>
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {isActive 
+                            {isActive
                                 ? 'This user is currently active and can access the system.'
                                 : 'This user is currently inactive and cannot access the system.'
                             }
@@ -112,7 +111,7 @@ const UserActionModal = ({
                                     <UserCheck className="w-4 h-4" />
                                     <span>Activate User</span>
                                 </button>
-                                
+
                                 <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
                                     <button
                                         onClick={handlePermanentDelete}

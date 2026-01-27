@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  X, 
-  User, 
-  GraduationCap, 
-  PhilippinePeso, 
+import { createPortal } from 'react-dom';
+import {
+  X,
+  User,
+  GraduationCap,
+  PhilippinePeso,
   FileText,
   MapPin,
   Phone,
@@ -37,8 +38,8 @@ function ApplicationViewModal({ isOpen, onClose, application }) {
 
   const getDocumentUrl = (document) => {
     if (document.file_path) {
-      return document.file_path.startsWith('http') 
-        ? document.file_path 
+      return document.file_path.startsWith('http')
+        ? document.file_path
         : `${API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL}/storage/${document.file_path}`;
     }
     return null;
@@ -351,8 +352,8 @@ function ApplicationViewModal({ isOpen, onClose, application }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative z-10 w-full max-w-5xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
@@ -365,14 +366,14 @@ function ApplicationViewModal({ isOpen, onClose, application }) {
               {student?.first_name} {student?.last_name} - {application?.application_number}
             </p>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         {/* Tabs */}
         <div className="border-b border-gray-200 dark:border-slate-700">
           <nav className="flex space-x-8 px-6">
@@ -382,11 +383,10 @@ function ApplicationViewModal({ isOpen, onClose, application }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-orange-500 text-orange-600 dark:text-orange-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-slate-600'
-                  }`}
+                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                    ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-slate-600'
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
@@ -411,7 +411,8 @@ function ApplicationViewModal({ isOpen, onClose, application }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
