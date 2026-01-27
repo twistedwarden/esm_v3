@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_CONFIG, getScholarshipServiceUrl } from '../../../../../config/api';
 import {
     GraduationCap,
     TrendingUp,
@@ -178,7 +179,7 @@ const AcademicPerformanceReport = () => {
     useEffect(() => {
         const fetchSchools = async () => {
             try {
-                const response = await fetch('http://localhost:8001/api/schools');
+                const response = await fetch(getScholarshipServiceUrl(API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.SCHOOLS));
                 const data = await response.json();
                 if (data.success) {
                     setSchools(data.data.data || []);

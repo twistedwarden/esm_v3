@@ -46,17 +46,17 @@ return [
     */
 
     'auth' => [
-        'url' => env('AUTH_SERVICE_URL', 'http://localhost:8000'),
+        'url' => env('AUTH_SERVICE_URL', 'https://auth-educ.goserveph.com'),
         'token' => env('AUTH_SERVICE_TOKEN'),
     ],
 
     'scholarship' => [
-        'url' => env('SCHOLARSHIP_SERVICE_URL', 'http://localhost:8001'),
+        'url' => env('SCHOLARSHIP_SERVICE_URL', 'https://scholarship-educ.goserveph.com'),
         'token' => env('SCHOLARSHIP_SERVICE_TOKEN'),
     ],
 
     'aid' => [
-        'url' => env('AID_SERVICE_URL', 'http://localhost:8002'),
+        'url' => env('AID_SERVICE_URL', 'https://aid-educ.goserveph.com'),
         'token' => env('AID_SERVICE_TOKEN'),
     ],
 
