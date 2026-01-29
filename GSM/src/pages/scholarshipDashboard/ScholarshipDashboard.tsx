@@ -1625,8 +1625,8 @@ export const ScholarshipDashboard: React.FC = () => {
                               : 'bg-yellow-50 border-yellow-300'
                             : 'bg-gray-50 border-gray-200'
                             }`}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-start space-x-2 flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-3">
+                              <div className="flex items-start space-x-2 flex-1 w-full sm:w-auto sm:min-w-0">
                                 <div className="flex-shrink-0 mt-0.5">
                                   {item.isSubmitted ? (
                                     item.status === 'verified' ? (
@@ -1669,34 +1669,36 @@ export const ScholarshipDashboard: React.FC = () => {
                                   )}
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-1 flex-shrink-0">
+                              <div className="flex items-center justify-end sm:flex-shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
                                 {currentApplication ? (
-                                  <SecureDocumentUpload
-                                    documentTypeId={item.id}
-                                    documentTypeName={item.name}
-                                    studentId={currentApplication.student_id}
-                                    applicationId={currentApplication.id}
-                                    isUploading={isUploading}
-                                    existingDocument={item.document}
-                                    onUploadStart={() => setIsUploading(true)}
-                                    onUploadSuccess={async () => {
-                                      setIsUploading(false);
-                                      // Refresh documents
-                                      const documentsData = await scholarshipApiService.getDocuments({
-                                        application_id: currentApplication.id
-                                      });
-                                      setDocuments(documentsData.data || []);
-                                    }}
-                                    onUploadError={(error) => {
-                                      setIsUploading(false);
-                                      setUploadError(error);
-                                    }}
-                                    showRemoveButton={item.isSubmitted && ['draft', 'for_compliance'].includes(currentApplication.status)}
-                                    onRemove={() => handleRemoveDocument(item.document)}
-                                    maxSizeMB={10}
-                                    acceptedTypes={['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
-                                    className="min-w-0 flex-1"
-                                  />
+                                  <div className="w-full sm:w-80">
+                                    <SecureDocumentUpload
+                                      documentTypeId={item.id}
+                                      documentTypeName={item.name}
+                                      studentId={currentApplication.student_id}
+                                      applicationId={currentApplication.id}
+                                      isUploading={isUploading}
+                                      existingDocument={item.document}
+                                      onUploadStart={() => setIsUploading(true)}
+                                      onUploadSuccess={async () => {
+                                        setIsUploading(false);
+                                        // Refresh documents
+                                        const documentsData = await scholarshipApiService.getDocuments({
+                                          application_id: currentApplication.id
+                                        });
+                                        setDocuments(documentsData.data || []);
+                                      }}
+                                      onUploadError={(error) => {
+                                        setIsUploading(false);
+                                        setUploadError(error);
+                                      }}
+                                      showRemoveButton={item.isSubmitted && ['draft', 'for_compliance'].includes(currentApplication.status)}
+                                      onRemove={() => handleRemoveDocument(item.document)}
+                                      maxSizeMB={10}
+                                      acceptedTypes={['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
+                                      className="w-full"
+                                    />
+                                  </div>
                                 ) : (
                                   <span className={`px-2 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${item.isSubmitted
                                     ? item.status === 'verified'
