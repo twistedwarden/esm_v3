@@ -325,6 +325,14 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
           <p className="text-xs text-gray-400 mt-2">
             Max {maxSizeMB}MB • {acceptedTypes.join(', ')}
           </p>
+
+          {/* Inline Error Display */}
+          {validationResult && !validationResult.isValid && (
+            <div className="mt-3 mx-4 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600 text-center animate-pulse">
+              <p className="font-semibold">Upload Failed</p>
+              <p>{validationResult.error}</p>
+            </div>
+          )}
         </div>
       </div>
 

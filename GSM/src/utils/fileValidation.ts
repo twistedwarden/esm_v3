@@ -139,13 +139,14 @@ export const validateUploadFile = async (
 
   // If strict MIME check fails, try to validate by extension for common types
   // This handles cases where Windows/Browser doesn't report the correct MIME type
-  if (!isValidMime && !file.type) {
+  // or reports a generic one like 'application/x-zip-compressed' for certain docs
+  if (!isValidMime) {
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (extension) {
       const mimeFromExt = getMimeTypeFromExtension(extension);
       if (mimeFromExt && opts.allowedTypes.includes(mimeFromExt)) {
         isValidMime = true;
-        // console.log(`⚠️ MIME type missing, validated by extension: .${extension} -> ${mimeFromExt}`);
+        console.log(`⚠️ MIME type mismatch or missing, validated by extension: .${extension} (Browser: ${file.type}) -> ${mimeFromExt}`);
       }
     }
   }
