@@ -12,3 +12,7 @@ Thumbs.db
 GSM/api/*.json
 
 GSM/api/bpmproject-51620-ea52e0cd83fe.json
+
+# Build artifacts (Built on prod)
+index.html
+assets/
