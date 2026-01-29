@@ -42,10 +42,23 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   const [isValidating, setIsValidating] = useState(false);
   const [uniqueId] = useState(`file-upload-${documentTypeId}-${Math.random().toString(36).substr(2, 9)}`);
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     console.log(`🔌 SecureDocumentUpload mounted for ${documentTypeName} (ID: ${documentTypeId})`);
     return () => console.log(`🔌 SecureDocumentUpload unmounted for ${documentTypeName}`);
   }, [documentTypeName, documentTypeId]);
+
+  const triggerFileInput = (e: React.MouseEvent) => {
+    // Only trigger if not clicking something interactive inside
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🖱️ Manually triggering file input click');
+    fileInputRef.current?.click();
+  };
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -173,9 +186,6 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   const clearFile = () => {
     setSelectedFile(null);
     setValidationResult(null);
-    // if (fileInputRef.current) {
-    //   fileInputRef.current.value = '';
-    // }
   };
 
   const getStatusIcon = () => {
@@ -243,8 +253,7 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   return (
     <div className={`space-y-2 ${className}`}>
       {/* Upload Area */}
-      <label
-        htmlFor={uniqueId}
+      <div
         className={`cursor-pointer w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg transition-colors ${dragActive
           ? 'border-orange-400 bg-orange-50'
           : 'border-gray-300 hover:border-orange-400 hover:bg-orange-50'
@@ -253,6 +262,7 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
+        onClick={triggerFileInput}
       >
         <div className="text-center">
           <div className="flex justify-center mb-2">
@@ -274,7 +284,7 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
           </p>
 
           {selectedFile && (
-            <div className="mb-3 p-2 bg-gray-50 rounded border text-left" onClick={(e) => e.preventDefault()}>
+            <div className="mb-3 p-2 bg-gray-50 rounded border text-left" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 flex-1 min-w-0">
                   <span className="text-lg">{getFileTypeIcon(selectedFile)}</span>
@@ -316,10 +326,10 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
             Max {maxSizeMB}MB • {acceptedTypes.join(', ')}
           </p>
         </div>
-      </label>
+      </div>
 
       <input
-        id={uniqueId}
+        ref={fileInputRef}
         type="file"
         accept={acceptedTypes.join(',')}
         onChange={handleFileInputChange}
