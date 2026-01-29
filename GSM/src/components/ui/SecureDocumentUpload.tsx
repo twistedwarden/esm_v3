@@ -40,7 +40,7 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [validationResult, setValidationResult] = useState<FileValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [uniqueId] = useState(`file-upload-${documentTypeId}-${Math.random().toString(36).substr(2, 9)}`);
+
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
