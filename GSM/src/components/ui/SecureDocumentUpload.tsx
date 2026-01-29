@@ -81,7 +81,17 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
         await handleUpload(file);
       } else {
         console.error('❌ Validation failed:', result.error);
-        onUploadError(result.error || 'File validation failed');
+        // Provide more detailed error message
+        const errorMessage = result.error || 'File validation failed';
+        onUploadError(errorMessage);
+
+        // Log detailed diagnostics for debugging
+        console.group('🔍 File Validation Diagnostics');
+        console.log('File Name:', file.name);
+        console.log('File Type (Browser):', file.type || '(empty)');
+        console.log('File Size:', file.size);
+        console.log('Allowed Types:', acceptedTypes);
+        console.groupEnd();
       }
     } catch (error) {
       console.error('💥 File validation error:', error);

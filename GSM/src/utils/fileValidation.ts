@@ -135,7 +135,22 @@ export const validateUploadFile = async (
   }
 
   // Check MIME type
-  if (!validateMimeType(file, opts.allowedTypes)) {
+  let isValidMime = validateMimeType(file, opts.allowedTypes);
+
+  // If strict MIME check fails, try to validate by extension for common types
+  // This handles cases where Windows/Browser doesn't report the correct MIME type
+  if (!isValidMime && !file.type) {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension) {
+      const mimeFromExt = getMimeTypeFromExtension(extension);
+      if (mimeFromExt && opts.allowedTypes.includes(mimeFromExt)) {
+        isValidMime = true;
+        // console.log(`⚠️ MIME type missing, validated by extension: .${extension} -> ${mimeFromExt}`);
+      }
+    }
+  }
+
+  if (!isValidMime) {
     return {
       isValid: false,
       error: `File type not allowed. Accepted types: ${opts.allowedTypes.join(', ')}`
@@ -193,6 +208,26 @@ export const getFileTypeIcon = (file: File): string => {
   if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
 
   return '📎';
+};
+
+/**
+ * Get standard MIME type from file extension
+ */
+export const getMimeTypeFromExtension = (extension: string): string | null => {
+  const ext = extension.toLowerCase().replace(/^\./, '');
+
+  const mimeTypes: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  };
+
+  return mimeTypes[ext] || null;
 };
 
 /**
