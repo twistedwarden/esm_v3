@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
     HandCoins,
     Users,
@@ -10,8 +11,11 @@ import {
     Loader2,
     CheckCircle2,
     AlertCircle,
-    FileBarChart
+    FileBarChart,
+    X,
+    Download
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
     BarChart,
     Bar,
@@ -35,21 +39,30 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     const [categoryDistribution, setCategoryDistribution] = useState([]);
     const [error, setError] = useState(null);
     const [availableSchoolYears, setAvailableSchoolYears] = useState([]);
-    
+
+    // Report Generation State
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [generatingReport, setGeneratingReport] = useState(false);
+    const [reportFormat, setReportFormat] = useState('pdf');
+    const [reportFilters, setReportFilters] = useState({
+        startDate: '',
+        endDate: ''
+    });
+
     // Get current school year (format: YYYY-YYYY)
     const getCurrentSchoolYear = () => {
         const currentYear = new Date().getFullYear();
         const nextYear = currentYear + 1;
         return `${currentYear}-${nextYear}`;
     };
-    
+
     const [selectedSchoolYear, setSelectedSchoolYear] = useState(getCurrentSchoolYear());
 
     const fetchSchoolYears = async () => {
         try {
             const schoolYears = await schoolAidService.getAvailableSchoolYears();
             setAvailableSchoolYears(schoolYears);
-            
+
             // If selected school year is not in the list, select the first available or current year
             if (schoolYears.length > 0) {
                 const currentYear = getCurrentSchoolYear();
@@ -84,9 +97,9 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                 schoolAidService.getMetrics({ school_year: selectedSchoolYear }),
                 schoolAidService.getAnalyticsData('payments', '6m')
             ]);
-            
+
             setMetrics(apiMetrics);
-            
+
             // Process trends data from analytics if available
             if (analyticsData && analyticsData.dailyDisbursements && analyticsData.dailyDisbursements.length > 0) {
                 // Use dailyDisbursements directly (last 30 days for better visualization)
@@ -185,7 +198,7 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     // Dynamically generate budget cards from metrics
     const getBudgetStats = () => {
         if (!metrics?.budgets) return [];
-        
+
         const budgetConfigs = {
             scholarship_benefits: {
                 title: 'Scholarship Budget',
@@ -202,14 +215,14 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                 description: 'Budget for need-based financial support programs'
             }
         };
-        
+
         const budgetStats = [];
-        
+
         // Iterate through all budget types in metrics
         Object.keys(metrics.budgets).forEach((budgetType) => {
             const budgetData = metrics.budgets[budgetType];
             const config = budgetConfigs[budgetType];
-            
+
             // Only add card if budget exists (total_budget > 0) and config exists
             if (budgetData && budgetData.total_budget > 0 && config) {
                 budgetStats.push({
@@ -226,26 +239,57 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                 });
             }
         });
-        
+
         return budgetStats;
     };
-    
+
     const budgetStats = getBudgetStats();
 
     // Use real category distribution data, fallback to empty if not loaded
     const distributionData = categoryDistribution.length > 0 ? categoryDistribution : [];
 
-    const handleGenerateReport = async () => {
+    const handleGenerateReport = () => {
+        setShowReportModal(true);
+    };
+
+    const handleConfirmGenerateReport = async () => {
+        setGeneratingReport(true);
         try {
-            await dashboardService.generatePDFReport('disbursements', {
+            let reportData = {
                 overview: {
                     disbursedAmount: metrics?.total_disbursed || 0,
                     disbursedCount: metrics?.disbursed_count || 0,
                     totalApplications: metrics?.need_processing + metrics?.need_disbursing + metrics?.disbursed_count
+                },
+                schoolYear: selectedSchoolYear
+            };
+
+            if (reportFilters.startDate && reportFilters.endDate) {
+                const analytics = await schoolAidService.getAnalyticsData('payments', 'custom', {
+                    startDate: reportFilters.startDate,
+                    endDate: reportFilters.endDate
+                });
+
+                if (analytics && analytics.dailyDisbursements) {
+                    const totalAmount = analytics.dailyDisbursements.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                    const totalCount = analytics.dailyDisbursements.reduce((sum, item) => sum + (parseInt(item.count) || 0), 0);
+
+                    reportData.overview.disbursedAmount = totalAmount;
+                    reportData.overview.disbursedCount = totalCount;
                 }
-            });
+                reportData.dateRange = { start: reportFilters.startDate, end: reportFilters.endDate };
+            }
+
+            if (reportFormat === 'csv') {
+                await dashboardService.generateCSVReport('disbursements', reportData);
+            } else {
+                await dashboardService.generatePDFReport('disbursements', reportData);
+            }
+            setShowReportModal(false);
         } catch (err) {
-            console.error('Error generating report:', err);
+            console.error('Report generation failed', err);
+        } finally {
+            setGeneratingReport(false);
         }
     };
 
@@ -334,7 +378,7 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                             <div className={`${stat.color} p-3 rounded-xl shadow-sm text-white transform group-hover:scale-110 transition-transform`}>
                                 <stat.icon className="w-6 h-6" />
                             </div>
-                            <div 
+                            <div
                                 className="flex items-center text-slate-400 group-hover:text-blue-500 transition-colors"
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -368,72 +412,72 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
             {budgetStats.length > 0 && (
                 <div className="grid grid-cols-1 gap-6 mt-6">
                     {budgetStats.map((budget, index) => {
-                    const Icon = budget.icon;
-                    const remainingPercent = budget.totalBudget > 0 
-                        ? (budget.remaining / budget.totalBudget) * 100 
-                        : 0;
-                    
-                    return (
-                        <div
-                            key={index}
-                            className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all"
-                        >
-                            <div className="flex items-start justify-between mb-4">
-                                <div className={`${budget.color} p-3 rounded-xl shadow-sm text-white`}>
-                                    <Icon className="w-6 h-6" />
+                        const Icon = budget.icon;
+                        const remainingPercent = budget.totalBudget > 0
+                            ? (budget.remaining / budget.totalBudget) * 100
+                            : 0;
+
+                        return (
+                            <div
+                                key={index}
+                                className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all"
+                            >
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className={`${budget.color} p-3 rounded-xl shadow-sm text-white`}>
+                                        <Icon className="w-6 h-6" />
+                                    </div>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${budget.color} bg-opacity-10 ${budget.textColor}`}>
+                                        {budget.utilizationRate.toFixed(1)}% Used
+                                    </span>
                                 </div>
-                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${budget.color} bg-opacity-10 ${budget.textColor}`}>
-                                    {budget.utilizationRate.toFixed(1)}% Used
-                                </span>
-                            </div>
-                            <div className="mb-4">
-                                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                                    {budget.title}
-                                </p>
-                                <h3 className="text-2xl font-extrabold text-slate-800 dark:text-white">
-                                    ₱{budget.totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">{budget.description}</p>
-                            </div>
-                            
-                            {/* Budget Breakdown */}
-                            <div className="space-y-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-slate-600 dark:text-slate-400">Total Budget</span>
-                                    <span className="font-semibold text-slate-800 dark:text-white">
+                                <div className="mb-4">
+                                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                                        {budget.title}
+                                    </p>
+                                    <h3 className="text-2xl font-extrabold text-slate-800 dark:text-white">
                                         ₱{budget.totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">{budget.description}</p>
                                 </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-slate-600 dark:text-slate-400">Disbursed</span>
-                                    <span className="font-semibold text-red-600 dark:text-red-400">
-                                        ₱{budget.disbursed.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-slate-600 dark:text-slate-400">Remaining</span>
-                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                        ₱{budget.remaining.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                                
-                                {/* Progress Bar */}
-                                <div className="mt-3">
-                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                                        <div 
-                                            className={`${budget.color} h-2 rounded-full transition-all duration-300`}
-                                            style={{ width: `${remainingPercent}%` }}
-                                        ></div>
+
+                                {/* Budget Breakdown */}
+                                <div className="space-y-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 dark:text-slate-400">Total Budget</span>
+                                        <span className="font-semibold text-slate-800 dark:text-white">
+                                            ₱{budget.totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
                                     </div>
-                                    <div className="flex justify-between items-center mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                        <span>Remaining: {remainingPercent.toFixed(1)}%</span>
-                                        <span>Used: {budget.utilizationRate.toFixed(1)}%</span>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 dark:text-slate-400">Disbursed</span>
+                                        <span className="font-semibold text-red-600 dark:text-red-400">
+                                            ₱{budget.disbursed.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600 dark:text-slate-400">Remaining</span>
+                                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                            ₱{budget.remaining.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="mt-3">
+                                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                                            <div
+                                                className={`${budget.color} h-2 rounded-full transition-all duration-300`}
+                                                style={{ width: `${remainingPercent}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                            <span>Remaining: {remainingPercent.toFixed(1)}%</span>
+                                            <span>Used: {budget.utilizationRate.toFixed(1)}%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
                 </div>
             )}
 
@@ -577,6 +621,137 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                     ))}
                 </div>
             </div>
+
+            {/* Report Generation Modal */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence mode="wait">
+                    {showReportModal && (
+                        <motion.div
+                            key="report-modal"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100000] p-4"
+                            onClick={() => setShowReportModal(false)}
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full max-w-md max-h-[90vh] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-y-auto"
+                            >
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                <FileBarChart className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Generate Report</h3>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">Configure report settings</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowReportModal(false)}
+                                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Date Range (Optional)
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-xs text-slate-500 mb-1">Start Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={reportFilters.startDate}
+                                                        onChange={(e) => setReportFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs text-slate-500 mb-1">End Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={reportFilters.endDate}
+                                                        onChange={(e) => setReportFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-2">
+                                                Leave empty to generate report for current school year ({selectedSchoolYear}).
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Format
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    onClick={() => setReportFormat('pdf')}
+                                                    className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border transition-all ${reportFormat === 'pdf'
+                                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 ring-1 ring-red-500/20'
+                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                                        }`}
+                                                >
+                                                    <FileText className="w-5 h-5" />
+                                                    <span className="font-medium">PDF Document</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => setReportFormat('csv')}
+                                                    className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border transition-all ${reportFormat === 'csv'
+                                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 ring-1 ring-green-500/20'
+                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                                        }`}
+                                                >
+                                                    <FileBarChart className="w-5 h-5" />
+                                                    <span className="font-medium">CSV Spreadsheet</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
+                                        <button
+                                            onClick={() => setShowReportModal(false)}
+                                            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleConfirmGenerateReport}
+                                            disabled={generatingReport}
+                                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm font-medium text-sm flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {generatingReport ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                    Generating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Download className="w-4 h-4 mr-2" />
+                                                    Download Report
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }

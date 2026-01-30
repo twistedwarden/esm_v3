@@ -12,10 +12,18 @@ class DashboardService {
   /**
    * Get dashboard overview statistics from Scholarship Service
    */
-  async getDashboardOverview() {
+  async getDashboardOverview(filters = {}) {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/stats/overview`, {
+      // Build query string from filters
+      const queryParams = new URLSearchParams();
+      if (filters.startDate) queryParams.append('start_date', filters.startDate);
+      if (filters.endDate) queryParams.append('end_date', filters.endDate);
+
+      const queryString = queryParams.toString();
+      const url = `${SCHOLARSHIP_API_BASE_URL}/api/stats/overview${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -105,10 +113,18 @@ class DashboardService {
   /**
    * Get application trends data from Scholarship Service
    */
-  async getApplicationTrends(period = 'monthly') {
+  async getApplicationTrends(filters = {}) {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/stats/applications/trends`, {
+      // Build query string from filters
+      const queryParams = new URLSearchParams();
+      if (filters.startDate) queryParams.append('start_date', filters.startDate);
+      if (filters.endDate) queryParams.append('end_date', filters.endDate);
+
+      const queryString = queryParams.toString();
+      const url = `${SCHOLARSHIP_API_BASE_URL}/api/stats/applications/trends${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -336,6 +352,68 @@ class DashboardService {
    * @param {string} type - 'general', 'applications', 'disbursements', 'schools'
    * @param {Object} data - Current dashboard state data
    */
+  /**
+   * Generates a CSV report based on the provided type and dashboard data
+   */
+  async generateCSVReport(type, data) {
+    try {
+      // Flatten data based on report type
+      let csvData = [];
+      let filename = `report_${type}_${new Date().toISOString().split('T')[0]}.csv`;
+
+      // Helper to format currency
+      const formatCurrency = (val) => `"${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(val || 0)}"`;
+
+      switch (type) {
+        case 'general':
+          csvData = [
+            ['Metric', 'Value'],
+            ['Total Students', data.overview.total_students],
+            ['Total Applications', data.overview.total_applications],
+            ['Pending Applications', data.overview.pending_applications],
+            ['Approved Applications', data.overview.approved_applications],
+            ['Total Grants Disbursed', formatCurrency(data.overview.total_grants_disbursed)]
+          ];
+          break;
+        case 'financial':
+          csvData = [
+            ['Metric', 'Value'],
+            ['Total Budget', formatCurrency(data.financial?.total_budget)],
+            ['Disbursed', formatCurrency(data.financial?.disbursed)],
+            ['Remaining', formatCurrency(data.financial?.remaining)]
+          ];
+          break;
+        case 'applications':
+          // Trends data
+          csvData = [
+            ['Month', 'Submitted', 'Approved'],
+            ...(data.applicationTrends?.monthly || []).map(m => [m.month, m.applications, m.approved])
+          ];
+          break;
+        default:
+          csvData = [['No data available for this report type']];
+      }
+
+      // Convert to CSV string
+      const csvContent = csvData.map(e => e.join(",")).join("\n");
+
+      // Download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      return true;
+    } catch (error) {
+      console.error('Error generating CSV report:', error);
+      throw error;
+    }
+  }
+
   async generatePDFReport(type, data) {
     console.log(`Generating ${type} report...`);
 

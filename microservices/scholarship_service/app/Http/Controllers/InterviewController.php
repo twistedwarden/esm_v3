@@ -19,7 +19,7 @@ class InterviewController extends Controller
     {
         try {
             $authUser = $request->get('auth_user');
-            
+
             if (!$authUser || !isset($authUser['id'])) {
                 return response()->json([
                     'success' => false,
@@ -47,7 +47,12 @@ class InterviewController extends Controller
                 'application.category',
                 'application.subcategory',
                 'application.school',
-                'evaluation'
+                'evaluation',
+                'application.documents.documentType',
+                'application.student.academicRecords',
+                'application.student.currentAcademicRecord',
+                'application.student.financialInformation',
+                'application.student.addresses'
             ])->where('interviewer_id', $userId);
 
             // Apply filters
@@ -73,8 +78,8 @@ class InterviewController extends Controller
                 $searchTerm = $request->search;
                 $query->whereHas('application.student', function ($q) use ($searchTerm) {
                     $q->where('first_name', 'like', "%{$searchTerm}%")
-                      ->orWhere('last_name', 'like', "%{$searchTerm}%")
-                      ->orWhere('student_id_number', 'like', "%{$searchTerm}%");
+                        ->orWhere('last_name', 'like', "%{$searchTerm}%")
+                        ->orWhere('student_id_number', 'like', "%{$searchTerm}%");
                 });
             }
 
@@ -112,7 +117,7 @@ class InterviewController extends Controller
     {
         try {
             $authUser = $request->get('auth_user');
-            
+
             if (!$authUser || !isset($authUser['id'])) {
                 return response()->json([
                     'success' => false,
@@ -203,7 +208,7 @@ class InterviewController extends Controller
     {
         try {
             $authUser = $request->get('auth_user');
-            
+
             if (!$authUser || !isset($authUser['id'])) {
                 return response()->json([
                     'success' => false,
@@ -254,7 +259,7 @@ class InterviewController extends Controller
 
             // Check if evaluation already exists
             $existingEvaluation = InterviewEvaluation::where('interview_schedule_id', $schedule->id)->first();
-            
+
             if ($existingEvaluation) {
                 return response()->json([
                     'success' => false,
@@ -268,16 +273,16 @@ class InterviewController extends Controller
                 'Recommended' => 'recommended',
                 'Not Recommended' => 'not_recommended'
             ];
-            
+
             $dbRecommendation = $recommendationMapping[$request->overall_recommendation] ?? 'recommended';
-            
+
             // Determine interview result based on overall recommendation
             $interviewResultMapping = [
                 'Highly Recommended' => 'passed',
                 'Recommended' => 'passed',
                 'Not Recommended' => 'failed'
             ];
-            
+
             $interviewResult = $interviewResultMapping[$request->overall_recommendation] ?? 'passed';
 
             // Create evaluation

@@ -329,8 +329,13 @@ class SchoolAidService {
     return await response.json();
   }
 
-  async getAnalyticsData(type: string, dateRange: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/school-aid/analytics/${type}?range=${dateRange}`, {
+  async getAnalyticsData(type: string, dateRange: string, dates?: { startDate: string; endDate: string }): Promise<any> {
+    let url = `${API_BASE_URL}/school-aid/analytics/${type}?range=${dateRange}`;
+    if (dates?.startDate && dates?.endDate) {
+      url += `&start_date=${dates.startDate}&end_date=${dates.endDate}`;
+    }
+
+    const response = await fetch(url, {
       headers: this.buildAuthHeaders(),
     });
     if (!response.ok) {

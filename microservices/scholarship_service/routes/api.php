@@ -479,38 +479,51 @@ Route::prefix('forms')->middleware(['auth.auth_service'])->group(function () {
 
 // Statistics and reporting endpoints
 Route::prefix('stats')->group(function () {
-    Route::get('/overview', function () {
+    Route::get('/overview', function (\Illuminate\Http\Request $request) {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        // Helper to apply date filter
+        $applyFilter = function ($query, $column = 'created_at') use ($startDate, $endDate) {
+            if ($startDate && $endDate) {
+                return $query->whereBetween($column, [$startDate, $endDate]);
+            }
+            return $query;
+        };
+
         // Calculate real processing speed from approved applications
-        // (Time between submission and approval)
-        $avgProcessingDays = \App\Models\ScholarshipApplication::whereNotNull('approved_at')
-            ->whereNotNull('submitted_at')
-            ->selectRaw('AVG(datediff(approved_at, submitted_at)) as avg_days') // Use generic syntax if possible, assume MySQL/Standard SQL datediff for now
-            // Fallback for SQLite/others if needed, but usually production is MySQL
+        $query = \App\Models\ScholarshipApplication::whereNotNull('approved_at')->whereNotNull('submitted_at');
+        if ($startDate && $endDate) {
+            $query->whereBetween('approved_at', [$startDate, $endDate]);
+        }
+
+        $avgProcessingDays = $query->selectRaw('AVG(datediff(approved_at, submitted_at)) as avg_days')
             ->first()
             ->avg_days ?? 3.2;
 
-        // If above failed due to platform-specific SQL, try a manual calculation
         if (config('database.default') === 'sqlite') {
-            $avgProcessingDays = \App\Models\ScholarshipApplication::whereNotNull('approved_at')
-                ->whereNotNull('submitted_at')
-                ->get()
+            $query = \App\Models\ScholarshipApplication::whereNotNull('approved_at')->whereNotNull('submitted_at');
+            if ($startDate && $endDate) {
+                $query->whereBetween('approved_at', [$startDate, $endDate]);
+            }
+            $avgProcessingDays = $query->get()
                 ->avg(function ($app) {
                     return $app->approved_at->diffInDays($app->submitted_at);
                 }) ?? 3.2;
         }
 
         $stats = [
-            'total_students' => \App\Models\Student::count(),
-            'total_applications' => \App\Models\ScholarshipApplication::count(),
-            'pending_applications' => \App\Models\ScholarshipApplication::whereNotIn('status', ['approved', 'rejected', 'grants_disbursed', 'draft'])->count(),
-            'approved_applications' => \App\Models\ScholarshipApplication::where('status', 'approved')->count(),
-            'total_documents' => \App\Models\Document::count(),
-            'verified_documents' => \App\Models\Document::where('status', 'verified')->count(),
+            'total_students' => $applyFilter(\App\Models\Student::query())->count(),
+            'total_applications' => $applyFilter(\App\Models\ScholarshipApplication::query())->count(),
+            'pending_applications' => $applyFilter(\App\Models\ScholarshipApplication::whereNotIn('status', ['approved', 'rejected', 'grants_disbursed', 'draft']))->count(),
+            'approved_applications' => $applyFilter(\App\Models\ScholarshipApplication::where('status', 'approved'), 'approved_at')->count(),
+            'total_documents' => $applyFilter(\App\Models\Document::query())->count(),
+            'verified_documents' => $applyFilter(\App\Models\Document::where('status', 'verified'), 'updated_at')->count(),
             'avg_processing_days' => round($avgProcessingDays, 1),
-            'actionable_count' => \App\Models\ScholarshipApplication::whereIn('status', ['submitted', 'documents_reviewed', 'interview_scheduled', 'interview_completed', 'endorsed_to_ssc'])->count(),
-            'critical_count' => \App\Models\ScholarshipApplication::whereIn('status', ['rejected', 'for_compliance'])->count(),
-            'interviews_scheduled_count' => \App\Models\InterviewSchedule::where('status', 'scheduled')->count(),
-            'partner_schools_count' => \App\Models\School::where('is_partner_school', true)->count(),
+            'actionable_count' => $applyFilter(\App\Models\ScholarshipApplication::whereIn('status', ['submitted', 'documents_reviewed', 'interview_scheduled', 'interview_completed', 'endorsed_to_ssc']), 'updated_at')->count(),
+            'critical_count' => $applyFilter(\App\Models\ScholarshipApplication::whereIn('status', ['rejected', 'for_compliance']), 'updated_at')->count(),
+            'interviews_scheduled_count' => $applyFilter(\App\Models\InterviewSchedule::where('status', 'scheduled'), 'schedule_date')->count(),
+            'partner_schools_count' => \App\Models\School::where('is_partner_school', true)->count(), // Schools usually static, keep as is
         ];
 
         return response()->json([
@@ -554,15 +567,30 @@ Route::prefix('stats')->group(function () {
         ]);
     });
 
-    Route::get('/applications/trends', function () {
+    Route::get('/applications/trends', function (\Illuminate\Http\Request $request) {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
         $months = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $months[] = now()->subMonths($i)->format('M');
+
+        if ($startDate && $endDate) {
+            $start = \Carbon\Carbon::parse($startDate)->startOfMonth();
+            $end = \Carbon\Carbon::parse($endDate)->endOfMonth();
+
+            // Loop through months from start to end
+            while ($start->lte($end)) {
+                $months[] = $start->format('M Y');
+                $start->addMonth();
+            }
+        } else {
+            for ($i = 5; $i >= 0; $i--) {
+                $months[] = now()->subMonths($i)->format('M Y');
+            }
         }
 
         $trends = [];
-        foreach ($months as $index => $monthName) {
-            $date = now()->subMonths(5 - $index);
+        foreach ($months as $monthName) {
+            // Re-parse month name to date range (Assuming 'M Y' format, e.g. "Jan 2024")
+            $date = \Carbon\Carbon::createFromFormat('M Y', $monthName);
             $startOfMonth = $date->copy()->startOfMonth();
             $endOfMonth = $date->copy()->endOfMonth();
 

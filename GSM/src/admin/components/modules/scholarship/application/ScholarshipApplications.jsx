@@ -418,11 +418,13 @@ function ScholarshipApplications() {
       console.log('Opening review modal for application:', app);
       setIsReviewModalOpen(true);
       setReviewAction('reviewed'); // Default to reviewed view
+      setReviewLoading(true); // Set loading state while fetching
 
       // Ensure we have a valid application object
       if (!app || !app.id) {
         console.error('Invalid application object:', app);
         setActiveApplication(null);
+        setReviewLoading(false);
         return;
       }
 
@@ -434,6 +436,8 @@ function ScholarshipApplications() {
         console.error('Failed to fetch detailed application data:', error);
         // Fallback to the application data we already have
         setActiveApplication(app);
+      } finally {
+        setReviewLoading(false); // Clear loading state after fetch completes
       }
 
       setRejectReason('');
@@ -442,6 +446,7 @@ function ScholarshipApplications() {
     } catch (error) {
       console.error('Error opening review modal:', error);
       setActiveApplication(null);
+      setReviewLoading(false); // Clear loading state on error
     }
   };
 
@@ -1608,16 +1613,14 @@ function ScholarshipApplications() {
             {/* Right Side - Application Details */}
             <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-800 min-h-0">
               <div className="p-4 lg:p-6">
-                {reviewLoading && (
+                {reviewLoading ? (
                   <div className="flex items-center justify-center h-64">
                     <div className="text-center">
                       <RefreshCw className="w-8 h-8 animate-spin text-gray-500 mx-auto mb-4" />
                       <div className="text-gray-500">Loading application details...</div>
                     </div>
                   </div>
-                )}
-
-                {!reviewLoading && activeApplication ? (
+                ) : activeApplication ? (
                   <div className="space-y-8">
                     {console.log('Rendering application details for:', activeApplication)}
                     {/* Application Header */}

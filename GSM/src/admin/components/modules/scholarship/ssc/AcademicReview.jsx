@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import { CheckCircle, XCircle, GraduationCap, User, Clock, FileText, Link as LinkIcon } from 'lucide-react';
 
@@ -58,6 +59,7 @@ function AcademicReview() {
 
 
     try {
+      setIsSubmitting(true);
       const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
       await scholarshipApiService.sscSubmitAcademicReview(selectedApplication.id, {
         approved: true,
@@ -72,6 +74,8 @@ function AcademicReview() {
       const errorMessage = error.response?.data?.error || error.message || 'Failed to approve application';
       const debugInfo = error.response?.data?.debug ? ` (Debug: ${JSON.stringify(error.response.data.debug)})` : '';
       showError(`Failed to approve application: ${errorMessage}${debugInfo}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -85,6 +89,7 @@ function AcademicReview() {
 
     if (confirm('Are you sure you want to reject this application based on academic criteria?')) {
       try {
+        setIsSubmitting(true);
         const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
         await scholarshipApiService.sscSubmitAcademicReview(selectedApplication.id, {
           approved: false,
@@ -99,6 +104,8 @@ function AcademicReview() {
         const errorMessage = error.response?.data?.error || error.message || 'Failed to reject application';
         const debugInfo = error.response?.data?.debug ? ` (Debug: ${JSON.stringify(error.response.data.debug)})` : '';
         showError(`Failed to reject application: ${errorMessage}${debugInfo}`);
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -135,7 +142,21 @@ function AcademicReview() {
     if (!application.documents) return [];
 
     // Filter for academic-related documents
-    const academicKeywords = ['transcript', 'grade', 'gpa', 'academic', 'record', 'certificate', 'diploma', 'degree'];
+    // Removed broad terms like 'certificate' which matched Birth/Barangay/Income certificates
+    const academicKeywords = [
+      'transcript',
+      'grade',
+      'gpa',
+      'tor',
+      'report card',
+      'class card',
+      'enrollment',
+      'registration',
+      'cor',
+      'good moral',
+      'diploma',
+      'academic'
+    ];
 
     return application.documents.filter(doc => {
       const docName = (doc?.documentType?.name || doc?.document_type?.name || doc?.original_name || doc?.filename || '').toLowerCase();
@@ -144,7 +165,31 @@ function AcademicReview() {
   };
 
   const getDocumentUrl = (doc) => {
-    return doc?.file_url || doc?.url || doc?.download_url || doc?.view_url || doc?.file_path || '';
+    let url = doc?.file_url || doc?.url || doc?.download_url || doc?.view_url || doc?.file_path || '';
+
+    // If URL doesn't start with http, prepend the scholarship service base URL
+    if (url && !url.startsWith('http')) {
+      const baseUrl = import.meta.env.VITE_SCHOLARSHIP_SERVICE_URL || 'http://localhost:8001';
+
+      // Normalize path - remove leading slash
+      const cleanPath = url.startsWith('/') ? url.substring(1) : url;
+
+      // Add /storage prefix if the path starts with documents/ or is just a filename
+      if (cleanPath.startsWith('documents/') || !cleanPath.includes('/')) {
+        // If it already has storage/ prefix, don't add it again
+        if (!cleanPath.startsWith('storage/')) {
+          url = `/storage/${cleanPath}`;
+        } else {
+          url = `/${cleanPath}`;
+        }
+      } else {
+        url = `/${cleanPath}`;
+      }
+
+      url = `${baseUrl}${url}`;
+    }
+
+    return url;
   };
 
   if (loading) {
@@ -225,8 +270,8 @@ function AcademicReview() {
       </div>
 
       {/* Review Modal */}
-      {showReviewModal && selectedApplication && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {showReviewModal && selectedApplication && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 dark:border-slate-700">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -235,6 +280,200 @@ function AcademicReview() {
             </div>
 
             <div className="p-6 space-y-6">
+              {/* Application Information */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">Application Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-blue-700 dark:text-blue-300">Student Name:</span>
+                    <p className="text-blue-900 dark:text-blue-100 font-medium">
+                      {selectedApplication.student ? `${selectedApplication.student.first_name} ${selectedApplication.student.last_name}` : 'Unknown'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 dark:text-blue-300">Student ID:</span>
+                    <p className="text-blue-900 dark:text-blue-100 font-medium">
+                      {selectedApplication.student?.student_id_number || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 dark:text-blue-300">Email:</span>
+                    <p className="text-blue-900 dark:text-blue-100 font-medium">
+                      {selectedApplication.student?.email_address || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 dark:text-blue-300">Contact:</span>
+                    <p className="text-blue-900 dark:text-blue-100 font-medium">
+                      {selectedApplication.student?.contact_number || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 dark:text-blue-300">School:</span>
+                    <p className="text-blue-900 dark:text-blue-100 font-medium">
+                      {selectedApplication.school?.name || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 dark:text-blue-300">Category:</span>
+                    <p className="text-blue-900 dark:text-blue-100 font-medium">
+                      {selectedApplication.category?.name || 'N/A'}
+                      {selectedApplication.subcategory && ` - ${selectedApplication.subcategory.name}`}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 dark:text-blue-300">Requested Amount:</span>
+                    <p className="text-blue-900 dark:text-blue-100 font-medium">
+                      ₱{selectedApplication.requested_amount?.toLocaleString() || '0'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 dark:text-blue-300">Status:</span>
+                    <p className="text-blue-900 dark:text-blue-100 font-medium capitalize">
+                      {selectedApplication.status || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Interview Evaluation */}
+              {selectedApplication.interview_schedule?.evaluation && (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                  <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-3">Interview Evaluation</h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+                    <div>
+                      <span className="text-purple-700 dark:text-purple-300">Interview Date:</span>
+                      <p className="text-purple-900 dark:text-purple-100 font-medium">
+                        {selectedApplication.interview_schedule.interview_date
+                          ? new Date(selectedApplication.interview_schedule.interview_date).toLocaleDateString()
+                          : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-purple-700 dark:text-purple-300">Interviewer:</span>
+                      <p className="text-purple-900 dark:text-purple-100 font-medium">
+                        {selectedApplication.interview_schedule.interviewer_name || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    <h5 className="font-medium text-purple-900 dark:text-purple-100 text-sm">Evaluation Scores:</h5>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-purple-700 dark:text-purple-300 text-sm">Academic Motivation:</span>
+                        <div className="flex items-center space-x-1">
+                          {[...Array(5)].map((_, i) => (
+                            <svg
+                              key={i}
+                              className={`w-3 h-3 ${i < (selectedApplication.interview_schedule.evaluation.academic_motivation_score || 0)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                                }`}
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                          <span className="ml-1 text-purple-900 dark:text-purple-100 font-medium text-sm">
+                            {selectedApplication.interview_schedule.evaluation.academic_motivation_score || 0}/5
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-purple-700 dark:text-purple-300 text-sm">Leadership:</span>
+                        <div className="flex items-center space-x-1">
+                          {[...Array(5)].map((_, i) => (
+                            <svg
+                              key={i}
+                              className={`w-3 h-3 ${i < (selectedApplication.interview_schedule.evaluation.leadership_involvement_score || 0)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                                }`}
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                          <span className="ml-1 text-purple-900 dark:text-purple-100 font-medium text-sm">
+                            {selectedApplication.interview_schedule.evaluation.leadership_involvement_score || 0}/5
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-purple-700 dark:text-purple-300 text-sm">Financial Need:</span>
+                        <div className="flex items-center space-x-1">
+                          {[...Array(5)].map((_, i) => (
+                            <svg
+                              key={i}
+                              className={`w-3 h-3 ${i < (selectedApplication.interview_schedule.evaluation.financial_need_score || 0)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                                }`}
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                          <span className="ml-1 text-purple-900 dark:text-purple-100 font-medium text-sm">
+                            {selectedApplication.interview_schedule.evaluation.financial_need_score || 0}/5
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-purple-700 dark:text-purple-300 text-sm">Character & Values:</span>
+                        <div className="flex items-center space-x-1">
+                          {[...Array(5)].map((_, i) => (
+                            <svg
+                              key={i}
+                              className={`w-3 h-3 ${i < (selectedApplication.interview_schedule.evaluation.character_values_score || 0)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                                }`}
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                          <span className="ml-1 text-purple-900 dark:text-purple-100 font-medium text-sm">
+                            {selectedApplication.interview_schedule.evaluation.character_values_score || 0}/5
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-purple-200 dark:border-purple-700">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-700 dark:text-purple-300 font-medium">Overall Recommendation:</span>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedApplication.interview_schedule.evaluation.overall_recommendation === 'recommended'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : selectedApplication.interview_schedule.evaluation.overall_recommendation === 'needs_followup'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                        {selectedApplication.interview_schedule.evaluation.overall_recommendation === 'recommended' && '✅ Recommended'}
+                        {selectedApplication.interview_schedule.evaluation.overall_recommendation === 'needs_followup' && '⚠️ For Consideration'}
+                        {selectedApplication.interview_schedule.evaluation.overall_recommendation === 'not_recommended' && '❌ Not Recommended'}
+                      </span>
+                    </div>
+                    {selectedApplication.interview_schedule.evaluation.remarks && (
+                      <div className="mt-3">
+                        <span className="text-purple-700 dark:text-purple-300 text-sm font-medium">Remarks:</span>
+                        <p className="text-purple-900 dark:text-purple-100 text-sm mt-1 bg-purple-100 dark:bg-purple-900/30 p-2 rounded">
+                          {selectedApplication.interview_schedule.evaluation.remarks}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* SSC Stage Status - Parallel Workflow */}
               <div className="border border-gray-200 dark:border-slate-700 rounded-lg">
                 <div className="p-4 border-b border-gray-200 dark:border-slate-700">
@@ -405,7 +644,7 @@ function AcademicReview() {
               <button
                 onClick={() => setShowReviewModal(false)}
                 disabled={isSubmitting}
-                className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -415,11 +654,11 @@ function AcademicReview() {
                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <XCircle className="h-4 w-4" />
                 )}
-                <span>{isSubmitting ? 'Rejecting...' : 'Reject'}</span>
+                <span>{isSubmitting ? 'Processing...' : 'Reject'}</span>
               </button>
               <button
                 onClick={handleApprove}
@@ -435,7 +674,8 @@ function AcademicReview() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -380,10 +380,10 @@ function InterviewSchedules() {
       // Refresh the schedules to get updated data
       await fetchSchedules();
 
-      alert('Interview scheduled successfully');
+      showSuccess('Interview scheduled successfully');
     } catch (e) {
       console.error('Error scheduling interview:', e);
-      alert('Failed to schedule interview: ' + (e.message || 'Unknown error'));
+      showError('Failed to schedule interview: ' + (e.message || 'Unknown error'));
     }
   };
 
@@ -954,7 +954,7 @@ function InterviewSchedules() {
         const interviewerName = selectedStaff?.name || 'Interviewer';
         const scheduleTime = `${createFormData.interviewDate} at ${createFormData.interviewTime}`;
 
-        showToast(`✅ Interview rescheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`, 'success');
+        showSuccess(`✅ Interview rescheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`);
       } else {
         // Creating a new interview
         await scholarshipApiService.scheduleInterview(applicationId, interviewData);
@@ -965,7 +965,7 @@ function InterviewSchedules() {
         const interviewerName = selectedStaff?.name || 'Interviewer';
         const scheduleTime = `${createFormData.interviewDate} at ${createFormData.interviewTime}`;
 
-        showToast(`✅ Interview scheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`, 'success', 'Interview Scheduled');
+        showSuccess(`Interview Scheduled: ✅ Interview scheduled successfully!\n\n📅 ${studentName}\n👤 Interviewer: ${interviewerName}\n🕐 ${scheduleTime}\n⏱️ Duration: ${createFormData.duration} minutes`);
       }
 
       // Refresh the schedules, pending applications, and eligible applications to get updated data
@@ -997,25 +997,25 @@ function InterviewSchedules() {
           `• ${conflict.student_name} (${conflict.display_start_time} - ${conflict.display_end_time})`
         ).join('\n');
 
-        showToast(`❌ Cannot schedule interview due to conflicts!\n\n👤 ${selectedStaff?.name || 'The interviewer'} already has interview(s) at this time:\n\n${conflictDetails}\n\nPlease choose a different time slot.`, 'error');
+        showError(`❌ Cannot schedule interview due to conflicts!\n\n👤 ${selectedStaff?.name || 'The interviewer'} already has interview(s) at this time:\n\n${conflictDetails}\n\nPlease choose a different time slot.`);
         return;
       }
 
       // Handle validation errors
       if (error.response?.status === 422 && error.response?.data?.errors) {
         const validationErrors = Object.values(error.response.data.errors).flat();
-        showToast(`❌ Validation failed:\n\n${validationErrors.map(err => `• ${err}`).join('\n')}`, 'error');
+        showError(`❌ Validation failed:\n\n${validationErrors.map(err => `• ${err}`).join('\n')}`);
         return;
       }
 
       // Handle server errors
       if (error.response?.status >= 500) {
-        showToast(`❌ Server error (${error.response?.status}):\n\n${error.response?.data?.message || error.message || 'Internal server error'}\n\nPlease try again or contact support.`, 'error');
+        showError(`❌ Server error (${error.response?.status}):\n\n${error.response?.data?.message || error.message || 'Internal server error'}\n\nPlease try again or contact support.`);
         return;
       }
 
       // Generic error
-      showToast(`❌ Failed to create interview schedule:\n\n${error.message || 'Unknown error'}\n\nPlease check your input and try again.`, 'error');
+      showError(`❌ Failed to create interview schedule:\n\n${error.message || 'Unknown error'}\n\nPlease check your input and try again.`);
     } finally {
       setIsSubmitting(false);
     }

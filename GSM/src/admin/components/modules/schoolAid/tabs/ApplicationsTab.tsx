@@ -59,8 +59,10 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all');
   const [schoolYearFilter, setSchoolYearFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
   const [availableSchoolYears, setAvailableSchoolYears] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     fetchApplications();
@@ -68,7 +70,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
 
   useEffect(() => {
     filterApplications();
-  }, [applications, searchTerm, statusFilter]);
+  }, [applications, searchTerm, statusFilter, schoolYearFilter, dateFilter]);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -107,6 +109,19 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
     // School Year filter
     if (schoolYearFilter !== 'all') {
       filtered = filtered.filter(app => app.schoolYear === schoolYearFilter);
+    }
+
+    // Date Range filter
+    if (dateFilter.start && dateFilter.end) {
+      const start = new Date(dateFilter.start);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(dateFilter.end);
+      end.setHours(23, 59, 59, 999);
+
+      filtered = filtered.filter(app => {
+        const appDate = new Date(app.approvalDate || app.submittedDate);
+        return appDate >= start && appDate <= end;
+      });
     }
 
     setFilteredApplications(filtered);
@@ -247,6 +262,105 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
     }
   };
 
+  const handleExportCSV = () => {
+    if (filteredApplications.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      'Student Name',
+      'Student ID',
+      'Amount',
+      'Status',
+      'Date',
+      'School Year',
+      'School',
+      'Payment Method',
+      'Account Number'
+    ];
+
+    // Convert data to CSV format
+    const csvContent = [
+      headers.join(','),
+      ...filteredApplications.map(app => [
+        `"${app.studentName}"`,
+        `"${app.studentId}"`,
+        app.amount,
+        app.status,
+        formatDate(app.approvalDate || app.submittedDate),
+        app.schoolYear || '',
+        `"${app.school || ''}"`,
+        app.paymentMethod || '',
+        `"${app.walletAccountNumber || ''}"`
+      ].join(','))
+    ].join('\n');
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `school_aid_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setShowExportMenu(false);
+  };
+
+  const handleExportPDF = async () => {
+    if (filteredApplications.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    try {
+      const jsPDFModule = await import('jspdf');
+      const jsPDF = jsPDFModule.default;
+      const autoTable = (await import('jspdf-autotable')).default;
+
+      const doc = new jsPDF();
+
+      // Header
+      doc.setFontSize(18);
+      doc.text('School Aid Distribution Report', 14, 22);
+
+      doc.setFontSize(10);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+      if (dateFilter.start && dateFilter.end) {
+        doc.text(`Date Range: ${dateFilter.start} to ${dateFilter.end}`, 14, 35);
+      }
+
+      const tableColumn = ["Student", "ID", "Amount", "Status", "Date", "SY", "School"];
+      const tableRows = filteredApplications.map(app => [
+        app.studentName,
+        app.studentId,
+        formatCurrency(app.amount),
+        app.status.replace('_', ' ').toUpperCase(),
+        formatDate(app.approvalDate || app.submittedDate),
+        app.schoolYear || '',
+        app.school || ''
+      ]);
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 45,
+        theme: 'striped',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185] }
+      });
+
+      doc.save(`school_aid_export_${new Date().toISOString().split('T')[0]}.pdf`);
+      setShowExportMenu(false);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF');
+    }
+  };
+
   const getActionButtons = (application: ScholarshipApplication) => {
     const buttons = [];
 
@@ -270,11 +384,10 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
           key="process-grant"
           onClick={() => handleProcessGrant(application)}
           disabled={isProcessing || !!processingGrantId}
-          className={`flex items-center gap-1 px-3 py-1 text-sm rounded transition-colors ${
-            isProcessing || processingGrantId
-              ? 'bg-purple-50 text-purple-400 cursor-not-allowed'
-              : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-          }`}
+          className={`flex items-center gap-1 px-3 py-1 text-sm rounded transition-colors ${isProcessing || processingGrantId
+            ? 'bg-purple-50 text-purple-400 cursor-not-allowed'
+            : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+            }`}
         >
           {isProcessing ? (
             <>
@@ -399,6 +512,25 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
               ))}
             </select>
 
+            {/* Date Filters */}
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={dateFilter.start}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+                className="w-32 px-2 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Start Date"
+              />
+              <span className="text-gray-400">-</span>
+              <input
+                type="date"
+                value={dateFilter.end}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+                className="w-32 px-2 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="End Date"
+              />
+            </div>
+
             <div className="flex border border-gray-300 dark:border-slate-600 rounded-lg">
               <button
                 onClick={() => setViewMode('table')}
@@ -434,11 +566,33 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
           )}
         </div>
         <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:gap-2">
-          <button className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors text-gray-700 dark:text-slate-300">
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
-            <span className="sm:hidden">Export</span>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors text-gray-700 dark:text-slate-300"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
+              <span className="sm:hidden">Export</span>
+              <Calendar className="w-3 h-3 ml-1" />
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
+                <button
+                  onClick={handleExportCSV}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 first:rounded-t-lg"
+                >
+                  Export as CSV
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 last:rounded-b-lg"
+                >
+                  Export as PDF
+                </button>
+              </div>
+            )}
+          </div>
           {activeSubmodule === 'approved' && selectedApplications.length > 0 && (
             <button
               onClick={handleBatchProcessPaymentsClick}

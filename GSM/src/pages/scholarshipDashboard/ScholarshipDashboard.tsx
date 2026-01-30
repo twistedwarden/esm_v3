@@ -413,7 +413,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 2
     },
     {
-      id: 12, // Income Tax Return (ITR)
+      id: 13, // Income Tax Return (ITR) - used for Income Certificate
       name: 'Income Certificate',
       description: 'Official document showing your family\'s income status from BIR or barangay',
       category: 'financial',

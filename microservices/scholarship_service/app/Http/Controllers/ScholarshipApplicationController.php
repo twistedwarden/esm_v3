@@ -45,8 +45,39 @@ class ScholarshipApplicationController extends Controller
             'category',
             'subcategory',
             'school',
-            'documents.documentType'
+            'documents.documentType',
+            'interviewSchedule.evaluation'
         ]);
+
+        // CRITICAL: Filter by authenticated user's applications when 'mine=true'
+        if ($request->has('mine') && $request->mine) {
+            $authUser = $request->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required to view your applications'
+                ], 401);
+            }
+
+            // Find the student record associated with this user
+            $student = Student::where('user_id', $userId)->first();
+
+            if (!$student) {
+                // User has no student record yet, return empty array
+                return response()->json([
+                    'data' => [],
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => 15,
+                    'total' => 0
+                ]);
+            }
+
+            // Filter to only this student's applications
+            $query->where('student_id', $student->id);
+        }
 
         if ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
@@ -1629,8 +1660,10 @@ class ScholarshipApplicationController extends Controller
             $notes = $request->notes ?? 'Bulk endorsed to SSC';
 
             // Get applications that are ready for endorsement
-            $query = ScholarshipApplication::whereIn('id', $applicationIds)
-                ->where('status', 'interview_completed')
+            $query = ScholarshipApplication::query()
+                ->select('scholarship_applications.*')
+                ->whereIn('scholarship_applications.id', $applicationIds)
+                ->where('scholarship_applications.status', 'interview_completed')
                 ->with(['interviewSchedule.evaluation']);
 
             // Apply filter based on interview evaluation results
@@ -1658,6 +1691,20 @@ class ScholarshipApplicationController extends Controller
             $failedApplications = [];
 
             foreach ($applications as $application) {
+                // Ensure we have a model instance
+                if (!($application instanceof ScholarshipApplication)) {
+                    // Try to re-fetch as model if it came back as stdClass
+                    $application = ScholarshipApplication::find($application->id);
+                    if (!$application) {
+                        $failedApplications[] = [
+                            'id' => $application->id ?? 'unknown',
+                            'application_number' => 'unknown',
+                            'error' => 'Application not found or could not be loaded as model'
+                        ];
+                        continue;
+                    }
+                }
+
                 try {
                     $previousStatus = $application->status;
                     $application->endorseToSSC($notes, $endorsedBy);
@@ -2119,8 +2166,10 @@ class ScholarshipApplicationController extends Controller
             $notes = $request->notes ?? 'Bulk approved by SSC';
 
             // Get applications that are endorsed to SSC
-            $applications = ScholarshipApplication::whereIn('id', $applicationIds)
-                ->where('status', 'endorsed_to_ssc')
+            $applications = ScholarshipApplication::query()
+                ->select('scholarship_applications.*')
+                ->whereIn('scholarship_applications.id', $applicationIds)
+                ->where('scholarship_applications.status', 'endorsed_to_ssc')
                 ->get();
 
             if ($applications->isEmpty()) {
@@ -2135,6 +2184,14 @@ class ScholarshipApplicationController extends Controller
 
             foreach ($applications as $application) {
                 try {
+                    // Ensure application is a Model instance (fix for stdClass error)
+                    if (!($application instanceof ScholarshipApplication)) {
+                        $_model = ScholarshipApplication::find($application->id);
+                        if ($_model) {
+                            $application = $_model;
+                        }
+                    }
+
                     $previousStatus = $application->status;
 
                     // Update application status
@@ -2245,8 +2302,10 @@ class ScholarshipApplicationController extends Controller
             $rejectionReason = $request->rejection_reason;
 
             // Get applications that are endorsed to SSC
-            $applications = ScholarshipApplication::whereIn('id', $applicationIds)
-                ->where('status', 'endorsed_to_ssc')
+            $applications = ScholarshipApplication::query()
+                ->select('scholarship_applications.*')
+                ->whereIn('scholarship_applications.id', $applicationIds)
+                ->where('scholarship_applications.status', 'endorsed_to_ssc')
                 ->get();
 
             if ($applications->isEmpty()) {
@@ -2261,6 +2320,14 @@ class ScholarshipApplicationController extends Controller
 
             foreach ($applications as $application) {
                 try {
+                    // Ensure application is a Model instance (fix for stdClass error)
+                    if (!($application instanceof ScholarshipApplication)) {
+                        $_model = ScholarshipApplication::find($application->id);
+                        if ($_model) {
+                            $application = $_model;
+                        }
+                    }
+
                     $previousStatus = $application->status;
 
                     // Update application status
@@ -2538,6 +2605,7 @@ class ScholarshipApplicationController extends Controller
                     'student.academicRecords',
                     'student.currentAcademicRecord',
                     'student.financialInformation',
+                    'student.documents.documentType', // Load all student documents
                     'category',
                     'subcategory',
                     'school',

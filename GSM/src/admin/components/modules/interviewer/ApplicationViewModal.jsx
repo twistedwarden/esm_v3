@@ -15,6 +15,7 @@ import {
   Eye,
   Download
 } from 'lucide-react';
+import { API_CONFIG } from '../../../../config/api';
 
 function ApplicationViewModal({ isOpen, onClose, application }) {
   const [activeTab, setActiveTab] = useState('personal');

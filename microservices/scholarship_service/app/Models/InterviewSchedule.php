@@ -53,9 +53,9 @@ class InterviewSchedule extends Model
         return $this->belongsTo(Staff::class);
     }
 
-    public function evaluation(): BelongsTo
+    public function evaluation(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->belongsTo(InterviewEvaluation::class, 'id', 'interview_schedule_id');
+        return $this->hasOne(InterviewEvaluation::class);
     }
 
     // Scopes
@@ -97,7 +97,7 @@ class InterviewSchedule extends Model
     public function scopeUpcoming($query)
     {
         return $query->where('interview_date', '>=', now()->toDateString())
-                    ->where('status', 'scheduled');
+            ->where('status', 'scheduled');
     }
 
     public function scopePast($query)
@@ -241,7 +241,7 @@ class InterviewSchedule extends Model
     {
         $date = Carbon::parse($this->interview_date);
         $time = Carbon::createFromFormat('H:i:s', $this->interview_time);
-        
+
         return $date->format('M d, Y') . ' at ' . $time->format('g:i A');
     }
 
@@ -250,7 +250,7 @@ class InterviewSchedule extends Model
         if ($this->interview_type === 'online') {
             return 'Online' . ($this->meeting_link ? ' - ' . $this->meeting_link : '');
         }
-        
+
         return $this->interview_location ?? 'TBD';
     }
 

@@ -87,17 +87,7 @@ Route::prefix('school-aid')->group(function () {
     });
 
     // Process payment
-    Route::post('/payments/process', function (Request $request) {
-        // Mock payment processing
-        return response()->json([
-            'id' => 'pay-' . uniqid(),
-            'application_id' => $request->input('applicationId'),
-            'amount' => 15000.00,
-            'status' => 'processing',
-            'payment_method' => $request->input('paymentMethod', 'bank_transfer'),
-            'created_at' => now()->toISOString()
-        ]);
-    });
+    Route::post('/payments/process', [SchoolAidController::class, 'processPayment']);
 
     // Retry payment
     Route::post('/payments/{id}/retry', function (Request $request, $id) {

@@ -227,8 +227,8 @@ function MyInterviews({ filter = 'all' }) {
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${showAdvancedFilters
-                  ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
-                  : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
+                ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
+                : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
                 }`}
             >
               <Filter className="w-4 h-4" />
@@ -238,8 +238,8 @@ function MyInterviews({ filter = 'all' }) {
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-l-lg transition-colors ${viewMode === 'grid'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
                   }`}
               >
                 <Grid3X3 className="w-4 h-4" />
@@ -247,8 +247,8 @@ function MyInterviews({ filter = 'all' }) {
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded-r-lg transition-colors ${viewMode === 'list'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
                   }`}
               >
                 <List className="w-4 h-4" />
@@ -381,9 +381,14 @@ function MyInterviews({ filter = 'all' }) {
                       {interview.status === 'scheduled' && (
                         <button
                           onClick={() => handleEvaluate(interview)}
-                          className="flex-1 px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                          disabled={!!interview.evaluation}
+                          className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${interview.evaluation
+                              ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                              : 'bg-green-500 text-white hover:bg-green-600'
+                            }`}
+                          title={interview.evaluation ? 'Evaluation already submitted' : 'Evaluate this interview'}
                         >
-                          Evaluate
+                          {interview.evaluation ? 'Evaluated' : 'Evaluate'}
                         </button>
                       )}
                     </div>
@@ -459,8 +464,8 @@ function MyInterviews({ filter = 'all' }) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${interview.interview_type === 'online'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                           }`}>
                           {interview.interview_type === 'online' ? (
                             <Video className="w-3 h-3 mr-1" />
@@ -488,9 +493,14 @@ function MyInterviews({ filter = 'all' }) {
                             {interview.status === 'scheduled' && (
                               <button
                                 onClick={() => handleEvaluate(interview)}
-                                className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors"
+                                disabled={!!interview.evaluation}
+                                className={`transition-colors ${interview.evaluation
+                                    ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                    : 'text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300'
+                                  }`}
+                                title={interview.evaluation ? 'Evaluation already submitted' : 'Evaluate this interview'}
                               >
-                                Evaluate
+                                {interview.evaluation ? 'Evaluated' : 'Evaluate'}
                               </button>
                             )}
                           </div>

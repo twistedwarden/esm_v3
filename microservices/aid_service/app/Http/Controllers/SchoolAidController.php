@@ -335,6 +335,132 @@ class SchoolAidController extends Controller
         }
     }
 
+    /**
+     * Process payment for an application (manual payment processing)
+     * Creates payment transaction, disbursement record, and updates application status
+     */
+    public function processPayment(Request $request): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            // The frontend sends 'payment_id' which is actually the application ID
+            $applicationId = $request->input('payment_id');
+
+            if (!$applicationId) {
+                return response()->json([
+                    'error' => 'Application ID is required',
+                ], 400);
+            }
+
+            // Find the application
+            $application = ScholarshipApplication::findOrFail($applicationId);
+
+            // Validate application status
+            if (!in_array($application->status, ['approved', 'grants_processing'])) {
+                return response()->json([
+                    'error' => 'Application must be in approved or grants_processing status',
+                    'current_status' => $application->status
+                ], 400);
+            }
+
+            // Get the amount to disburse
+            $amount = $application->approved_amount ??
+                ($application->subcategory ? $application->subcategory->amount :
+                    ($application->category ? $application->category->amount : 0));
+
+            if ($amount <= 0) {
+                return response()->json([
+                    'error' => 'Invalid disbursement amount',
+                ], 400);
+            }
+
+            // Get payment method from request or default to 'manual'
+            $paymentMethod = $request->input('paymentMethod', 'manual');
+
+            // Create Payment Transaction record
+            $transaction = PaymentTransaction::create([
+                'application_id' => $application->id,
+                'transaction_amount' => $amount,
+                'transaction_status' => 'completed',
+                'transaction_method' => $paymentMethod,
+                'transaction_reference' => 'MAN-' . strtoupper(uniqid()),
+                'initiated_by_user_id' => $this->getCurrentUserId(),
+                'initiated_by_name' => $request->input('processedBy', 'Admin User'),
+                'completed_at' => now(),
+            ]);
+
+            // Create Aid Disbursement record
+            $disbursement = AidDisbursement::create([
+                'application_id' => $application->id,
+                'payment_transaction_id' => $transaction->id,
+                'application_number' => $application->application_number,
+                'student_id' => $application->student_id,
+                'school_id' => $application->school_id,
+                'amount' => $amount,
+                'disbursement_method' => $paymentMethod === 'bank_transfer' ? 'bank_transfer' : 'manual',
+                'payment_provider_name' => 'Manual Processing',
+                'payment_provider' => 'manual',
+                'disbursement_reference_number' => $transaction->transaction_reference,
+                'disbursement_status' => 'completed',
+                'disbursed_at' => now(),
+                'disbursed_by_user_id' => $this->getCurrentUserId(),
+                'disbursed_by_name' => $request->input('processedBy', 'Admin User'),
+            ]);
+
+            // Update application status to grants_disbursed
+            $application->status = 'grants_disbursed';
+            $application->save();
+
+            // Update budget allocation
+            $schoolYear = $this->getSchoolYearFromApplication($application);
+            $this->updateBudgetOnDisbursement($application, $amount, $schoolYear);
+
+            // Log the action
+            AuditLogService::logAction(
+                'payment_processed',
+                "Manual payment processed for application #{$application->application_number}",
+                'scholarship_application',
+                (string) $application->id,
+                $this->getCurrentUserId(),
+                [
+                    'payment_transaction_id' => $transaction->id,
+                    'disbursement_id' => $disbursement->id,
+                    'amount' => $amount,
+                    'method' => $paymentMethod,
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment processed successfully',
+                'data' => [
+                    'transaction' => $transaction,
+                    'disbursement' => $disbursement,
+                    'application' => [
+                        'id' => $application->id,
+                        'status' => $application->status,
+                        'application_number' => $application->application_number,
+                    ]
+                ]
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            DB::rollBack();
+            return response()->json([
+                'error' => 'Application not found',
+            ], 404);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'error' => 'Failed to process payment',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function processDisbursement(Request $request, $id): JsonResponse
     {
         try {
@@ -812,28 +938,35 @@ class SchoolAidController extends Controller
     public function getAnalytics(Request $request, $type): JsonResponse
     {
         try {
-            $dateRange = $request->get('range', '30d');
+            $startDate = null;
+            $endDate = null;
 
-            // Calculate date range
-            $days = match ($dateRange) {
-                '7d' => 7,
-                '30d' => 30,
-                '90d' => 90,
-                '6m' => 180,
-                default => 30
-            };
+            if ($request->has('start_date') && $request->has('end_date')) {
+                $startDate = \Carbon\Carbon::parse($request->get('start_date'))->startOfDay();
+                $endDate = \Carbon\Carbon::parse($request->get('end_date'))->endOfDay();
+            } else {
+                $dateRange = $request->get('range', '30d');
+                $endDate = now()->endOfDay();
 
-            $startDate = now()->subDays($days);
+                $days = match ($dateRange) {
+                    '7d' => 7,
+                    '30d' => 30,
+                    '90d' => 90,
+                    '6m' => 180,
+                    default => 30
+                };
+                $startDate = now()->subDays($days)->startOfDay();
+            }
 
             switch ($type) {
                 case 'payments':
-                    return $this->getPaymentsAnalytics($startDate);
+                    return $this->getPaymentsAnalytics($startDate, $endDate);
                 case 'applications':
-                    return $this->getApplicationsAnalytics($startDate);
+                    return $this->getApplicationsAnalytics($startDate, $endDate);
                 case 'amounts':
-                    return $this->getAmountsAnalytics($startDate);
+                    return $this->getAmountsAnalytics($startDate, $endDate);
                 default:
-                    return $this->getPaymentsAnalytics($startDate);
+                    return $this->getPaymentsAnalytics($startDate, $endDate);
             }
         } catch (\Exception $e) {
             return response()->json([
@@ -843,10 +976,11 @@ class SchoolAidController extends Controller
         }
     }
 
-    private function getPaymentsAnalytics($startDate): JsonResponse
+    private function getPaymentsAnalytics($startDate, $endDate): JsonResponse
     {
         // Get daily disbursements
-        $dailyDisbursements = AidDisbursement::where('disbursed_at', '>=', $startDate)
+        $dailyDisbursements = DB::table('aid_disbursements')
+            ->whereBetween('disbursed_at', [$startDate, $endDate])
             ->whereNotNull('disbursed_at')
             ->selectRaw('DATE(disbursed_at) as date, COUNT(*) as count, SUM(amount) as amount')
             ->groupBy('date')
@@ -863,7 +997,7 @@ class SchoolAidController extends Controller
         // Fill in missing dates with zero values
         $allDates = [];
         $currentDate = clone $startDate;
-        while ($currentDate <= now()) {
+        while ($currentDate <= $endDate) {
             $dateStr = $currentDate->format('Y-m-d');
             $existing = $dailyDisbursements->firstWhere('date', $dateStr);
             $allDates[] = $existing ?: [
@@ -901,17 +1035,17 @@ class SchoolAidController extends Controller
             });
 
         // Get school performance (top schools by disbursement amount)
-        $schoolPerformance = AidDisbursement::where('disbursed_at', '>=', $startDate)
+        $schoolPerformance = AidDisbursement::whereBetween('disbursed_at', [$startDate, $endDate])
             ->whereNotNull('school_id')
             ->selectRaw('school_id, COUNT(*) as scholars, SUM(amount) as disbursed')
             ->groupBy('school_id')
             ->orderByDesc('disbursed')
             ->limit(10)
             ->get()
-            ->map(function ($item) use ($startDate) {
+            ->map(function ($item) use ($startDate, $endDate) {
                 $school = School::find($item->school_id);
                 $avgTime = AidDisbursement::where('school_id', $item->school_id)
-                    ->where('disbursed_at', '>=', $startDate)
+                    ->whereBetween('disbursed_at', [$startDate, $endDate])
                     ->whereNotNull('disbursed_at')
                     ->get()
                     ->map(function ($d) {
@@ -943,7 +1077,7 @@ class SchoolAidController extends Controller
             });
 
         // Get monthly trends
-        $monthlyTrends = ScholarshipApplication::where('created_at', '>=', $startDate)
+        $monthlyTrends = ScholarshipApplication::whereBetween('created_at', [$startDate, $endDate])
             ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as applications')
             ->groupBy('month')
             ->orderBy('month')
@@ -968,7 +1102,7 @@ class SchoolAidController extends Controller
         $categoryDistribution = [];
 
         // Get disbursements with their applications
-        $disbursements = AidDisbursement::where('disbursed_at', '>=', $startDate)
+        $disbursements = AidDisbursement::whereBetween('disbursed_at', [$startDate, $endDate])
             ->whereNotNull('disbursed_at')
             ->whereNotNull('application_id')
             ->get();
@@ -1073,10 +1207,10 @@ class SchoolAidController extends Controller
         ]);
     }
 
-    private function getApplicationsAnalytics($startDate): JsonResponse
+    private function getApplicationsAnalytics($startDate, $endDate): JsonResponse
     {
         // Get weekly application counts
-        $weeklyData = ScholarshipApplication::where('created_at', '>=', $startDate)
+        $weeklyData = ScholarshipApplication::whereBetween('created_at', [$startDate, $endDate])
             ->selectRaw('WEEK(created_at) as week, COUNT(*) as count')
             ->groupBy('week')
             ->orderBy('week')
@@ -1086,7 +1220,7 @@ class SchoolAidController extends Controller
         $data = [];
 
         for ($i = 0; $i < 4; $i++) {
-            $week = now()->subWeeks(3 - $i)->format('W');
+            $week = $endDate->copy()->subWeeks(3 - $i)->format('W');
             $weekData = $weeklyData->firstWhere('week', $week);
             $labels[] = 'Week ' . ($i + 1);
             $data[] = $weekData ? (int) $weekData->count : 0;
@@ -1105,10 +1239,10 @@ class SchoolAidController extends Controller
         ]);
     }
 
-    private function getAmountsAnalytics($startDate): JsonResponse
+    private function getAmountsAnalytics($startDate, $endDate): JsonResponse
     {
         // Get weekly disbursement amounts
-        $weeklyData = AidDisbursement::where('disbursed_at', '>=', $startDate)
+        $weeklyData = AidDisbursement::whereBetween('disbursed_at', [$startDate, $endDate])
             ->selectRaw('WEEK(disbursed_at) as week, SUM(amount) as total')
             ->groupBy('week')
             ->orderBy('week')
@@ -1118,7 +1252,7 @@ class SchoolAidController extends Controller
         $data = [];
 
         for ($i = 0; $i < 4; $i++) {
-            $week = now()->subWeeks(3 - $i)->format('W');
+            $week = $endDate->copy()->subWeeks(3 - $i)->format('W');
             $weekData = $weeklyData->firstWhere('week', $week);
             $labels[] = 'Week ' . ($i + 1);
             $data[] = $weekData ? (float) $weekData->total : 0;

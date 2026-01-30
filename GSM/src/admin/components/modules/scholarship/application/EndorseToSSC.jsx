@@ -65,6 +65,7 @@ function EndorseToSSC() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isEndorseModalOpen, setIsEndorseModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [activeApplication, setActiveApplication] = useState(null);
   const [showConfirmationToast, setShowConfirmationToast] = useState(false);
   const [showBulkEndorseModal, setShowBulkEndorseModal] = useState(false);
@@ -237,89 +238,106 @@ function EndorseToSSC() {
   const filteredApplications = applications;
 
   const ApplicationCard = ({ application }) => (
-    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 group ${viewMode === 'list' ? 'rounded-lg' : 'rounded-xl'
+    <div className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-all duration-200 group flex flex-col ${viewMode === 'list' ? 'rounded-lg' : 'rounded-xl h-full'
       }`}>
-      <div className={viewMode === 'list' ? 'p-3 sm:p-4' : 'p-4 sm:p-6'}>
+      <div className={`flex-1 flex flex-col ${viewMode === 'list' ? 'p-3 sm:p-4' : 'p-4 sm:p-6'}`}>
         {/* Header */}
-        <div className={`flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:space-y-0 ${viewMode === 'list' ? 'mb-3' : 'mb-4'}`}>
-          <div className="flex items-center space-x-3 min-w-0 flex-1">
-            <div className="relative flex-shrink-0">
+        <div className={`flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:space-y-0 ${viewMode === 'list' ? 'mb-3' : 'mb-5'}`}>
+          <div className="flex items-start space-x-3 min-w-0 flex-1">
+            <div className="relative flex-shrink-0 pt-1">
               <input
                 type="checkbox"
                 checked={selectedApplications.includes(application.id)}
                 onChange={() => handleSelectApplication(application.id)}
-                className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 w-4 h-4"
               />
             </div>
-            <div className={`flex-shrink-0 ${viewMode === 'list' ? 'h-8 w-8' : 'h-10 w-10 sm:h-12 sm:w-12'}`}>
-              <div className={`${viewMode === 'list' ? 'h-8 w-8' : 'h-10 w-10 sm:h-12 sm:w-12'} rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 flex items-center justify-center`}>
-                <Award className={`${viewMode === 'list' ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} text-orange-600 dark:text-orange-400`} />
+
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className={`flex-shrink-0 ${viewMode === 'list' ? 'h-8 w-8' : 'h-10 w-10'} rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 flex items-center justify-center`}>
+                    <Award className={`${viewMode === 'list' ? 'h-4 w-4' : 'h-5 w-5'} text-orange-600 dark:text-orange-400`} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className={`${viewMode === 'list' ? 'text-sm font-semibold' : 'text-base font-semibold'} text-gray-900 dark:text-white truncate pr-2`} title={application.name}>
+                      {application.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {application.studentId}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getEndorsementStatusColor(application.endorsementStatus)}`}>
+                    {getEndorsementStatusIcon(application.endorsementStatus)}
+                    <span className="ml-1 capitalize">
+                      {application.endorsementStatus === 'conditional' ? 'For Consideration' :
+                        application.endorsementStatus === 'ready' ? 'Ready' :
+                          application.endorsementStatus}
+                    </span>
+                  </span>
+                  {application.priority !== 'normal' && (
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(application.priority)}`}>
+                      {application.priority}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <h3 className={`${viewMode === 'list' ? 'text-sm sm:text-base font-semibold' : 'text-base sm:text-lg font-semibold'} text-gray-900 dark:text-white truncate`}>
-                {application.name}
-              </h3>
-              <p className={`${viewMode === 'list' ? 'text-xs' : 'text-xs sm:text-sm'} text-gray-500 dark:text-gray-400 truncate`}>
-                {application.studentId}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2 flex-shrink-0">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getEndorsementStatusColor(application.endorsementStatus)}`}>
-              {getEndorsementStatusIcon(application.endorsementStatus)}
-              <span className="ml-1 capitalize">
-                {application.endorsementStatus === 'conditional' ? 'For Consideration' :
-                  application.endorsementStatus === 'ready' ? 'Ready for SSC Endorsement' :
-                    application.endorsementStatus}
-              </span>
-            </span>
-            {application.priority !== 'normal' && (
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(application.priority)}`}>
-                {application.priority}
-              </span>
-            )}
           </div>
         </div>
 
         {/* Content */}
-        <div className={viewMode === 'list' ? 'space-y-2' : 'space-y-4'}>
+        <div className={`flex-1 ${viewMode === 'list' ? 'space-y-2' : 'space-y-4'}`}>
           {/* School Info */}
-          <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400`}>
+          <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} text-gray-600 dark:text-gray-400 mb-2`}>
             <School className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} flex-shrink-0`} />
-            <span className="truncate">{application.schoolName}</span>
+            <span className="truncate" title={application.schoolName}>{application.schoolName}</span>
           </div>
 
           {/* Academic Info */}
-          <div className={`grid gap-2 sm:gap-3 ${viewMode === 'list'
-            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-            : 'grid-cols-1 sm:grid-cols-2'
+          <div className={`grid gap-3 ${viewMode === 'list'
+            ? 'grid-cols-2 lg:grid-cols-4'
+            : 'grid-cols-2'
             }`}>
-            <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
-              <GraduationCap className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
-              <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">GWA:</span>
-              <span className="font-medium text-gray-900 dark:text-white truncate">
+            <div className="flex flex-col space-y-1">
+              <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+                <GraduationCap className="w-3 h-3" />
+                <span>GWA</span>
+              </div>
+              <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
                 {application.gwa}
               </span>
             </div>
-            <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
-              <BookOpen className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
-              <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Level:</span>
-              <span className="font-medium text-gray-900 dark:text-white truncate">
+
+            <div className="flex flex-col space-y-1">
+              <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+                <BookOpen className="w-3 h-3" />
+                <span>Level</span>
+              </div>
+              <span className="font-medium text-sm text-gray-900 dark:text-white truncate" title={application.educationalLevel}>
                 {application.educationalLevel}
               </span>
             </div>
-            <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
-              <Award className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
-              <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Category:</span>
-              <span className="font-medium text-gray-900 dark:text-white truncate">
+
+            <div className="flex flex-col space-y-1">
+              <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+                <Award className="w-3 h-3" />
+                <span>Category</span>
+              </div>
+              <span className="font-medium text-sm text-gray-900 dark:text-white truncate" title={application.scholarshipCategory}>
                 {application.scholarshipCategory}
               </span>
             </div>
-            <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} min-w-0`}>
-              <PhilippinePeso className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
-              <span className="text-gray-600 dark:text-gray-400 flex-shrink-0">Amount:</span>
-              <span className="font-medium text-gray-900 dark:text-white truncate">
+
+            <div className="flex flex-col space-y-1">
+              <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+                <PhilippinePeso className="w-3 h-3" />
+                <span>Amount</span>
+              </div>
+              <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
                 ₱{application.approvedAmount.toLocaleString()}
               </span>
             </div>
@@ -327,211 +345,79 @@ function EndorseToSSC() {
 
           {/* Additional Info for List View */}
           {viewMode === 'list' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400 min-w-0">
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-slate-700/50">
+              <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
                 <Calendar className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate">Approved: {new Date(application.approvedDate).toLocaleDateString()}</span>
               </div>
-              <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400 min-w-0">
+              <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
                 <FileCheck className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate">{application.documents} documents</span>
               </div>
             </div>
           )}
 
-          {/* Interview Evaluation Details */}
-          {application.interview && (
-            <div className={`${viewMode === 'list' ? 'space-y-2' : 'space-y-3'}`}>
-              {/* Interview Info */}
-              <div className={`bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 ${viewMode === 'list' ? 'p-2' : 'p-3'}`}>
-                <div className={`flex items-center space-x-2 mb-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'}`}>
-                  <MessageSquare className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-blue-600`} />
-                  <span className="font-medium text-blue-900 dark:text-blue-100">Interview Completed</span>
-                  <span className="text-blue-700 dark:text-blue-300">•</span>
-                  <span className="text-blue-700 dark:text-blue-300">{new Date(application.interview.date).toLocaleDateString()}</span>
-                </div>
 
-                {/* Evaluation Scores */}
-                {application.interview.evaluation ? (
-                  <div className={`grid ${viewMode === 'list' ? 'grid-cols-1 gap-1' : 'grid-cols-1 gap-2'} ${viewMode === 'list' ? 'text-xs' : 'text-sm'}`}>
-                    <div className="flex items-center space-x-2 min-w-0">
-                      <span className="text-blue-700 dark:text-blue-300 flex-shrink-0 w-20">Academic:</span>
-                      <div className="flex items-center space-x-0.5 flex-shrink-0">
-                        {[...Array(5)].map((_, i) => {
-                          const score = application.interview.evaluation.academicMotivationScore || 0;
-                          return (
-                            <Star
-                              key={i}
-                              className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${i < score
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                                }`}
-                            />
-                          );
-                        })}
-                        <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium text-xs">
-                          {application.interview.evaluation.academicMotivationScore || 0}/5
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 min-w-0">
-                      <span className="text-blue-700 dark:text-blue-300 flex-shrink-0 w-20">Leadership:</span>
-                      <div className="flex items-center space-x-0.5 flex-shrink-0">
-                        {[...Array(5)].map((_, i) => {
-                          const score = application.interview.evaluation.leadershipInvolvementScore || 0;
-                          return (
-                            <Star
-                              key={i}
-                              className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${i < score
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                                }`}
-                            />
-                          );
-                        })}
-                        <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium text-xs">
-                          {application.interview.evaluation.leadershipInvolvementScore || 0}/5
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 min-w-0">
-                      <span className="text-blue-700 dark:text-blue-300 flex-shrink-0 w-20">Financial:</span>
-                      <div className="flex items-center space-x-0.5 flex-shrink-0">
-                        {[...Array(5)].map((_, i) => {
-                          const score = application.interview.evaluation.financialNeedScore || 0;
-                          return (
-                            <Star
-                              key={i}
-                              className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${i < score
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                                }`}
-                            />
-                          );
-                        })}
-                        <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium text-xs">
-                          {application.interview.evaluation.financialNeedScore || 0}/5
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 min-w-0">
-                      <span className="text-blue-700 dark:text-blue-300 flex-shrink-0 w-20">Character:</span>
-                      <div className="flex items-center space-x-0.5 flex-shrink-0">
-                        {[...Array(5)].map((_, i) => {
-                          const score = application.interview.evaluation.characterValuesScore || 0;
-                          return (
-                            <Star
-                              key={i}
-                              className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-3 h-3'} ${i < score
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                                }`}
-                            />
-                          );
-                        })}
-                        <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium text-xs">
-                          {application.interview.evaluation.characterValuesScore || 0}/5
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                    Evaluation scores not available
-                  </div>
-                )}
-
-                {/* Interviewer */}
-                <div className={`mt-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'} text-blue-700 dark:text-blue-300`}>
-                  Interviewer: <span className="font-medium">{application.interview.interviewer}</span>
-                </div>
-              </div>
-
-              {/* Recommendation Status */}
-              {application.interview.evaluation && (
-                <div className={`flex items-center space-x-2 ${viewMode === 'list' ? 'text-xs' : 'text-sm'}`}>
-                  <span className="text-gray-600 dark:text-gray-400">Recommendation:</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${application.interview.evaluation.overallRecommendation === 'recommended'
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                    : application.interview.evaluation.overallRecommendation === 'needs_followup'
-                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                    }`}>
-                    {application.interview.evaluation.overallRecommendation === 'recommended' && '✅ Recommended'}
-                    {application.interview.evaluation.overallRecommendation === 'needs_followup' && '⚠️ Conditional'}
-                    {application.interview.evaluation.overallRecommendation === 'not_recommended' && '❌ Not Recommended'}
-                  </span>
-                </div>
-              )}
+          {/* Verification Status - Simplified */}
+          <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${viewMode === 'list' ? 'text-xs' : 'text-xs'} pt-2`}>
+            <div className={`flex items-center space-x-1 ${application.interviewCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+              <CheckCircle className="w-3 h-3" />
+              <span>Interview</span>
             </div>
-          )}
-
-          {/* Verification Status */}
-          <div className={`flex items-center space-x-4 ${viewMode === 'list' ? 'text-xs' : 'text-sm'}`}>
-            <div className="flex items-center space-x-1">
-              <CheckCircle className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-green-500`} />
-              <span className="text-gray-600 dark:text-gray-400">Interview</span>
+            <div className={`flex items-center space-x-1 ${application.verificationCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+              <CheckCircle className="w-3 h-3" />
+              <span>Verification</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <CheckCircle className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-green-500`} />
-              <span className="text-gray-600 dark:text-gray-400">Verification</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <CheckCircle className={`${viewMode === 'list' ? 'w-3 h-3' : 'w-4 h-4'} text-green-500`} />
-              <span className="text-gray-600 dark:text-gray-400">Documents</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className={`${viewMode === 'list' ? 'mt-3 pt-3' : 'mt-4 sm:mt-6 pt-3 sm:pt-4'} border-t border-gray-200 dark:border-slate-700`}>
-          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
-              <button
-                onClick={() => openEndorseModal(application)}
-                disabled={application.endorsementStatus === 'endorsed'}
-                className={`flex items-center justify-center space-x-2 ${viewMode === 'list' ? 'px-3 sm:px-4 py-2 text-sm font-semibold' : 'px-3 py-2 text-sm'} ${application.endorsementStatus === 'endorsed'
-                  ? 'bg-green-500 cursor-not-allowed opacity-80'
-                  : application.endorsementStatus === 'conditional'
-                    ? 'bg-yellow-500 hover:bg-yellow-600'
-                    : 'bg-orange-500 hover:bg-orange-600'
-                  } text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
-              >
-                {application.endorsementStatus === 'endorsed' ? (
-                  <CheckCircle className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
-                ) : (
-                  <Send className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
-                )}
-                <span className="hidden sm:inline">
-                  {application.endorsementStatus === 'endorsed' ? 'Endorsed' : 'Endorse to SSC'}
-                </span>
-                <span className="sm:hidden">
-                  {application.endorsementStatus === 'endorsed' ? 'Endorsed' : 'Endorse'}
-                </span>
-              </button>
-              <button
-                onClick={() => openRejectModal(application)}
-                className={`flex items-center justify-center space-x-2 ${viewMode === 'list' ? 'px-3 sm:px-4 py-2 text-sm font-semibold' : 'px-3 py-2 text-sm'} bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md flex-shrink-0`}
-              >
-                <XCircle className={`${viewMode === 'list' ? 'w-4 h-4' : 'w-4 h-4'}`} />
-                <span>
-                  Reject
-                </span>
-              </button>
-            </div>
-            <div className="flex items-center justify-center space-x-2 flex-shrink-0">
-              <button
-                onClick={() => openViewModal(application)}
-                className={`${viewMode === 'list' ? 'p-2' : 'p-2'} bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm hover:shadow-md`}
-                title="View Details"
-              >
-                <Eye className={`${viewMode === 'list' ? 'w-5 h-5' : 'w-4 h-4'}`} />
-              </button>
+            <div className={`flex items-center space-x-1 ${application.documentsVerified ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+              <CheckCircle className="w-3 h-3" />
+              <span>Docs</span>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Actions - Pinned to bottom */}
+      <div className={`px-4 py-3 bg-gray-50 dark:bg-slate-700/30 border-t border-gray-200 dark:border-slate-700 rounded-b-xl`}>
+        <div className="flex items-center space-x-2 w-full">
+          <button
+            onClick={() => openEndorseModal(application)}
+            disabled={application.endorsementStatus === 'endorsed'}
+            className={`flex-1 flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium ${application.endorsementStatus === 'endorsed'
+              ? 'bg-green-500 cursor-not-allowed'
+              : application.endorsementStatus === 'conditional'
+                ? 'bg-yellow-500 hover:bg-yellow-600'
+                : 'bg-orange-500 hover:bg-orange-600'
+              } text-white rounded-lg transition-colors shadow-sm`}
+          >
+            {application.endorsementStatus === 'endorsed' ? (
+              <CheckCircle className="w-4 h-4" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            <span>
+              {application.endorsementStatus === 'endorsed' ? 'Endorsed' : 'Endorse'}
+            </span>
+          </button>
+
+          <div className="flex space-x-2">
+            <button
+              onClick={() => openRejectModal(application)}
+              className="p-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              title="Reject"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => openViewModal(application)}
+              className="p-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="View Details"
+            >
+              <Eye className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div >
   );
 
   const handleSelectApplication = (id) => {
@@ -570,6 +456,7 @@ function EndorseToSSC() {
     if (!activeApplication) return;
 
     try {
+      setSubmitting(true);
       // Use the dedicated endorseToSSC endpoint
       await scholarshipApiService.endorseToSSC(activeApplication.id, `Application endorsed to SSC on ${new Date().toISOString()}`);
 
@@ -581,10 +468,12 @@ function EndorseToSSC() {
       ));
 
       setIsEndorseModalOpen(false);
-      showSuccess('Application successfully endorsed to SSC!', 'Endorsement Successful');
+      showSuccess('Application successfully endorsed to SSC!');
     } catch (error) {
       console.error('Endorsement failed:', error);
-      showError('Failed to endorse application. Please try again.', 'Endorsement Failed');
+      showError('Failed to endorse application. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -607,10 +496,10 @@ function EndorseToSSC() {
 
       setIsRejectModalOpen(false);
       setRejectReason('');
-      showSuccess('Application successfully rejected.', 'Rejection Successful');
+      showSuccess('Application successfully rejected.');
     } catch (error) {
       console.error('Rejection failed:', error);
-      showError('Failed to reject application. Please try again.', 'Rejection Failed');
+      showError('Failed to reject application. Please try again.');
     }
   };
 
@@ -632,7 +521,7 @@ function EndorseToSSC() {
       );
 
       if (readyApplications.length === 0) {
-        showError('No applications with "recommended" status found in your selection.', 'No Ready Applications');
+        showError('No applications with "recommended" status found in your selection.');
         setShowBulkEndorseModal(false);
         return;
       }
@@ -661,8 +550,7 @@ function EndorseToSSC() {
 
       // Show success message with details
       showSuccess(
-        `Successfully endorsed ${result.endorsed_count} ready application(s) to SSC!`,
-        'Bulk Endorsement Successful'
+        `Successfully endorsed ${result.endorsed_count} ready application(s) to SSC!`
       );
 
       // Refresh applications to get updated data
@@ -671,7 +559,7 @@ function EndorseToSSC() {
     } catch (error) {
       console.error('Bulk endorsement failed:', error);
       setShowBulkEndorseModal(false);
-      showError('Failed to bulk endorse ready applications. Please try again.', 'Bulk Endorsement Failed');
+      showError('Failed to bulk endorse ready applications. Please try again.');
     }
   };
 
@@ -684,7 +572,7 @@ function EndorseToSSC() {
       );
 
       if (considerationApplications.length === 0) {
-        showError('No applications with "needs_followup" status found in your selection.', 'No Applications for Consideration');
+        showError('No applications with "needs_followup" status found in your selection.');
         setShowBulkEndorseModal(false);
         return;
       }
@@ -713,8 +601,7 @@ function EndorseToSSC() {
 
       // Show success message with details
       showSuccess(
-        `Successfully endorsed ${result.endorsed_count} application(s) for consideration to SSC!`,
-        'Bulk Endorsement Successful'
+        `Successfully endorsed ${result.endorsed_count} application(s) for consideration to SSC!`
       );
 
       // Refresh applications to get updated data
@@ -723,7 +610,7 @@ function EndorseToSSC() {
     } catch (error) {
       console.error('Bulk endorsement failed:', error);
       setShowBulkEndorseModal(false);
-      showError('Failed to bulk endorse applications for consideration. Please try again.', 'Bulk Endorsement Failed');
+      showError('Failed to bulk endorse applications for consideration. Please try again.');
     }
   };
 
@@ -752,8 +639,7 @@ function EndorseToSSC() {
 
       // Show success message with details
       showSuccess(
-        `Successfully endorsed ${result.endorsed_count} out of ${result.total_processed} selected applications to SSC!`,
-        'Bulk Endorsement Successful'
+        `Successfully endorsed ${result.endorsed_count} out of ${result.total_processed} selected applications to SSC!`
       );
 
       // Refresh applications to get updated data
@@ -762,7 +648,7 @@ function EndorseToSSC() {
     } catch (error) {
       console.error('Bulk endorsement failed:', error);
       setShowConfirmationToast(false);
-      showError('Failed to bulk endorse applications. Please try again.', 'Bulk Endorsement Failed');
+      showError('Failed to bulk endorse applications. Please try again.');
     }
   };
 
@@ -833,7 +719,7 @@ function EndorseToSSC() {
     });
 
     doc.save(`endorse_applications_${new Date().toISOString().split('T')[0]}.pdf`);
-    showSuccess('Export Complete', 'Applications report has been downloaded as PDF.');
+    showSuccess('Applications report has been downloaded as PDF.');
   };
 
   return (
@@ -1245,13 +1131,13 @@ function EndorseToSSC() {
                         <div>
                           <span className="text-blue-700 dark:text-blue-300">Interview Date:</span>
                           <span className="ml-2 text-blue-900 dark:text-blue-100 font-medium">
-                            {new Date(activeApplication.interview.date).toLocaleDateString()}
+                            {new Date(activeApplication.interview.interview_date).toLocaleDateString()}
                           </span>
                         </div>
                         <div>
                           <span className="text-blue-700 dark:text-blue-300">Interviewer:</span>
                           <span className="ml-2 text-blue-900 dark:text-blue-100 font-medium">
-                            {activeApplication.interview.interviewer}
+                            {activeApplication.interview.interviewer_name}
                           </span>
                         </div>
                       </div>
@@ -1266,14 +1152,14 @@ function EndorseToSSC() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.academicMotivationScore || 0)
+                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.academic_motivation_score || 0)
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300'
                                     }`}
                                 />
                               ))}
                               <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
-                                {activeApplication.interview.evaluation?.academicMotivationScore || 0}/5
+                                {activeApplication.interview.evaluation?.academic_motivation_score || 0}/5
                               </span>
                             </div>
                           </div>
@@ -1283,14 +1169,14 @@ function EndorseToSSC() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.leadershipInvolvementScore || 0)
+                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.leadership_involvement_score || 0)
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300'
                                     }`}
                                 />
                               ))}
                               <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
-                                {activeApplication.interview.evaluation?.leadershipInvolvementScore || 0}/5
+                                {activeApplication.interview.evaluation?.leadership_involvement_score || 0}/5
                               </span>
                             </div>
                           </div>
@@ -1300,14 +1186,14 @@ function EndorseToSSC() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.financialNeedScore || 0)
+                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.financial_need_score || 0)
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300'
                                     }`}
                                 />
                               ))}
                               <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
-                                {activeApplication.interview.evaluation?.financialNeedScore || 0}/5
+                                {activeApplication.interview.evaluation?.financial_need_score || 0}/5
                               </span>
                             </div>
                           </div>
@@ -1317,14 +1203,14 @@ function EndorseToSSC() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.characterValuesScore || 0)
+                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.character_values_score || 0)
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300'
                                     }`}
                                 />
                               ))}
                               <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
-                                {activeApplication.interview.evaluation?.characterValuesScore || 0}/5
+                                {activeApplication.interview.evaluation?.character_values_score || 0}/5
                               </span>
                             </div>
                           </div>
@@ -1334,31 +1220,31 @@ function EndorseToSSC() {
                         <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
                           <div className="flex items-center justify-between">
                             <span className="text-blue-700 dark:text-blue-300 font-medium">Overall Recommendation:</span>
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${activeApplication.interview.evaluation?.overallRecommendation === 'recommended'
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${activeApplication.interview.evaluation?.overall_recommendation === 'recommended'
                               ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                              : activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup'
+                              : activeApplication.interview.evaluation?.overall_recommendation === 'needs_followup'
                                 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                                 : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                               }`}>
-                              {activeApplication.interview.evaluation?.overallRecommendation === 'recommended' && '✅ Recommended for SSC Review'}
-                              {activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup' && '⚠️ For Consideration'}
-                              {activeApplication.interview.evaluation?.overallRecommendation === 'not_recommended' && '❌ Not Recommended'}
+                              {activeApplication.interview.evaluation?.overall_recommendation === 'recommended' && '✅ Recommended for SSC Review'}
+                              {activeApplication.interview.evaluation?.overall_recommendation === 'needs_followup' && '⚠️ For Consideration'}
+                              {activeApplication.interview.evaluation?.overall_recommendation === 'not_recommended' && '❌ Not Recommended'}
                             </span>
                           </div>
                         </div>
 
                         {/* Interview Notes */}
-                        {(activeApplication.interview.notes || activeApplication.interview.evaluation?.remarks) && (
+                        {(activeApplication.interview.interview_notes || activeApplication.interview.evaluation?.remarks) && (
                           <div className="mt-3">
                             <h6 className="font-medium text-blue-900 dark:text-blue-100 mb-1">Interview Notes:</h6>
                             <p className="text-sm text-blue-800 dark:text-blue-200 bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
-                              {activeApplication.interview.evaluation?.remarks || activeApplication.interview.notes || 'No notes available'}
+                              {activeApplication.interview.evaluation?.remarks || activeApplication.interview.interview_notes || 'No notes available'}
                             </p>
                           </div>
                         )}
 
                         {/* Additional Evaluation Details */}
-                        {(activeApplication.interview.evaluation?.strengths || activeApplication.interview.evaluation?.areasForImprovement) && (
+                        {(activeApplication.interview.evaluation?.strengths || activeApplication.interview.evaluation?.areas_for_improvement) && (
                           <div className="mt-3 space-y-2">
                             {activeApplication.interview.evaluation?.strengths && (
                               <div>
@@ -1368,11 +1254,11 @@ function EndorseToSSC() {
                                 </p>
                               </div>
                             )}
-                            {activeApplication.interview.evaluation?.areasForImprovement && (
+                            {activeApplication.interview.evaluation?.areas_for_improvement && (
                               <div>
                                 <h6 className="font-medium text-blue-900 dark:text-blue-100 mb-1">Areas for Improvement:</h6>
                                 <p className="text-sm text-blue-800 dark:text-blue-200 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
-                                  {activeApplication.interview.evaluation.areasForImprovement}
+                                  {activeApplication.interview.evaluation.areas_for_improvement}
                                 </p>
                               </div>
                             )}
@@ -1401,13 +1287,23 @@ function EndorseToSSC() {
                 </button>
                 <button
                   onClick={handleEndorseToSSC}
+                  disabled={submitting}
                   className={`px-4 py-2 ${activeApplication.endorsementStatus === 'conditional'
                     ? 'bg-yellow-500 hover:bg-yellow-600'
                     : 'bg-orange-500 hover:bg-orange-600'
-                    } text-white rounded-lg transition-colors flex items-center`}
+                    } text-white rounded-lg transition-colors flex items-center ${submitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  <Send className="w-4 h-4 mr-2" />
-                  Endorse to SSC
+                  {submitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Endorse to SSC
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -1600,13 +1496,13 @@ function EndorseToSSC() {
                         <div>
                           <span className="text-blue-700 dark:text-blue-300">Interview Date:</span>
                           <span className="ml-2 text-blue-900 dark:text-blue-100 font-medium">
-                            {new Date(activeApplication.interview.date).toLocaleDateString()}
+                            {new Date(activeApplication.interview.interview_date).toLocaleDateString()}
                           </span>
                         </div>
                         <div>
                           <span className="text-blue-700 dark:text-blue-300">Interviewer:</span>
                           <span className="ml-2 text-blue-900 dark:text-blue-100 font-medium">
-                            {activeApplication.interview.interviewer}
+                            {activeApplication.interview.interviewer_name}
                           </span>
                         </div>
                       </div>
@@ -1621,14 +1517,14 @@ function EndorseToSSC() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.academicMotivationScore || 0)
+                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.academic_motivation_score || 0)
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300 dark:text-gray-600'
                                     }`}
                                 />
                               ))}
                               <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
-                                {activeApplication.interview.evaluation?.academicMotivationScore || 0}/5
+                                {activeApplication.interview.evaluation?.academic_motivation_score || 0}/5
                               </span>
                             </div>
                           </div>
@@ -1638,14 +1534,14 @@ function EndorseToSSC() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.leadershipInvolvementScore || 0)
+                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.leadership_involvement_score || 0)
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300 dark:text-gray-600'
                                     }`}
                                 />
                               ))}
                               <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
-                                {activeApplication.interview.evaluation?.leadershipInvolvementScore || 0}/5
+                                {activeApplication.interview.evaluation?.leadership_involvement_score || 0}/5
                               </span>
                             </div>
                           </div>
@@ -1655,14 +1551,14 @@ function EndorseToSSC() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.financialNeedScore || 0)
+                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.financial_need_score || 0)
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300 dark:text-gray-600'
                                     }`}
                                 />
                               ))}
                               <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
-                                {activeApplication.interview.evaluation?.financialNeedScore || 0}/5
+                                {activeApplication.interview.evaluation?.financial_need_score || 0}/5
                               </span>
                             </div>
                           </div>
@@ -1672,14 +1568,14 @@ function EndorseToSSC() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.characterValuesScore || 0)
+                                  className={`w-3 h-3 ${i < (activeApplication.interview.evaluation?.character_values_score || 0)
                                     ? 'text-yellow-400 fill-current'
                                     : 'text-gray-300 dark:text-gray-600'
                                     }`}
                                 />
                               ))}
                               <span className="ml-1 text-blue-900 dark:text-blue-100 font-medium">
-                                {activeApplication.interview.evaluation?.characterValuesScore || 0}/5
+                                {activeApplication.interview.evaluation?.character_values_score || 0}/5
                               </span>
                             </div>
                           </div>
@@ -1689,24 +1585,24 @@ function EndorseToSSC() {
                       {/* Overall Recommendation */}
                       <div className="mt-4">
                         <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Overall Recommendation:</h5>
-                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${activeApplication.interview.evaluation?.overallRecommendation === 'recommended'
+                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${activeApplication.interview.evaluation?.overall_recommendation === 'recommended'
                           ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                          : activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup'
+                          : activeApplication.interview.evaluation?.overall_recommendation === 'needs_followup'
                             ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                             : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                           }`}>
-                          {activeApplication.interview.evaluation?.overallRecommendation === 'recommended' && (
+                          {activeApplication.interview.evaluation?.overall_recommendation === 'recommended' && (
                             <CheckCircle className="w-4 h-4 mr-1" />
                           )}
-                          {activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup' && (
+                          {activeApplication.interview.evaluation?.overall_recommendation === 'needs_followup' && (
                             <AlertTriangle className="w-4 h-4 mr-1" />
                           )}
-                          {activeApplication.interview.evaluation?.overallRecommendation === 'not_recommended' && (
+                          {activeApplication.interview.evaluation?.overall_recommendation === 'not_recommended' && (
                             <X className="w-4 h-4 mr-1" />
                           )}
-                          {activeApplication.interview.evaluation?.overallRecommendation === 'recommended' && 'Recommended for SSC Review'}
-                          {activeApplication.interview.evaluation?.overallRecommendation === 'needs_followup' && 'For Consideration'}
-                          {activeApplication.interview.evaluation?.overallRecommendation === 'not_recommended' && 'Not Recommended'}
+                          {activeApplication.interview.evaluation?.overall_recommendation === 'recommended' && 'Recommended for SSC Review'}
+                          {activeApplication.interview.evaluation?.overall_recommendation === 'needs_followup' && 'For Consideration'}
+                          {activeApplication.interview.evaluation?.overall_recommendation === 'not_recommended' && 'Not Recommended'}
                         </div>
                       </div>
 

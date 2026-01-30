@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { RefreshCw, AlertTriangle, CheckCircle, Clock, FileText, PhilippinePeso, Activity, Users, Send, X, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MetricCard from './MetricCard';
@@ -12,6 +13,11 @@ const StreamlinedDashboard = ({ onPageChange }) => {
     const [error, setError] = useState(null);
     const [showReportModal, setShowReportModal] = useState(false);
     const [generatingReport, setGeneratingReport] = useState(false);
+    const [reportFilters, setReportFilters] = useState({
+        startDate: '',
+        endDate: ''
+    });
+    const [reportFormat, setReportFormat] = useState('pdf');
 
     useEffect(() => {
         fetchData();
@@ -35,7 +41,34 @@ const StreamlinedDashboard = ({ onPageChange }) => {
     const handleGenerateReport = async (type) => {
         setGeneratingReport(true);
         try {
-            await dashboardService.generatePDFReport(type, data);
+            let reportData = data;
+
+            // If filters are active, fetch specific data for the report
+            if (reportFilters.startDate && reportFilters.endDate) {
+                const [filteredOverview, filteredTrends] = await Promise.all([
+                    dashboardService.getDashboardOverview({
+                        startDate: reportFilters.startDate,
+                        endDate: reportFilters.endDate
+                    }),
+                    dashboardService.getApplicationTrends({
+                        startDate: reportFilters.startDate,
+                        endDate: reportFilters.endDate
+                    })
+                ]);
+
+                // Merge filtered data into report data
+                reportData = {
+                    ...data,
+                    overview: { ...data.overview, ...filteredOverview },
+                    applicationTrends: filteredTrends
+                };
+            }
+
+            if (reportFormat === 'csv') {
+                await dashboardService.generateCSVReport(type, reportData);
+            } else {
+                await dashboardService.generatePDFReport(type, reportData);
+            }
             setShowReportModal(false);
         } catch (err) {
             console.error("Report generation failed", err);
@@ -213,67 +246,119 @@ const StreamlinedDashboard = ({ onPageChange }) => {
             </div>
 
             {/* Report Selection Modal */}
-            <AnimatePresence>
-                {showReportModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden"
-                        >
-                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-blue-600" />
-                                    Generate Report
-                                </h3>
-                                <button
-                                    onClick={() => setShowReportModal(false)}
-                                    className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                                >
-                                    <X className="w-5 h-5 text-slate-500" />
-                                </button>
-                            </div>
-
-                            <div className="p-6 space-y-4">
-                                <p className="text-slate-500 text-sm">Select the type of report you'd like to generate. All reports will be exported as PDF.</p>
-
-                                <div className="grid grid-cols-1 gap-3">
-                                    {[
-                                        { id: 'general', title: 'General Overview', desc: 'Summary of all key metrics and performance.', icon: Activity, color: 'blue' },
-                                        { id: 'applications', title: 'Applications Report', desc: 'Detailed breakdown of application statuses.', icon: FileText, color: 'purple' },
-                                        { id: 'disbursements', title: 'Financial Aid Report', desc: 'Summary of budget utilization and grants.', icon: PhilippinePeso, color: 'emerald' },
-                                        { id: 'schools', title: 'Partner Schools Report', desc: 'Distribution of scholars across institutions.', icon: Users, color: 'orange' }
-                                    ].map((type) => (
-                                        <button
-                                            key={type.id}
-                                            onClick={() => handleGenerateReport(type.id)}
-                                            disabled={generatingReport}
-                                            className="flex items-center gap-4 p-4 text-left rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all group disabled:opacity-50"
-                                        >
-                                            <div className={`p-3 bg-${type.color}-100 text-${type.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>
-                                                <type.icon className="w-5 h-5" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-slate-900">{type.title}</h4>
-                                                <p className="text-xs text-slate-500">{type.desc}</p>
-                                            </div>
-                                            <Download className="w-4 h-4 text-slate-300 group-hover:text-blue-500" />
-                                        </button>
-                                    ))}
+            {createPortal(
+                <AnimatePresence>
+                    {showReportModal && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden"
+                            >
+                                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                    <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-blue-600" />
+                                        Generate Report
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowReportModal(false)}
+                                        className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+                                    >
+                                        <X className="w-5 h-5 text-slate-500" />
+                                    </button>
                                 </div>
-                            </div>
 
-                            {generatingReport && (
-                                <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center space-y-3">
-                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-                                    <p className="text-sm font-bold text-slate-700">Preparing your PDF...</p>
+                                <div className="p-6 space-y-4">
+                                    <p className="text-slate-500 text-sm">Select the type of report and format you'd like to generate.</p>
+
+                                    {/* Date Filters */}
+                                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 mb-1">Start Date</label>
+                                            <input
+                                                type="date"
+                                                value={reportFilters.startDate}
+                                                onChange={(e) => setReportFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                                className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 mb-1">End Date</label>
+                                            <input
+                                                type="date"
+                                                value={reportFilters.endDate}
+                                                onChange={(e) => setReportFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                                                className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                            />
+                                        </div>
+                                        <div className="col-span-2 pt-2 border-t border-slate-200 mt-2">
+                                            <label className="block text-xs font-semibold text-slate-500 mb-2">Export Format</label>
+                                            <div className="flex gap-4">
+                                                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="reportFormat"
+                                                        value="pdf"
+                                                        checked={reportFormat === 'pdf'}
+                                                        onChange={(e) => setReportFormat(e.target.value)}
+                                                        className="text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    PDF Document
+                                                </label>
+                                                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="reportFormat"
+                                                        value="csv"
+                                                        checked={reportFormat === 'csv'}
+                                                        onChange={(e) => setReportFormat(e.target.value)}
+                                                        className="text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    CSV Spreadsheet
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {[
+                                            { id: 'general', title: 'General Overview', desc: 'Summary of all key metrics and performance.', icon: Activity, color: 'blue' },
+                                            { id: 'applications', title: 'Applications Report', desc: 'Detailed breakdown of application statuses.', icon: FileText, color: 'purple' },
+                                            { id: 'disbursements', title: 'Financial Aid Report', desc: 'Summary of budget utilization and grants.', icon: PhilippinePeso, color: 'emerald' },
+                                            { id: 'schools', title: 'Partner Schools Report', desc: 'Distribution of scholars across institutions.', icon: Users, color: 'orange' }
+                                        ].map((type) => (
+                                            <button
+                                                key={type.id}
+                                                onClick={() => handleGenerateReport(type.id)}
+                                                disabled={generatingReport}
+                                                className="flex items-center gap-4 p-4 text-left rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all group disabled:opacity-50"
+                                            >
+                                                <div className={`p-3 bg-${type.color}-100 text-${type.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>
+                                                    <type.icon className="w-5 h-5" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-bold text-slate-900">{type.title}</h4>
+                                                    <p className="text-xs text-slate-500">{type.desc}</p>
+                                                </div>
+                                                <Download className="w-4 h-4 text-slate-300 group-hover:text-blue-500" />
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            )}
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+
+                                {generatingReport && (
+                                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center space-y-3">
+                                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                                        <p className="text-sm font-bold text-slate-700">Preparing your PDF...</p>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 };

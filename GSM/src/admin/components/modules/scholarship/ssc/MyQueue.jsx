@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
+import ApplicationViewModal from '../../interviewer/ApplicationViewModal';
+import { CheckCircle, XCircle, Shield, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 
 function MyQueue() {
   const [applications, setApplications] = useState([]);
@@ -16,7 +19,28 @@ function MyQueue() {
     total: 0,
     last_page: 1
   });
-  const { showToast } = useToastContext();
+
+  // View Details Modal State
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewApplication, setViewApplication] = useState(null);
+
+  // Review Modal State (Final Approval)
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedReviewApp, setSelectedReviewApp] = useState(null);
+  const [reviewHistory, setReviewHistory] = useState([]);
+  const [expandedSections, setExpandedSections] = useState({
+    document: true,
+    financial: true,
+    academic: true
+  });
+  const [finalDecision, setFinalDecision] = useState({
+    decision: '',
+    approved_amount: '',
+    final_notes: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { showToast, success: showSuccess, error: showError } = useToastContext();
 
   // Fetch my assigned applications
   const fetchMyApplications = async (page = 1) => {
@@ -64,6 +88,139 @@ function MyQueue() {
       setSortBy(field);
       setSortOrder('asc');
     }
+  };
+
+  // --- View Details Handler ---
+  const handleViewDetails = (application) => {
+    setViewApplication(application);
+    setViewModalOpen(true);
+  };
+
+  // --- Review Handlers (Final Approval Logic) ---
+  const getRecommendedAmountFromFinancialReview = (application) => {
+    const stageStatus = application.ssc_stage_status || {};
+    const financialReview = stageStatus.financial_review;
+
+    if (financialReview && financialReview.review_data) {
+      const reviewData = typeof financialReview.review_data === 'string'
+        ? JSON.parse(financialReview.review_data)
+        : financialReview.review_data;
+
+      if (reviewData && reviewData.recommended_amount) {
+        return reviewData.recommended_amount.toString();
+      }
+    }
+
+    // Fallback to reviews array
+    if (application.ssc_reviews) {
+      const financialReviewRecord = application.ssc_reviews.find(
+        review => review.review_stage === 'financial_review' && review.status === 'approved'
+      );
+      if (financialReviewRecord && financialReviewRecord.review_data) {
+        const reviewData = typeof financialReviewRecord.review_data === 'string'
+          ? JSON.parse(financialReviewRecord.review_data)
+          : financialReviewRecord.review_data;
+        if (reviewData && reviewData.recommended_amount) {
+          return reviewData.recommended_amount.toString();
+        }
+      }
+    }
+
+    return application.requested_amount ? application.requested_amount.toString() : '';
+  };
+
+  const handleReview = async (application) => {
+    // Currently implementing Final Approval Review logic
+    // In future, switch logic based on application.status
+    setSelectedReviewApp(application);
+    setShowReviewModal(true);
+
+    // Fetch review history
+    try {
+      const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
+      const history = await scholarshipApiService.getSscReviewHistory(application.id);
+      setReviewHistory(history);
+    } catch (error) {
+      console.error('Error fetching review history:', error);
+    }
+
+    // Pre-fill amount
+    const recommendedAmount = getRecommendedAmountFromFinancialReview(application);
+    setFinalDecision({
+      decision: '',
+      approved_amount: recommendedAmount,
+      final_notes: ''
+    });
+  };
+
+  const handleFinalApprove = async () => {
+    if (!selectedReviewApp) return;
+
+    if (!finalDecision.approved_amount) {
+      showError('Please confirm the approved scholarship amount');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
+      await scholarshipApiService.sscFinalApproval(selectedReviewApp.id, {
+        approved_amount: parseFloat(finalDecision.approved_amount),
+        final_notes: finalDecision.final_notes
+      });
+
+      // Auto-register student
+      try {
+        const { default: studentRegistrationService } = await import('../../../../../services/studentRegistrationService');
+        await studentRegistrationService.autoRegisterFromSSCApproval(selectedReviewApp);
+        showSuccess('Application finally approved! Student registered.');
+      } catch (registrationError) {
+        console.error('Error auto-registering student:', registrationError);
+        showSuccess('Application finally approved! (Note: Student registration failed - please register manually)');
+      }
+      setShowReviewModal(false);
+      fetchMyApplications();
+    } catch (error) {
+      console.error('Error approving application:', error);
+      showError('Failed to approve application');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFinalReject = async () => {
+    if (!selectedReviewApp) return;
+
+    if (!finalDecision.final_notes) {
+      showError('Please provide reason for final rejection');
+      return;
+    }
+
+    if (confirm('Are you sure you want to FINALLY REJECT this application?')) {
+      setIsSubmitting(true);
+      try {
+        const { scholarshipApiService } = await import('../../../../../services/scholarshipApiService');
+        await scholarshipApiService.sscFinalRejection(selectedReviewApp.id, {
+          rejection_reason: finalDecision.final_notes
+        });
+
+        showSuccess('Application finally rejected');
+        setShowReviewModal(false);
+        fetchMyApplications();
+      } catch (error) {
+        console.error('Error rejecting application:', error);
+        showError('Failed to reject application');
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
 
   const handleSelectApplication = (applicationId) => {
@@ -118,13 +275,13 @@ function MyQueue() {
         {stages.map((stage, index) => (
           <div key={stage.key} className="flex items-center">
             <div className={`w-3 h-3 rounded-full ${index <= currentIndex
-                ? 'bg-orange-500'
-                : 'bg-gray-200'
+              ? 'bg-orange-500'
+              : 'bg-gray-200'
               }`} />
             {index < stages.length - 1 && (
               <div className={`w-8 h-0.5 ${index < currentIndex
-                  ? 'bg-orange-500'
-                  : 'bg-gray-200'
+                ? 'bg-orange-500'
+                : 'bg-gray-200'
                 }`} />
             )}
           </div>
@@ -345,11 +502,13 @@ function MyQueue() {
 
                 <div className="ml-6 flex flex-col space-y-2">
                   <button
+                    onClick={() => handleReview(application)}
                     className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
                     Review
                   </button>
                   <button
+                    onClick={() => handleViewDetails(application)}
                     className="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
                   >
                     View Details
@@ -392,6 +551,191 @@ function MyQueue() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* View Details Modal */}
+      <ApplicationViewModal
+        isOpen={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        application={viewApplication}
+      />
+
+      {/* Review Modal (Final Approval) */}
+      {showReviewModal && selectedReviewApp && createPortal(
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowReviewModal(false)}></div>
+          <div className="relative bg-white dark:bg-slate-800 rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                <Shield className="h-6 w-6 mr-2 text-orange-500" />
+                Final Decision - {selectedReviewApp.student ? `${selectedReviewApp.student.first_name} ${selectedReviewApp.student.last_name}` : 'Unknown Applicant'}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Review all previous assessments before making your final decision
+              </p>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Application Summary */}
+              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Application Summary</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600 dark:text-gray-400">Requested Amount:</span>
+                    <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                      {formatCurrency(selectedReviewApp.requested_amount)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 dark:text-gray-400">Recommended Amount:</span>
+                    <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                      {formatCurrency(finalDecision.approved_amount || selectedReviewApp.requested_amount)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Complete Review History Timeline */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-900 dark:text-white flex items-center">
+                  <Clock className="h-5 w-5 mr-2" />
+                  Complete Review History
+                </h4>
+
+                {/* Document Verification */}
+                <div className="border border-gray-200 dark:border-slate-700 rounded-lg">
+                  <button
+                    onClick={() => toggleSection('document')}
+                    className="w-full flex justify-between items-center p-4 hover:bg-gray-50 dark:hover:bg-slate-700"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="font-semibold text-gray-900 dark:text-white">Document Verification</span>
+                      <span className="text-xs text-green-600 dark:text-green-400">✓ Approved</span>
+                    </div>
+                    {expandedSections.document ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </button>
+                  {expandedSections.document && (
+                    <div className="p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">All documents verified and approved for processing.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Financial Review */}
+                <div className="border border-gray-200 dark:border-slate-700 rounded-lg">
+                  <button
+                    onClick={() => toggleSection('financial')}
+                    className="w-full flex justify-between items-center p-4 hover:bg-gray-50 dark:hover:bg-slate-700"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="font-semibold text-gray-900 dark:text-white">Financial Review</span>
+                      <span className="text-xs text-green-600 dark:text-green-400">✓ Approved</span>
+                    </div>
+                    {expandedSections.financial ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </button>
+                  {expandedSections.financial && (
+                    <div className="p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Financial eligibility verified.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Academic Review */}
+                <div className="border border-gray-200 dark:border-slate-700 rounded-lg">
+                  <button
+                    onClick={() => toggleSection('academic')}
+                    className="w-full flex justify-between items-center p-4 hover:bg-gray-50 dark:hover:bg-slate-700"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="font-semibold text-gray-900 dark:text-white">Academic Review</span>
+                      <span className="text-xs text-green-600 dark:text-green-400">✓ Approved</span>
+                    </div>
+                    {expandedSections.academic ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </button>
+                  {expandedSections.academic && (
+                    <div className="p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/50">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Academic eligibility confirmed.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Final Decision Form */}
+              <div className="border-t border-gray-200 dark:border-slate-700 pt-6">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Chairperson's Final Decision</h4>
+
+                {/* Approved Amount */}
+                <div className="mb-4">
+                  <label className="block font-medium text-gray-900 dark:text-white mb-2">
+                    Final Approved Amount <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₱</span>
+                    <input
+                      type="number"
+                      value={finalDecision.approved_amount}
+                      readOnly
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-100 dark:bg-slate-600 text-gray-900 dark:text-white cursor-not-allowed"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                {/* Final Notes */}
+                <div>
+                  <label className="block font-medium text-gray-900 dark:text-white mb-2">
+                    Chairperson's Notes/Remarks
+                  </label>
+                  <textarea
+                    value={finalDecision.final_notes}
+                    onChange={(e) => setFinalDecision(prev => ({ ...prev, final_notes: e.target.value }))}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500"
+                    placeholder="Add any final remarks, conditions, or special instructions..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-slate-700 flex justify-end space-x-3 bg-gray-50 dark:bg-slate-700/50">
+              <button
+                onClick={() => setShowReviewModal(false)}
+                disabled={isSubmitting}
+                className="px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFinalReject}
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center space-x-2 font-semibold disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <XCircle className="h-5 w-5" />
+                )}
+                <span>{isSubmitting ? 'REJECTING...' : 'FINAL REJECT'}</span>
+              </button>
+              <button
+                onClick={handleFinalApprove}
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center space-x-2 font-semibold disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <CheckCircle className="h-5 w-5" />
+                )}
+                <span>{isSubmitting ? 'APPROVING...' : 'FINAL APPROVE'}</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

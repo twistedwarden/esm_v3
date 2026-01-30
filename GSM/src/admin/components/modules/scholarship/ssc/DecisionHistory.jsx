@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+
+import { createPortal } from 'react-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Search,
   Filter,
@@ -32,7 +36,16 @@ function DecisionHistory() {
   });
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState(null);
+
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportConfig, setExportConfig] = useState({
+    format: 'csv', // 'csv' or 'pdf'
+    stage: 'all',
+    decision: 'all',
+    dateFrom: '',
+    dateTo: ''
+  });
 
   useEffect(() => {
     fetchDecisions();
@@ -142,11 +155,55 @@ function DecisionHistory() {
     setIsViewModalOpen(true);
   };
 
-  const handleExportCSV = () => {
+  const openExportModal = () => {
+    // Initialize export config with current filters
+    setExportConfig({
+      format: 'csv',
+      stage: filters.stage,
+      decision: filters.decision,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo
+    });
+    setIsExportModalOpen(true);
+  };
+
+  const getFilteredExportDecisions = () => {
+    return decisions.filter(decision => {
+      // 1. Stage Filter
+      const matchesStage = exportConfig.stage === 'all' || decision.review_stage === exportConfig.stage;
+
+      // 2. Decision Filter
+      const matchesDecision = exportConfig.decision === 'all' || decision.status === exportConfig.decision;
+
+      // 3. Date Filter
+      const decisionDate = decision.approved_at || decision.reviewed_at || decision.created_at;
+      const matchesDateFrom = !exportConfig.dateFrom || new Date(decisionDate) >= new Date(exportConfig.dateFrom);
+      const matchesDateTo = !exportConfig.dateTo || new Date(decisionDate) <= new Date(exportConfig.dateTo);
+
+      return matchesStage && matchesDecision && matchesDateFrom && matchesDateTo;
+    });
+  };
+
+  const handleGenerateReport = () => {
+    const dataToExport = getFilteredExportDecisions();
+
+    if (dataToExport.length === 0) {
+      showError('No decisions match the selected criteria.', 'Export Failed');
+      return;
+    }
+
+    if (exportConfig.format === 'csv') {
+      generateCSV(dataToExport);
+    } else {
+      generatePDF(dataToExport);
+    }
+    setIsExportModalOpen(false);
+  };
+
+  const generateCSV = (data) => {
     try {
-      // Prepare CSV data
       const headers = ['Decision ID', 'Application Number', 'Student Name', 'Review Stage', 'Decision', 'Amount', 'Date', 'Notes/Reason'];
-      const rows = filteredDecisions.map(d => {
+      const rows = data.map(d => {
         const app = d.application;
         const student = app?.student;
         const studentName = `${student?.first_name || ''} ${student?.last_name || ''}`.trim();
@@ -163,29 +220,81 @@ function DecisionHistory() {
         ];
       });
 
-      // Create CSV string
       const csvContent = [
         headers.join(','),
         ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
       ].join('\n');
 
-      // Download CSV
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `ssc_decision_history_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `ssc_report_${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      showSuccess('Decision history exported successfully!', 'Export Successful');
+      showSuccess(`Exported ${data.length} records to CSV.`, 'Export Successful');
     } catch (error) {
-      console.error('Export failed:', error);
-      showError('Failed to export decision history.', 'Export Failed');
+      console.error('CSV Export failed:', error);
+      showError('Failed to generate CSV.', 'Export Failed');
     }
   };
+
+  const generatePDF = (data) => {
+    try {
+      const doc = new jsPDF();
+
+      // Header
+      doc.setFontSize(18);
+      doc.text('SSC Decision Report', 14, 22);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+      // Filters Summary
+      let filterText = 'Filters: ';
+      filterText += `Stage: ${exportConfig.stage === 'all' ? 'All' : getStageLabel(exportConfig.stage)}, `;
+      filterText += `Decision: ${exportConfig.decision === 'all' ? 'All' : capitalize(exportConfig.decision)}`;
+      if (exportConfig.dateFrom) filterText += `, From: ${exportConfig.dateFrom}`;
+      if (exportConfig.dateTo) filterText += `, To: ${exportConfig.dateTo}`;
+
+      doc.text(filterText, 14, 34);
+
+      // Table
+      const tableColumn = ["App No.", "Student", "Stage", "Decision", "Amount", "Date"];
+      const tableRows = data.map(d => {
+        const app = d.application;
+        const student = app?.student;
+        return [
+          app?.application_number || '',
+          `${student?.first_name || ''} ${student?.last_name || ''}`.trim(),
+          getStageLabel(d.review_stage),
+          capitalize(d.status),
+          d.review_data?.recommended_amount ? `P${d.review_data.recommended_amount.toLocaleString()}` : 'N/A',
+          new Date(d.approved_at || d.reviewed_at || d.created_at).toLocaleDateString()
+        ];
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 40,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [249, 115, 22] } // Orange theme
+      });
+
+      doc.save(`ssc_report_${new Date().toISOString().split('T')[0]}.pdf`);
+      showSuccess(`Exported ${data.length} records to PDF.`, 'Export Successful');
+    } catch (error) {
+      console.error('PDF Export failed:', error);
+      showError('Failed to generate PDF.', 'Export Failed');
+    }
+  };
+
+  const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
   return (
     <div className="space-y-6">
@@ -231,19 +340,19 @@ function DecisionHistory() {
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${showAdvancedFilters
-                  ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
-                  : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
+                ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300'
+                : 'bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600'
                 }`}
             >
               <Filter className="w-4 h-4" />
               <span>Advanced</span>
             </button>
             <button
-              onClick={handleExportCSV}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
+              onClick={openExportModal}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-orange-600 dark:bg-orange-500 text-white hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors shadow-sm"
             >
               <Download className="w-4 h-4" />
-              <span>Export CSV</span>
+              <span>Export</span>
             </button>
             <button
               onClick={fetchDecisions}
@@ -362,9 +471,6 @@ function DecisionHistory() {
                     Decision
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -427,17 +533,6 @@ function DecisionHistory() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm">
-                          <PhilippinePeso className="h-4 w-4 text-gray-400 mr-1" />
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {decision.review_data?.recommended_amount
-                              ? `₱${decision.review_data.recommended_amount.toLocaleString()}`
-                              : 'N/A'
-                            }
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center text-sm text-gray-900 dark:text-white">
                           <Calendar className="h-4 w-4 text-gray-400 mr-1" />
                           {new Date(decision.approved_at || decision.reviewed_at || decision.created_at).toLocaleDateString()}
@@ -461,9 +556,9 @@ function DecisionHistory() {
       )}
 
       {/* View Details Modal */}
-      {isViewModalOpen && selectedDecision && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsViewModalOpen(false)} />
+      {isViewModalOpen && selectedDecision && createPortal(
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsViewModalOpen(false)} />
           <div className="relative z-10 w-full max-w-3xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -481,8 +576,8 @@ function DecisionHistory() {
               <div className="space-y-6">
                 {/* Decision Summary */}
                 <div className={`rounded-lg p-4 ${selectedDecision.status === 'approved'
-                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                    : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
                   }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -493,14 +588,14 @@ function DecisionHistory() {
                       )}
                       <div>
                         <h4 className={`text-lg font-semibold ${selectedDecision.status === 'approved'
-                            ? 'text-green-900 dark:text-green-100'
-                            : 'text-red-900 dark:text-red-100'
+                          ? 'text-green-900 dark:text-green-100'
+                          : 'text-red-900 dark:text-red-100'
                           }`}>
                           {getStageLabel(selectedDecision.review_stage)} - {selectedDecision.status === 'approved' ? 'Approved' : 'Rejected'}
                         </h4>
                         <p className={`text-sm ${selectedDecision.status === 'approved'
-                            ? 'text-green-700 dark:text-green-300'
-                            : 'text-red-700 dark:text-red-300'
+                          ? 'text-green-700 dark:text-green-300'
+                          : 'text-red-700 dark:text-red-300'
                           }`}>
                           Decision made on {new Date(selectedDecision.approved_at || selectedDecision.reviewed_at || selectedDecision.created_at).toLocaleString()}
                         </p>
@@ -578,7 +673,133 @@ function DecisionHistory() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+      {/* Export Options Modal */}
+      {isExportModalOpen && createPortal(
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsExportModalOpen(false)} />
+          <div className="relative z-10 w-full max-w-lg bg-white dark:bg-slate-800 rounded-xl shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Export Decisions</h3>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Format Selection */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">Export Format</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <label className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all ${exportConfig.format === 'csv'
+                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
+                      : 'border-gray-200 dark:border-slate-700 hover:border-orange-200 dark:hover:border-slate-600'
+                    }`}>
+                    <input
+                      type="radio"
+                      name="format"
+                      value="csv"
+                      checked={exportConfig.format === 'csv'}
+                      onChange={() => setExportConfig(prev => ({ ...prev, format: 'csv' }))}
+                      className="hidden"
+                    />
+                    <FileText className="w-8 h-8 mr-3 mb-1" />
+                    <span className="font-medium">CSV (Excel)</span>
+                  </label>
+
+                  <label className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all ${exportConfig.format === 'pdf'
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                      : 'border-gray-200 dark:border-slate-700 hover:border-red-200 dark:hover:border-slate-600'
+                    }`}>
+                    <input
+                      type="radio"
+                      name="format"
+                      value="pdf"
+                      checked={exportConfig.format === 'pdf'}
+                      onChange={() => setExportConfig(prev => ({ ...prev, format: 'pdf' }))}
+                      className="hidden"
+                    />
+                    <div className="flex flex-col items-center">
+                      <FileText className="w-8 h-8 mb-1" />
+                      <span className="font-medium">PDF Document</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Report Options Filters */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">Report Options</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Review Stage</label>
+                    <select
+                      value={exportConfig.stage}
+                      onChange={(e) => setExportConfig(prev => ({ ...prev, stage: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                    >
+                      <option value="all">All Stages</option>
+                      <option value="document_verification">Document Verification</option>
+                      <option value="financial_review">Financial Review</option>
+                      <option value="academic_review">Academic Review</option>
+                      <option value="final_approval">Final Approval</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Decision</label>
+                    <select
+                      value={exportConfig.decision}
+                      onChange={(e) => setExportConfig(prev => ({ ...prev, decision: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                    >
+                      <option value="all">All Decisions</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Date Range Override */}
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date From</label>
+                    <input
+                      type="date"
+                      value={exportConfig.dateFrom}
+                      onChange={(e) => setExportConfig(prev => ({ ...prev, dateFrom: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date To</label>
+                    <input
+                      type="date"
+                      value={exportConfig.dateTo}
+                      onChange={(e) => setExportConfig(prev => ({ ...prev, dateTo: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
+              <button
+                onClick={() => setIsExportModalOpen(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleGenerateReport}
+                className="px-4 py-2 bg-orange-600 text-white hover:bg-orange-700 rounded-lg transition-colors font-medium text-sm flex items-center shadow-sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Generate {exportConfig.format.toUpperCase()}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  X, 
-  Star, 
-  CheckCircle, 
+import { createPortal } from 'react-dom';
+import {
+  X,
+  Star,
+  CheckCircle,
   AlertCircle,
   User,
   GraduationCap,
@@ -14,7 +15,7 @@ import { scholarshipApiService } from '../../../../services/scholarshipApiServic
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 
 function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubmitted }) {
-  const { showSuccess, showError } = useToastContext();
+  const { success, error } = useToastContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [evaluationData, setEvaluationData] = useState({
     academic_motivation_score: '',
@@ -31,7 +32,7 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
       ...prev,
       [field]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
@@ -43,41 +44,41 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!evaluationData.academic_motivation_score || evaluationData.academic_motivation_score < 1 || evaluationData.academic_motivation_score > 5) {
       newErrors.academic_motivation_score = 'Please enter a score between 1 and 5';
     }
-    
+
     if (!evaluationData.leadership_involvement_score || evaluationData.leadership_involvement_score < 1 || evaluationData.leadership_involvement_score > 5) {
       newErrors.leadership_involvement_score = 'Please enter a score between 1 and 5';
     }
-    
+
     if (!evaluationData.financial_need_score || evaluationData.financial_need_score < 1 || evaluationData.financial_need_score > 5) {
       newErrors.financial_need_score = 'Please enter a score between 1 and 5';
     }
-    
+
     if (!evaluationData.character_values_score || evaluationData.character_values_score < 1 || evaluationData.character_values_score > 5) {
       newErrors.character_values_score = 'Please enter a score between 1 and 5';
     }
-    
+
     if (!evaluationData.overall_recommendation) {
       newErrors.overall_recommendation = 'Please select an overall recommendation';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
-      
+
       await scholarshipApiService.submitInterviewEvaluation(interview.id, {
         academic_motivation_score: parseInt(evaluationData.academic_motivation_score),
         leadership_involvement_score: parseInt(evaluationData.leadership_involvement_score),
@@ -86,14 +87,14 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
         overall_recommendation: evaluationData.overall_recommendation,
         remarks: evaluationData.remarks
       });
-      
-      showSuccess('Interview evaluation submitted successfully!');
+
+      success('Interview evaluation submitted successfully!');
       onEvaluationSubmitted();
       onClose();
-      
-    } catch (error) {
-      console.error('Error submitting evaluation:', error);
-      showError('Failed to submit evaluation. Please try again.');
+
+    } catch (err) {
+      console.error('Error submitting evaluation:', err);
+      error(err.message || 'Failed to submit evaluation. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -114,9 +115,8 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
           max="5"
           value={evaluationData[field]}
           onChange={(e) => handleInputChange(field, e.target.value)}
-          className={`w-20 px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-            errors[field] ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
-          }`}
+          className={`w-20 px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${errors[field] ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+            }`}
           placeholder="1-5"
         />
         <div className="flex space-x-1">
@@ -125,11 +125,10 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
               key={score}
               type="button"
               onClick={() => handleInputChange(field, score)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors ${
-                evaluationData[field] >= score
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500'
-              }`}
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors ${evaluationData[field] >= score
+                ? 'bg-orange-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500'
+                }`}
             >
               <Star className="w-4 h-4" />
             </button>
@@ -153,8 +152,8 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
   const student = interview.application?.student;
   const application = interview.application;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative z-10 w-full max-w-4xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
@@ -162,14 +161,14 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Interview Evaluation
           </h3>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-1 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Student Information */}
@@ -212,7 +211,7 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
                 <FileText className="w-5 h-5 mr-2" />
                 Evaluation Criteria
               </h4>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {renderScoreInput(
                   'academic_motivation_score',
@@ -220,21 +219,21 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
                   <GraduationCap className="w-4 h-4" />,
                   'Student\'s enthusiasm and commitment to academic excellence'
                 )}
-                
+
                 {renderScoreInput(
                   'leadership_involvement_score',
                   'Leadership & Involvement',
                   <Star className="w-4 h-4" />,
                   'Participation in school activities and leadership roles'
                 )}
-                
+
                 {renderScoreInput(
                   'financial_need_score',
                   'Financial Need',
                   <PhilippinePeso className="w-4 h-4" />,
                   'Genuine financial need and family circumstances'
                 )}
-                
+
                 {renderScoreInput(
                   'character_values_score',
                   'Character & Values',
@@ -251,9 +250,8 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
                 <select
                   value={evaluationData.overall_recommendation}
                   onChange={(e) => handleInputChange('overall_recommendation', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-                    errors.overall_recommendation ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${errors.overall_recommendation ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
+                    }`}
                 >
                   <option value="">Select recommendation</option>
                   <option value="recommended">Recommended</option>
@@ -311,7 +309,8 @@ function InterviewEvaluationModal({ isOpen, onClose, interview, onEvaluationSubm
           </form>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
