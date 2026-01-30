@@ -306,11 +306,7 @@ export const ScholarshipDashboard: React.FC = () => {
           }
         }
 
-        // Generate notifications based on application data
-        const currentApp = userApplications.length > 0 ? userApplications[0] : null;
-        const generatedNotifications = generateMockNotifications(currentApp);
-        setNotifications(generatedNotifications);
-        setUnreadCount(generatedNotifications.filter(n => !n.isRead).length);
+        // Notifications will be generated in a separate useEffect
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to load application data');
@@ -320,7 +316,16 @@ export const ScholarshipDashboard: React.FC = () => {
     };
 
     fetchData();
-  }, [generateMockNotifications]);
+  }, []); // Run only once on mount
+
+  // Update notifications when applications or documents change
+  useEffect(() => {
+    if (applications.length > 0) {
+      const currentApp = applications[0];
+      const generatedNotifications = generateMockNotifications(currentApp);
+      setNotifications(generatedNotifications);
+    }
+  }, [applications, documents, generateMockNotifications]);
 
   // Refresh applications and documents
   const refreshApplications = async () => {
