@@ -603,7 +603,7 @@ class SchoolAidController extends Controller
         $absolutePath = Storage::disk('public')->path($relativePath);
         $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '.html';
 
-        return Storage::disk('public')->download($relativePath, $filename, [
+        return response()->download($absolutePath, $filename, [
             'Content-Type' => 'text/html',
         ]);
     }
