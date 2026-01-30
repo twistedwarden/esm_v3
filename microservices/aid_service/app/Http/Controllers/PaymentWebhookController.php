@@ -27,7 +27,7 @@ class PaymentWebhookController extends Controller
 
             // PayMongo webhook structure can vary, try multiple paths
             $eventData = $request->input('data');
-            
+
             // Try different possible structures
             $eventType = null;
             if (isset($eventData['attributes']['type'])) {
@@ -132,15 +132,15 @@ class PaymentWebhookController extends Controller
             // Find payment transaction by checkout session ID (this is what we stored when creating the payment link)
             // The provider_transaction_id in our database stores the checkout session ID (cs_...), not the payment ID (pay_...)
             $transaction = null;
-            
+
             if ($checkoutSessionId) {
                 Log::info('Searching for transaction by checkout session ID', [
                     'checkout_session_id' => $checkoutSessionId,
                 ]);
-                
+
                 $transaction = PaymentTransaction::where('provider_transaction_id', $checkoutSessionId)
                     ->first();
-                
+
                 if ($transaction) {
                     Log::info('Transaction found by checkout session ID', [
                         'transaction_id' => $transaction->id,
@@ -154,11 +154,11 @@ class PaymentWebhookController extends Controller
                 Log::info('Trying fallback search methods', [
                     'payment_id' => $paymentId,
                 ]);
-                
+
                 $transaction = PaymentTransaction::where('provider_transaction_id', $paymentId)
                     ->orWhere('transaction_reference', $paymentId)
                     ->first();
-                
+
                 if ($transaction) {
                     Log::info('Transaction found by fallback method', [
                         'transaction_id' => $transaction->id,
@@ -175,7 +175,7 @@ class PaymentWebhookController extends Controller
                         'by_payment_id' => 'tried',
                     ],
                 ]);
-                
+
                 // Log all existing transactions for debugging
                 $allTransactions = PaymentTransaction::where('transaction_status', 'pending')
                     ->get(['id', 'application_id', 'provider_transaction_id', 'transaction_reference', 'created_at']);
@@ -183,7 +183,7 @@ class PaymentWebhookController extends Controller
                     'count' => $allTransactions->count(),
                     'transactions' => $allTransactions->toArray(),
                 ]);
-                
+
                 DB::rollBack();
                 return;
             }
@@ -201,11 +201,11 @@ class PaymentWebhookController extends Controller
             // Mark transaction as completed
             // Use the actual payment ID from PayMongo, and update the provider_transaction_id if needed
             $referenceNumber = $paymentAttributes['reference_number'] ?? $paymentData['reference_number'] ?? $transaction->transaction_reference;
-            
+
             // Update provider_transaction_id to include the actual payment ID for reference
             // Keep checkout session ID but also note the payment ID
             $transaction->markAsCompleted($paymentId, $referenceNumber);
-            
+
             // Optionally store the payment ID in a separate field or update provider_transaction_id
             // For now, we'll keep the checkout session ID and log the payment ID
             Log::info('Transaction marked as completed', [
@@ -217,7 +217,7 @@ class PaymentWebhookController extends Controller
 
             // Get application
             $application = ScholarshipApplication::find($transaction->application_id);
-            
+
             if (!$application) {
                 Log::error('Application not found for transaction', [
                     'transaction_id' => $transaction->id,
@@ -244,7 +244,7 @@ class PaymentWebhookController extends Controller
             // Generate receipt FIRST (before creating disbursement)
             // We'll create a temporary disbursement object for receipt generation
             $receiptService = new ReceiptService();
-            
+
             // Create a temporary disbursement object with the data we need for receipt
             $tempDisbursement = new AidDisbursement();
             $tempDisbursement->disbursement_reference_number = $referenceNumber;
@@ -258,7 +258,7 @@ class PaymentWebhookController extends Controller
 
             // Generate receipt
             $receiptPath = $receiptService->generateReceipt($tempDisbursement, $application, $transaction);
-            
+
             if (!$receiptPath) {
                 Log::warning('Failed to generate receipt, continuing without receipt', [
                     'application_id' => $application->id,
@@ -352,7 +352,7 @@ class PaymentWebhookController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'event' => json_encode($event),
             ]);
-            
+
             // If we have a transaction, revert application status to approved
             if (isset($transaction) && $transaction->application_id) {
                 try {
@@ -360,7 +360,7 @@ class PaymentWebhookController extends Controller
                     if ($application && $application->status === 'grants_processing') {
                         $application->status = 'approved';
                         $application->save();
-                        
+
                         Log::info('Payment processing error - application status reverted to approved', [
                             'application_id' => $application->id,
                             'transaction_id' => $transaction->id,
@@ -373,7 +373,7 @@ class PaymentWebhookController extends Controller
                     ]);
                 }
             }
-            
+
             throw $e;
         }
     }
@@ -476,13 +476,12 @@ class PaymentWebhookController extends Controller
     {
         try {
             if ($application->student_id) {
-                $academicRecord = DB::connection('scholarship_service')
-                    ->table('academic_records')
+                $academicRecord = DB::table('academic_records')
                     ->where('student_id', $application->student_id)
                     ->where('is_current', true)
                     ->orderBy('created_at', 'desc')
                     ->first();
-                
+
                 if ($academicRecord && isset($academicRecord->school_year)) {
                     return $academicRecord->school_year;
                 }
@@ -490,7 +489,7 @@ class PaymentWebhookController extends Controller
         } catch (\Exception $e) {
             // Fall through to default
         }
-        
+
         // Default to current school year
         $currentYear = date('Y');
         $nextYear = date('Y') + 1;
@@ -507,19 +506,19 @@ class PaymentWebhookController extends Controller
                 Log::warning('budget_allocations table does not exist');
                 return;
             }
-            
+
             $budgetType = $this->getBudgetType($application);
-            
+
             $budgetAllocation = BudgetAllocation::where('budget_type', $budgetType)
                 ->where('school_year', $schoolYear)
                 ->where('is_active', true)
                 ->first();
-            
+
             if ($budgetAllocation) {
                 $oldDisbursed = $budgetAllocation->disbursed_amount ?? 0;
                 $budgetAllocation->incrementDisbursed($amount);
                 $budgetAllocation->refresh();
-                
+
                 Log::info('Budget allocation updated', [
                     'budget_id' => $budgetAllocation->id,
                     'budget_type' => $budgetType,

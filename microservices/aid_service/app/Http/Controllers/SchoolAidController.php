@@ -52,8 +52,7 @@ class SchoolAidController extends Controller
                 $schoolYear = null;
                 if ($app->student_id) {
                     try {
-                        $academicRecord = DB::connection('scholarship_service')
-                            ->table('academic_records')
+                        $academicRecord = DB::table('academic_records')
                             ->where('student_id', $app->student_id)
                             ->where('is_current', true)
                             ->orderBy('created_at', 'desc')
@@ -651,8 +650,7 @@ class SchoolAidController extends Controller
             $getSchoolYearFromApplication = function ($application) {
                 try {
                     if ($application->student_id) {
-                        $academicRecord = DB::connection('scholarship_service')
-                            ->table('academic_records')
+                        $academicRecord = DB::table('academic_records')
                             ->where('student_id', $application->student_id)
                             ->where('is_current', true)
                             ->orderBy('created_at', 'desc')
@@ -986,8 +984,7 @@ class SchoolAidController extends Controller
                         $categoryName = $app->category->name;
                     } elseif ($app->category_id) {
                         // Try to get category name directly from database
-                        $category = DB::connection('scholarship_service')
-                            ->table('scholarship_categories')
+                        $category = DB::table('scholarship_categories')
                             ->where('id', $app->category_id)
                             ->first();
                         $categoryName = $category ? $category->name : 'Other';
@@ -1020,8 +1017,7 @@ class SchoolAidController extends Controller
                 if ($app->category) {
                     $categoryName = $app->category->name;
                 } elseif ($app->category_id) {
-                    $category = DB::connection('scholarship_service')
-                        ->table('scholarship_categories')
+                    $category = DB::table('scholarship_categories')
                         ->where('id', $app->category_id)
                         ->first();
                     $categoryName = $category ? $category->name : 'Other';
@@ -1168,16 +1164,14 @@ class SchoolAidController extends Controller
             $subcategory = ScholarshipSubcategory::find($application->subcategory_id);
             if ($subcategory) {
                 // Access type directly from database
-                $type = DB::connection('scholarship_service')
-                    ->table('scholarship_subcategories')
+                $type = DB::table('scholarship_subcategories')
                     ->where('id', $application->subcategory_id)
                     ->value('type');
             }
         }
 
         if (!$type && $application->category_id) {
-            $type = DB::connection('scholarship_service')
-                ->table('scholarship_categories')
+            $type = DB::table('scholarship_categories')
                 ->where('id', $application->category_id)
                 ->value('type');
         }
@@ -1236,8 +1230,7 @@ class SchoolAidController extends Controller
         // Try to get school year from application's academic record
         try {
             if ($application->student_id) {
-                $academicRecord = DB::connection('scholarship_service')
-                    ->table('academic_records')
+                $academicRecord = DB::table('academic_records')
                     ->where('student_id', $application->student_id)
                     ->where('is_current', true)
                     ->orderBy('created_at', 'desc')

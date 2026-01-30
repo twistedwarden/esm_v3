@@ -8,8 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ScholarshipApplication extends Model
 {
     protected $table = 'scholarship_applications';
-    protected $connection = 'scholarship_service';
-    
+
     protected $fillable = [
         'application_number',
         'student_id',

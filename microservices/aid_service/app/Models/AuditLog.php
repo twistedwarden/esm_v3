@@ -10,8 +10,6 @@ class AuditLog extends Model
 {
     use HasFactory;
 
-    protected $connection = 'scholarship_service';
-
     protected $table = 'audit_logs';
 
     protected $fillable = [
