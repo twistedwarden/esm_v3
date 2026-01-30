@@ -143,6 +143,7 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
+        credentials: 'include',
         body: formData,
       });
 
