@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class School extends Model
 {
+    protected $connection = 'scholarship_service';
     protected $table = 'schools';
 
     protected $fillable = [

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ScholarshipApplication extends Model
 {
+    protected $connection = 'scholarship_service';
     protected $table = 'scholarship_applications';
 
     protected $fillable = [
