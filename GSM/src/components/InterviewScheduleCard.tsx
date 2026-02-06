@@ -328,12 +328,21 @@ END:VCALENDAR`;
                 <p className="text-sm font-medium text-gray-600">
                   {schedule.interview_type === 'online' ? 'Meeting Link' : 'Location'}
                 </p>
-                <p className="text-gray-900">
+                <div className="text-gray-900 truncate max-w-[200px]">
                   {schedule.interview_type === 'online'
-                    ? schedule.meeting_link || 'Link not provided'
+                    ? (schedule.meeting_link ? (
+                      <a
+                        href={schedule.meeting_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {schedule.meeting_link}
+                      </a>
+                    ) : 'Link not provided')
                     : schedule.interview_location
                   }
-                </p>
+                </div>
               </div>
             </div>
           </div>
@@ -341,12 +350,14 @@ END:VCALENDAR`;
 
         {/* Interviewer Information */}
         {schedule.interviewer_name && (
-          <div className="bg-blue-50 rounded-lg p-4">
+          <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4">
             <div className="flex items-center space-x-3">
-              <User className="h-5 w-5 text-blue-500" />
+              <div className="p-2 bg-blue-100 rounded-full">
+                <User className="h-4 w-4 text-blue-600" />
+              </div>
               <div>
-                <p className="text-sm font-medium text-blue-600">Interviewer</p>
-                <p className="text-blue-900">{schedule.interviewer_name}</p>
+                <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">Interviewer</p>
+                <p className="text-blue-900 font-medium">{schedule.interviewer_name}</p>
               </div>
             </div>
           </div>
@@ -354,15 +365,15 @@ END:VCALENDAR`;
 
         {/* Interview Notes */}
         {schedule.interview_notes && (
-          <div className="bg-yellow-50 rounded-lg p-4">
+          <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4">
             <p className="text-sm font-medium text-yellow-800 mb-1">Interview Notes</p>
-            <p className="text-yellow-700">{schedule.interview_notes}</p>
+            <p className="text-yellow-700 text-sm">{schedule.interview_notes}</p>
           </div>
         )}
 
         {/* Interview Result */}
         {schedule.interview_result && (
-          <div className="bg-green-50 rounded-lg p-4">
+          <div className="bg-green-50 border border-green-100 rounded-lg p-4">
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
               <div>
@@ -374,10 +385,10 @@ END:VCALENDAR`;
         )}
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 pt-4 border-t">
+        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
           <button
             onClick={addToCalendar}
-            className="flex items-center space-x-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+            className="flex-1 sm:flex-none flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
           >
             <Calendar className="h-4 w-4" />
             <span>Add to Calendar</span>
@@ -386,20 +397,23 @@ END:VCALENDAR`;
           {schedule.interview_type === 'online' && schedule.meeting_link && (
             <button
               onClick={joinMeeting}
-              className="flex items-center space-x-2 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700"
+              className="flex-1 sm:flex-none flex items-center justify-center space-x-2 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 shadow-sm transition-colors"
             >
               <Video className="h-4 w-4" />
               <span>Join Meeting</span>
-              <ExternalLink className="h-3 w-3" />
+              <ExternalLink className="h-3 w-3 opacity-75" />
             </button>
           )}
 
+          <div className="flex-grow sm:hidden"></div>
+
           <button
             onClick={fetchInterviewSchedule}
-            className="flex items-center space-x-2 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700"
+            className="flex-none flex items-center justify-center space-x-2 bg-gray-100 text-gray-600 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors ml-auto"
+            title="Refresh Schedule"
           >
             <RefreshCw className="h-4 w-4" />
-            <span>Refresh</span>
+            <span className="sr-only sm:not-sr-only">Refresh</span>
           </button>
         </div>
 
