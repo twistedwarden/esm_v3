@@ -16,10 +16,11 @@ export const PaymentSuccess: React.FC = () => {
 
       if (applicationId) {
         try {
-          await schoolAidService.verifyPayment({
+          const data = await schoolAidService.verifyPayment({
             application_id: applicationId,
             session_id: sessionId || undefined
           });
+          setPaymentData(data);
         } catch (error) {
           console.error('Payment verification failed:', error);
         }
@@ -67,11 +68,11 @@ export const PaymentSuccess: React.FC = () => {
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Status</p>
               <p className="font-semibold text-green-600 dark:text-green-400">Payment Completed</p>
 
-              {searchParams.get('reference') && (
+              {(paymentData?.reference || searchParams.get('reference')) && (
                 <>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-3 mb-1">Reference Number</p>
                   <p className="font-mono text-sm text-slate-800 dark:text-white">
-                    {searchParams.get('reference')}
+                    {paymentData?.reference || searchParams.get('reference')}
                   </p>
                 </>
               )}

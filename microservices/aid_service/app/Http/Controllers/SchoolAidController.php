@@ -15,6 +15,7 @@ use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class SchoolAidController extends Controller
@@ -978,214 +979,11 @@ class SchoolAidController extends Controller
 
     private function getPaymentsAnalytics($startDate, $endDate): JsonResponse
     {
-        // Get daily disbursements
-        $dailyDisbursements = DB::table('aid_disbursements')
-            ->whereBetween('disbursed_at', [$startDate, $endDate])
-            ->whereNotNull('disbursed_at')
-            ->selectRaw('DATE(disbursed_at) as date, COUNT(*) as count, SUM(amount) as amount')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'date' => $item->date,
-                    'count' => (int) $item->count,
-                    'amount' => (float) $item->amount
-                ];
-            });
-
-        // Fill in missing dates with zero values
-        $allDates = [];
-        $currentDate = clone $startDate;
-        while ($currentDate <= $endDate) {
-            $dateStr = $currentDate->format('Y-m-d');
-            $existing = $dailyDisbursements->firstWhere('date', $dateStr);
-            $allDates[] = $existing ?: [
-                'date' => $dateStr,
-                'count' => 0,
-                'amount' => 0
-            ];
-            $currentDate->addDay();
-        }
-        $dailyDisbursements = collect($allDates);
-
-        // Get status distribution
-        $statusDistribution = ScholarshipApplication::selectRaw('status, COUNT(*) as count')
-            ->groupBy('status')
-            ->get()
-            ->map(function ($item) {
-                $total = ScholarshipApplication::count();
-                $percentage = $total > 0 ? round(($item->count / $total) * 100, 1) : 0;
-
-                $colors = [
-                    'approved' => 'bg-blue-500',
-                    'grants_processing' => 'bg-yellow-500',
-                    'grants_disbursed' => 'bg-green-500',
-                    'payment_failed' => 'bg-red-500',
-                    'rejected' => 'bg-gray-500',
-                    'submitted' => 'bg-purple-500',
-                ];
-
-                return [
-                    'status' => ucfirst(str_replace('_', ' ', $item->status)),
-                    'count' => (int) $item->count,
-                    'percentage' => $percentage,
-                    'color' => $colors[$item->status] ?? 'bg-gray-500'
-                ];
-            });
-
-        // Get school performance (top schools by disbursement amount)
-        $schoolPerformance = AidDisbursement::whereBetween('disbursed_at', [$startDate, $endDate])
-            ->whereNotNull('school_id')
-            ->selectRaw('school_id, COUNT(*) as scholars, SUM(amount) as disbursed')
-            ->groupBy('school_id')
-            ->orderByDesc('disbursed')
-            ->limit(10)
-            ->get()
-            ->map(function ($item) use ($startDate, $endDate) {
-                $school = School::find($item->school_id);
-                $avgTime = AidDisbursement::where('school_id', $item->school_id)
-                    ->whereBetween('disbursed_at', [$startDate, $endDate])
-                    ->whereNotNull('disbursed_at')
-                    ->get()
-                    ->map(function ($d) {
-                        $app = ScholarshipApplication::find($d->application_id);
-                        if ($app && $app->approved_at && $d->disbursed_at) {
-                            // Convert to Carbon if needed
-                            $approvedAt = is_string($app->approved_at)
-                                ? \Carbon\Carbon::parse($app->approved_at)
-                                : $app->approved_at;
-                            $disbursedAt = is_string($d->disbursed_at)
-                                ? \Carbon\Carbon::parse($d->disbursed_at)
-                                : $d->disbursed_at;
-
-                            if ($approvedAt && $disbursedAt) {
-                                return $approvedAt->diffInDays($disbursedAt);
-                            }
-                        }
-                        return null;
-                    })
-                    ->filter()
-                    ->avg();
-
-                return [
-                    'school' => $school ? $school->name : 'Unknown School',
-                    'scholars' => (int) $item->scholars,
-                    'disbursed' => (float) $item->disbursed,
-                    'avgTime' => round($avgTime ?: 0, 1)
-                ];
-            });
-
-        // Get monthly trends
-        $monthlyTrends = ScholarshipApplication::whereBetween('created_at', [$startDate, $endDate])
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as applications')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->map(function ($item) {
-                $disbursed = AidDisbursement::whereRaw('DATE_FORMAT(disbursed_at, "%Y-%m") = ?', [$item->month])
-                    ->whereNotNull('disbursed_at')
-                    ->count();
-                $amount = AidDisbursement::whereRaw('DATE_FORMAT(disbursed_at, "%Y-%m") = ?', [$item->month])
-                    ->whereNotNull('disbursed_at')
-                    ->sum('amount');
-
-                return [
-                    'month' => date('M Y', strtotime($item->month . '-01')),
-                    'applications' => (int) $item->applications,
-                    'disbursed' => (int) $disbursed,
-                    'amount' => (float) $amount
-                ];
-            });
-
-        // Get category distribution for disbursed applications
-        $categoryDistribution = [];
-
-        // Get disbursements with their applications
-        $disbursements = AidDisbursement::whereBetween('disbursed_at', [$startDate, $endDate])
-            ->whereNotNull('disbursed_at')
-            ->whereNotNull('application_id')
-            ->get();
-
-        if ($disbursements->count() > 0) {
-            $categoryGroups = [];
-            foreach ($disbursements as $disbursement) {
-                $app = ScholarshipApplication::with('category')->find($disbursement->application_id);
-                $categoryName = 'Other';
-
-                if ($app) {
-                    if ($app->category) {
-                        $categoryName = $app->category->name;
-                    } elseif ($app->category_id) {
-                        // Try to get category name directly from database
-                        $category = DB::table('scholarship_categories')
-                            ->where('id', $app->category_id)
-                            ->first();
-                        $categoryName = $category ? $category->name : 'Other';
-                    }
-                }
-
-                if (!isset($categoryGroups[$categoryName])) {
-                    $categoryGroups[$categoryName] = ['count' => 0, 'amount' => 0];
-                }
-                $categoryGroups[$categoryName]['count']++;
-                $categoryGroups[$categoryName]['amount'] += $disbursement->amount;
-            }
-
-            $categoryDistribution = array_map(function ($name, $data) {
-                return [
-                    'name' => $name,
-                    'value' => $data['count'],
-                    'amount' => $data['amount']
-                ];
-            }, array_keys($categoryGroups), $categoryGroups);
-        } else {
-            // Fallback: get from applications
-            $applications = ScholarshipApplication::where('status', 'grants_disbursed')
-                ->whereNotNull('category_id')
-                ->get();
-
-            $categoryGroups = [];
-            foreach ($applications as $app) {
-                $categoryName = 'Other';
-                if ($app->category) {
-                    $categoryName = $app->category->name;
-                } elseif ($app->category_id) {
-                    $category = DB::table('scholarship_categories')
-                        ->where('id', $app->category_id)
-                        ->first();
-                    $categoryName = $category ? $category->name : 'Other';
-                }
-
-                if (!isset($categoryGroups[$categoryName])) {
-                    $categoryGroups[$categoryName] = ['count' => 0, 'amount' => 0];
-                }
-                $categoryGroups[$categoryName]['count']++;
-                $categoryGroups[$categoryName]['amount'] += $app->approved_amount ?: 0;
-            }
-
-            $categoryDistribution = array_map(function ($name, $data) {
-                return [
-                    'name' => $name,
-                    'value' => $data['count'],
-                    'amount' => $data['amount']
-                ];
-            }, array_keys($categoryGroups), $categoryGroups);
-        }
-
-        // Calculate percentages
-        $total = array_sum(array_column($categoryDistribution, 'value'));
-        if ($total > 0) {
-            foreach ($categoryDistribution as &$category) {
-                $category['percentage'] = round(($category['value'] / $total) * 100, 1);
-            }
-        }
-
-        // Assign colors to categories
-        $colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-        foreach ($categoryDistribution as $index => &$category) {
-            $category['color'] = $colors[$index % count($colors)];
-        }
+        $dailyDisbursements = $this->getDailyDisbursements($startDate, $endDate);
+        $statusDistribution = $this->getStatusDistribution();
+        $schoolPerformance = $this->getSchoolPerformance($startDate, $endDate);
+        $monthlyTrends = $this->getMonthlyTrends($startDate, $endDate);
+        $categoryDistribution = $this->getCategoryDistribution($startDate, $endDate);
 
         return response()->json([
             'labels' => $dailyDisbursements->pluck('date')->map(function ($date) {
@@ -1648,5 +1446,225 @@ class SchoolAidController extends Controller
             ]);
             return response()->json(['error' => 'Verification failed: ' . $e->getMessage()], 500);
         }
+    }
+
+    private function getDailyDisbursements($startDate, $endDate)
+    {
+        $dailyDisbursements = DB::table('aid_disbursements')
+            ->whereBetween('disbursed_at', [$startDate, $endDate])
+            ->whereNotNull('disbursed_at')
+            ->selectRaw('DATE(disbursed_at) as date, COUNT(*) as count, SUM(amount) as amount')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => $item->date,
+                    'count' => (int) $item->count,
+                    'amount' => (float) $item->amount
+                ];
+            });
+
+        $allDates = [];
+        $currentDate = clone $startDate;
+        while ($currentDate <= $endDate) {
+            $dateStr = $currentDate->format('Y-m-d');
+            $existing = $dailyDisbursements->firstWhere('date', $dateStr);
+            $allDates[] = $existing ?: [
+                'date' => $dateStr,
+                'count' => 0,
+                'amount' => 0
+            ];
+            $currentDate->addDay();
+        }
+
+        return collect($allDates);
+    }
+
+    private function getStatusDistribution()
+    {
+        return ScholarshipApplication::selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->get()
+            ->map(function ($item) {
+                $total = ScholarshipApplication::count();
+                $percentage = $total > 0 ? round(($item->count / $total) * 100, 1) : 0;
+
+                $colors = [
+                    'approved' => 'bg-blue-500',
+                    'grants_processing' => 'bg-yellow-500',
+                    'grants_disbursed' => 'bg-green-500',
+                    'payment_failed' => 'bg-red-500',
+                    'rejected' => 'bg-gray-500',
+                    'submitted' => 'bg-purple-500',
+                ];
+
+                return [
+                    'status' => ucfirst(str_replace('_', ' ', $item->status)),
+                    'count' => (int) $item->count,
+                    'percentage' => $percentage,
+                    'color' => $colors[$item->status] ?? 'bg-gray-500'
+                ];
+            });
+    }
+
+    private function getSchoolPerformance($startDate, $endDate)
+    {
+        return AidDisbursement::whereBetween('disbursed_at', [$startDate, $endDate])
+            ->whereNotNull('school_id')
+            ->selectRaw('school_id, COUNT(*) as scholars, SUM(amount) as disbursed')
+            ->groupBy('school_id')
+            ->orderByDesc('disbursed')
+            ->limit(10)
+            ->get()
+            ->map(function ($item) use ($startDate, $endDate) {
+                $school = School::find($item->school_id);
+                $avgTime = AidDisbursement::where('school_id', $item->school_id)
+                    ->whereBetween('disbursed_at', [$startDate, $endDate])
+                    ->whereNotNull('disbursed_at')
+                    ->get()
+                    ->map(function ($d) {
+                        $app = ScholarshipApplication::find($d->application_id);
+                        if ($app && $app->approved_at && $d->disbursed_at) {
+                            $approvedAt = is_string($app->approved_at)
+                                ? \Carbon\Carbon::parse($app->approved_at)
+                                : $app->approved_at;
+                            $disbursedAt = is_string($d->disbursed_at)
+                                ? \Carbon\Carbon::parse($d->disbursed_at)
+                                : $d->disbursed_at;
+
+                            if ($approvedAt && $disbursedAt) {
+                                return $approvedAt->diffInDays($disbursedAt);
+                            }
+                        }
+                        return null;
+                    })
+                    ->filter()
+                    ->avg();
+
+                return [
+                    'school' => $school ? $school->name : 'Unknown School',
+                    'scholars' => (int) $item->scholars,
+                    'disbursed' => (float) $item->disbursed,
+                    'avgTime' => round($avgTime ?: 0, 1)
+                ];
+            });
+    }
+
+    private function getMonthlyTrends($startDate, $endDate)
+    {
+        return ScholarshipApplication::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as applications')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(function ($item) {
+                $disbursed = AidDisbursement::whereRaw('DATE_FORMAT(disbursed_at, "%Y-%m") = ?', [$item->month])
+                    ->whereNotNull('disbursed_at')
+                    ->count();
+                $amount = AidDisbursement::whereRaw('DATE_FORMAT(disbursed_at, "%Y-%m") = ?', [$item->month])
+                    ->whereNotNull('disbursed_at')
+                    ->sum('amount');
+
+                return [
+                    'month' => date('M Y', strtotime($item->month . '-01')),
+                    'applications' => (int) $item->applications,
+                    'disbursed' => (int) $disbursed,
+                    'amount' => (float) $amount
+                ];
+            });
+    }
+
+    private function getCategoryDistribution($startDate, $endDate)
+    {
+        $categoryDistribution = [];
+
+        // Get disbursements with their applications
+        $disbursements = AidDisbursement::whereBetween('disbursed_at', [$startDate, $endDate])
+            ->whereNotNull('disbursed_at')
+            ->whereNotNull('application_id')
+            ->get();
+
+        if ($disbursements->count() > 0) {
+            $categoryGroups = [];
+            foreach ($disbursements as $disbursement) {
+                $app = ScholarshipApplication::with('category')->find($disbursement->application_id);
+                $categoryName = 'Other';
+
+                if ($app) {
+                    if ($app->category) {
+                        $categoryName = $app->category->name;
+                    } elseif ($app->category_id) {
+                        // Try to get category name directly from database
+                        $category = DB::table('scholarship_categories')
+                            ->where('id', $app->category_id)
+                            ->first();
+                        $categoryName = $category ? $category->name : 'Other';
+                    }
+                }
+
+                if (!isset($categoryGroups[$categoryName])) {
+                    $categoryGroups[$categoryName] = ['count' => 0, 'amount' => 0];
+                }
+                $categoryGroups[$categoryName]['count']++;
+                $categoryGroups[$categoryName]['amount'] += $disbursement->amount;
+            }
+
+            $categoryDistribution = array_map(function ($name, $data) {
+                return [
+                    'name' => $name,
+                    'value' => $data['count'],
+                    'amount' => $data['amount']
+                ];
+            }, array_keys($categoryGroups), $categoryGroups);
+        } else {
+            // Fallback: get from applications
+            $applications = ScholarshipApplication::where('status', 'grants_disbursed')
+                ->whereNotNull('category_id')
+                ->get();
+
+            $categoryGroups = [];
+            foreach ($applications as $app) {
+                $categoryName = 'Other';
+                if ($app->category) {
+                    $categoryName = $app->category->name;
+                } elseif ($app->category_id) {
+                    $category = DB::table('scholarship_categories')
+                        ->where('id', $app->category_id)
+                        ->first();
+                    $categoryName = $category ? $category->name : 'Other';
+                }
+
+                if (!isset($categoryGroups[$categoryName])) {
+                    $categoryGroups[$categoryName] = ['count' => 0, 'amount' => 0];
+                }
+                $categoryGroups[$categoryName]['count']++;
+                $categoryGroups[$categoryName]['amount'] += $app->approved_amount ?: 0;
+            }
+
+            $categoryDistribution = array_map(function ($name, $data) {
+                return [
+                    'name' => $name,
+                    'value' => $data['count'],
+                    'amount' => $data['amount']
+                ];
+            }, array_keys($categoryGroups), $categoryGroups);
+        }
+
+        // Calculate percentages
+        $total = array_sum(array_column($categoryDistribution, 'value'));
+        if ($total > 0) {
+            foreach ($categoryDistribution as &$category) {
+                $category['percentage'] = round(($category['value'] / $total) * 100, 1);
+            }
+        }
+
+        // Assign colors to categories
+        $colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+        foreach ($categoryDistribution as $index => &$category) {
+            $category['color'] = $colors[$index % count($colors)];
+        }
+
+        return $categoryDistribution;
     }
 }
