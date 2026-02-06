@@ -388,7 +388,7 @@ END:VCALENDAR`;
         <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
           <button
             onClick={addToCalendar}
-            className="flex-1 sm:flex-none flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+            className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
           >
             <Calendar className="h-4 w-4" />
             <span>Add to Calendar</span>
@@ -397,7 +397,7 @@ END:VCALENDAR`;
           {schedule.interview_type === 'online' && schedule.meeting_link && (
             <button
               onClick={joinMeeting}
-              className="flex-1 sm:flex-none flex items-center justify-center space-x-2 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 shadow-sm transition-colors"
+              className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 shadow-sm transition-colors"
             >
               <Video className="h-4 w-4" />
               <span>Join Meeting</span>
@@ -405,15 +405,13 @@ END:VCALENDAR`;
             </button>
           )}
 
-          <div className="flex-grow sm:hidden"></div>
-
           <button
             onClick={fetchInterviewSchedule}
-            className="flex-none flex items-center justify-center space-x-2 bg-gray-100 text-gray-600 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors ml-auto"
+            className="w-full sm:w-auto sm:ml-auto flex items-center justify-center space-x-2 bg-gray-100 text-gray-600 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
             title="Refresh Schedule"
           >
             <RefreshCw className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only">Refresh</span>
+            <span>Refresh</span>
           </button>
         </div>
 
