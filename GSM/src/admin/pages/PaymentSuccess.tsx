@@ -10,20 +10,31 @@ export const PaymentSuccess: React.FC = () => {
   const [paymentData, setPaymentData] = useState<any>(null);
 
   useEffect(() => {
-    // Get payment reference from URL if available
-    const reference = searchParams.get('reference') || searchParams.get('checkout_session_id');
-    
-    // Refresh application data after a short delay to allow webhook to process
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+    const verifyPayment = async () => {
+      const applicationId = searchParams.get('application_id');
+      const sessionId = searchParams.get('checkout_session_id');
 
-    return () => clearTimeout(timer);
+      if (applicationId) {
+        try {
+          await schoolAidService.verifyPayment({
+            application_id: applicationId,
+            session_id: sessionId || undefined
+          });
+        } catch (error) {
+          console.error('Payment verification failed:', error);
+        }
+      }
+
+      // Ensure loading state is cleared even if verification fails or no app ID
+      setLoading(false);
+    };
+
+    verifyPayment();
   }, [searchParams]);
 
   const handleBackToApplications = () => {
-    navigate('/admin', { 
-      state: { 
+    navigate('/admin', {
+      state: {
         activeItem: 'school-aid-distribution',
         activeTab: 'applications'
       }
@@ -55,7 +66,7 @@ export const PaymentSuccess: React.FC = () => {
             <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 mb-6 text-left">
               <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Status</p>
               <p className="font-semibold text-green-600 dark:text-green-400">Payment Completed</p>
-              
+
               {searchParams.get('reference') && (
                 <>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-3 mb-1">Reference Number</p>
@@ -70,7 +81,7 @@ export const PaymentSuccess: React.FC = () => {
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Your application status will be updated automatically. You will receive a confirmation once the disbursement is processed.
               </p>
-              
+
               <button
                 onClick={handleBackToApplications}
                 className="w-full flex items-center justify-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"

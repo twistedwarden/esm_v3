@@ -258,6 +258,23 @@ class SchoolAidService {
     return await response.json();
   }
 
+  async verifyPayment(params: { application_id: string; session_id?: string }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/school-aid/payments/verify`, {
+      method: 'POST',
+      headers: this.buildAuthHeaders({
+        'Content-Type': 'application/json',
+      }),
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Failed to verify payment: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
   async retryPayment(paymentId: string): Promise<PaymentRecord> {
     const response = await fetch(`${API_BASE_URL}/school-aid/payments/${paymentId}/retry`, {
       method: 'POST',

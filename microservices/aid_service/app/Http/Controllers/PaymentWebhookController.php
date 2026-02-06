@@ -13,9 +13,11 @@ use App\Models\BudgetAllocation;
 use App\Services\AuditLogService;
 use App\Services\ReceiptService;
 
+use App\Services\PaymentService;
+
 class PaymentWebhookController extends Controller
 {
-    public function handlePaymongoWebhook(Request $request)
+    public function handlePaymongoWebhook(Request $request, PaymentService $paymentService)
     {
         try {
             // Log incoming webhook
@@ -46,7 +48,7 @@ class PaymentWebhookController extends Controller
             ]);
 
             if ($eventType === 'payment.paid' || $eventType === 'checkout_session.payment.paid') {
-                $this->handlePaymentSuccess($eventData ?? $payload);
+                $this->handlePaymentSuccess($eventData ?? $payload, $paymentService);
             } elseif ($eventType === 'payment.failed' || $eventType === 'checkout_session.payment.failed') {
                 $this->handlePaymentFailed($eventData ?? $payload);
             } else {
@@ -69,7 +71,7 @@ class PaymentWebhookController extends Controller
         }
     }
 
-    private function handlePaymentSuccess($event)
+    private function handlePaymentSuccess($event, PaymentService $paymentService)
     {
         $transaction = null;
         try {
@@ -129,221 +131,43 @@ class PaymentWebhookController extends Controller
                 'payment_attributes_keys' => array_keys($paymentAttributes ?? []),
             ]);
 
-            // Find payment transaction by checkout session ID (this is what we stored when creating the payment link)
-            // The provider_transaction_id in our database stores the checkout session ID (cs_...), not the payment ID (pay_...)
+            // Find payment transaction by checkout session ID
             $transaction = null;
 
             if ($checkoutSessionId) {
-                Log::info('Searching for transaction by checkout session ID', [
-                    'checkout_session_id' => $checkoutSessionId,
-                ]);
-
                 $transaction = PaymentTransaction::where('provider_transaction_id', $checkoutSessionId)
                     ->first();
-
-                if ($transaction) {
-                    Log::info('Transaction found by checkout session ID', [
-                        'transaction_id' => $transaction->id,
-                        'application_id' => $transaction->application_id,
-                    ]);
-                }
             }
 
             // Fallback: try to find by payment ID or transaction reference
             if (!$transaction) {
-                Log::info('Trying fallback search methods', [
-                    'payment_id' => $paymentId,
-                ]);
-
                 $transaction = PaymentTransaction::where('provider_transaction_id', $paymentId)
                     ->orWhere('transaction_reference', $paymentId)
                     ->first();
-
-                if ($transaction) {
-                    Log::info('Transaction found by fallback method', [
-                        'transaction_id' => $transaction->id,
-                    ]);
-                }
             }
 
             if (!$transaction) {
                 Log::warning('Payment transaction not found', [
                     'payment_id' => $paymentId,
-                    'checkout_session_id' => $checkoutSessionId,
-                    'search_attempts' => [
-                        'by_checkout_session' => $checkoutSessionId ? 'tried' : 'not_available',
-                        'by_payment_id' => 'tried',
-                    ],
-                ]);
-
-                // Log all existing transactions for debugging
-                $allTransactions = PaymentTransaction::where('transaction_status', 'pending')
-                    ->get(['id', 'application_id', 'provider_transaction_id', 'transaction_reference', 'created_at']);
-                Log::info('Pending transactions in database', [
-                    'count' => $allTransactions->count(),
-                    'transactions' => $allTransactions->toArray(),
-                ]);
-
-                DB::rollBack();
-                return;
-            }
-
-            // Check if already processed
-            if ($transaction->transaction_status === 'completed') {
-                Log::info('Payment already processed', [
-                    'transaction_id' => $transaction->id,
-                    'payment_id' => $paymentId,
                 ]);
                 DB::rollBack();
                 return;
             }
 
-            // Mark transaction as completed
-            // Use the actual payment ID from PayMongo, and update the provider_transaction_id if needed
-            $referenceNumber = $paymentAttributes['reference_number'] ?? $paymentData['reference_number'] ?? $transaction->transaction_reference;
-
-            // Update provider_transaction_id to include the actual payment ID for reference
-            // Keep checkout session ID but also note the payment ID
-            $transaction->markAsCompleted($paymentId, $referenceNumber);
-
-            // Optionally store the payment ID in a separate field or update provider_transaction_id
-            // For now, we'll keep the checkout session ID and log the payment ID
-            Log::info('Transaction marked as completed', [
-                'transaction_id' => $transaction->id,
-                'checkout_session_id' => $checkoutSessionId,
-                'payment_id' => $paymentId,
-                'reference_number' => $referenceNumber,
-            ]);
-
-            // Get application
-            $application = ScholarshipApplication::find($transaction->application_id);
-
-            if (!$application) {
-                Log::error('Application not found for transaction', [
-                    'transaction_id' => $transaction->id,
-                    'application_id' => $transaction->application_id,
-                ]);
-                DB::rollBack();
-                return;
+            // Use PaymentService to process success
+            // Prepare payment data for service
+            // Service expects 'id' (payment id) and 'reference_number' in the data
+            if (!isset($paymentData['id'])) {
+                $paymentData['id'] = $paymentId;
+            }
+            if (!isset($paymentData['reference_number']) && isset($paymentAttributes['reference_number'])) {
+                $paymentData['reference_number'] = $paymentAttributes['reference_number'];
             }
 
-            // Check if disbursement already exists
-            $existingDisbursement = AidDisbursement::where('payment_transaction_id', $transaction->id)
-                ->where('disbursement_status', 'completed')
-                ->first();
-
-            if ($existingDisbursement) {
-                Log::info('Disbursement already exists for this transaction', [
-                    'disbursement_id' => $existingDisbursement->id,
-                    'transaction_id' => $transaction->id,
-                ]);
-                DB::rollBack();
-                return;
-            }
-
-            // Generate receipt FIRST (before creating disbursement)
-            // We'll create a temporary disbursement object for receipt generation
-            $receiptService = new ReceiptService();
-
-            // Create a temporary disbursement object with the data we need for receipt
-            $tempDisbursement = new AidDisbursement();
-            $tempDisbursement->disbursement_reference_number = $referenceNumber;
-            $tempDisbursement->application_number = $application->application_number;
-            $tempDisbursement->amount = $transaction->transaction_amount;
-            $tempDisbursement->disbursement_method = 'digital_wallet';
-            $tempDisbursement->payment_provider_name = 'PayMongo';
-            $tempDisbursement->provider_transaction_id = $paymentId;
-            $tempDisbursement->account_number = $application->wallet_account_number;
-            $tempDisbursement->disbursed_at = now();
-
-            // Generate receipt
-            $receiptPath = $receiptService->generateReceipt($tempDisbursement, $application, $transaction);
-
-            if (!$receiptPath) {
-                Log::warning('Failed to generate receipt, continuing without receipt', [
-                    'application_id' => $application->id,
-                    'transaction_id' => $transaction->id,
-                ]);
-            }
-
-            // Create disbursement record with receipt_path (nullable, so it's OK if receipt generation failed)
-            // Only use columns that exist in the current table structure
-            $disbursementData = [
-                'application_id' => $application->id,
-                'payment_transaction_id' => $transaction->id,
-                'application_number' => $application->application_number,
-                'student_id' => $application->student_id,
-                'school_id' => $application->school_id,
-                'amount' => $transaction->transaction_amount,
-                'disbursement_method' => 'digital_wallet',
-                'payment_provider_name' => 'PayMongo',
-                'payment_provider' => 'paymongo',
-                'provider_transaction_id' => $paymentId,
-                'account_number' => $application->wallet_account_number, // Store account number from application
-                'disbursement_reference_number' => $referenceNumber,
-                'disbursement_status' => 'completed',
-                'receipt_path' => $receiptPath, // Can be null if receipt generation failed
-                'disbursed_at' => now(),
-                'disbursed_by_user_id' => $transaction->initiated_by_user_id,
-                'disbursed_by_name' => $transaction->initiated_by_name ?? 'PayMongo Webhook',
-            ];
-
-            // Only add old column names if they exist (for backward compatibility)
-            if (Schema::hasColumn('aid_disbursements', 'method')) {
-                $disbursementData['method'] = 'digital_wallet';
-            }
-            if (Schema::hasColumn('aid_disbursements', 'provider_name')) {
-                $disbursementData['provider_name'] = 'PayMongo';
-            }
-            if (Schema::hasColumn('aid_disbursements', 'reference_number')) {
-                $disbursementData['reference_number'] = $referenceNumber;
-            }
-
-            $disbursement = AidDisbursement::create($disbursementData);
-
-            if ($receiptPath) {
-                Log::info('Receipt generated and attached successfully', [
-                    'disbursement_id' => $disbursement->id,
-                    'receipt_path' => $receiptPath,
-                ]);
-            } else {
-                Log::warning('Disbursement created without receipt', [
-                    'disbursement_id' => $disbursement->id,
-                ]);
-            }
-
-            // Update application status
-            $application->status = 'grants_disbursed';
-            $application->save();
-
-            // Update budget allocation
-            $schoolYear = $this->getSchoolYearFromApplication($application);
-            $this->updateBudgetOnDisbursement($application, $transaction->transaction_amount, $schoolYear);
-
-            // Log audit
-            AuditLogService::logAction(
-                'payment_completed',
-                "Payment completed for application #{$application->application_number}",
-                'scholarship_application',
-                (string) $application->id,
-                null,
-                [
-                    'payment_transaction_id' => $transaction->id,
-                    'disbursement_id' => $disbursement->id,
-                    'amount' => $transaction->transaction_amount,
-                    'receipt_path' => $receiptPath,
-                ]
-            );
-
+            // Commit current transaction before calling service (which handles its own transaction)
             DB::commit();
 
-            Log::info('Payment processed successfully', [
-                'application_id' => $application->id,
-                'transaction_id' => $transaction->id,
-                'disbursement_id' => $disbursement->id,
-                'receipt_path' => $receiptPath,
-                'budget_deducted' => true,
-            ]);
+            $paymentService->processPaymentSuccess($transaction, $paymentData);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -352,28 +176,6 @@ class PaymentWebhookController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'event' => json_encode($event),
             ]);
-
-            // If we have a transaction, revert application status to approved
-            if (isset($transaction) && $transaction->application_id) {
-                try {
-                    $application = ScholarshipApplication::find($transaction->application_id);
-                    if ($application && $application->status === 'grants_processing') {
-                        $application->status = 'approved';
-                        $application->save();
-
-                        Log::info('Payment processing error - application status reverted to approved', [
-                            'application_id' => $application->id,
-                            'transaction_id' => $transaction->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                } catch (\Exception $revertError) {
-                    Log::error('Failed to revert application status after payment error', [
-                        'error' => $revertError->getMessage(),
-                    ]);
-                }
-            }
-
             throw $e;
         }
     }

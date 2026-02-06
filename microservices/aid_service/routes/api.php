@@ -88,6 +88,8 @@ Route::prefix('school-aid')->group(function () {
 
     // Process payment
     Route::post('/payments/process', [SchoolAidController::class, 'processPayment']);
+    Route::post('/payments/verify', [SchoolAidController::class, 'verifyPayment']);
+    Route::post('/payment/link', [SchoolAidController::class, 'createPaymentLink']);
 
     // Retry payment
     Route::post('/payments/{id}/retry', function (Request $request, $id) {

@@ -5,6 +5,13 @@ namespace App\Services;
 use App\Models\ScholarshipApplication;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use App\Models\PaymentTransaction;
+use App\Models\AidDisbursement;
+use App\Models\BudgetAllocation;
+use App\Services\AuditLogService;
+use App\Services\ReceiptService;
 
 class PaymentService
 {
@@ -237,6 +244,251 @@ class PaymentService
             ]);
 
             throw new \Exception('Failed to verify payment: ' . $e->getMessage());
+        }
+    }
+    /**
+     * Verify checkout session status
+     */
+    public function verifyCheckoutSession(string $sessionId): array
+    {
+        if ($this->mockEnabled) {
+            return $this->verifyMockPayment($sessionId);
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Basic ' . base64_encode($this->secretKey . ':'),
+                'Content-Type' => 'application/json',
+            ])->get($this->baseUrl . '/checkout_sessions/' . $sessionId);
+
+            if (!$response->successful()) {
+                throw new \Exception('Failed to verify checkout session');
+            }
+
+            $data = $response->json();
+            $attributes = $data['data']['attributes'];
+            $paymentIntentId = $attributes['payment_intent']['id'] ?? null;
+            $payments = $attributes['payments'] ?? [];
+
+            // Get the first payment if available
+            $payment = null;
+            if (!empty($payments)) {
+                $payment = $payments[0]['attributes'];
+                $payment['id'] = $payments[0]['id'];
+            }
+
+            return [
+                'id' => $data['data']['id'],
+                'status' => $payment ? $payment['status'] : 'pending', // Use payment status if available
+                'payment_intent_status' => $attributes['payment_intent']['attributes']['status'] ?? null,
+                'amount' => ($attributes['amount'] ?? 0) / 100,
+                'currency' => $attributes['currency'] ?? 'PHP',
+                'payments' => $payments,
+                'payment_id' => $payment['id'] ?? null,
+                'reference_number' => $attributes['balance_transaction']['attributes']['reference_number'] ?? null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('PayMongo checkout verification failed', [
+                'error' => $e->getMessage(),
+                'session_id' => $sessionId,
+            ]);
+
+            throw new \Exception('Failed to verify checkout session: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Process payment success logic
+     */
+    public function processPaymentSuccess(PaymentTransaction $transaction, array $paymentData)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Extract payment ID
+            $paymentId = $paymentData['id'] ?? $paymentData['payment_id'] ?? null;
+            $referenceNumber = $paymentData['reference_number'] ?? $transaction->transaction_reference;
+
+            if (!$paymentId) {
+                // If checking out via verifyCheckoutSession, we might not have a direct payment ID yet if no payment is made
+                // But if we are calling this, we assume it's successful
+                $paymentId = $transaction->provider_transaction_id; // Fallback to session ID
+            }
+
+            // Check if already processed
+            if ($transaction->transaction_status === 'completed') {
+                Log::info('Payment already processed', [
+                    'transaction_id' => $transaction->id,
+                ]);
+                DB::rollBack();
+                return true;
+            }
+
+            // Mark transaction as completed
+            $transaction->markAsCompleted($paymentId, $referenceNumber);
+
+            Log::info('Transaction marked as completed', [
+                'transaction_id' => $transaction->id,
+                'payment_id' => $paymentId,
+            ]);
+
+            // Get application
+            $application = ScholarshipApplication::find($transaction->application_id);
+
+            if (!$application) {
+                throw new \Exception('Application not found');
+            }
+
+            // Check if disbursement already exists
+            $existingDisbursement = AidDisbursement::where('payment_transaction_id', $transaction->id)
+                ->where('disbursement_status', 'completed')
+                ->first();
+
+            if ($existingDisbursement) {
+                DB::rollBack();
+                return true;
+            }
+
+            // Generate receipt
+            $receiptService = new ReceiptService();
+            $tempDisbursement = new AidDisbursement();
+            $tempDisbursement->disbursement_reference_number = $referenceNumber;
+            $tempDisbursement->application_number = $application->application_number;
+            $tempDisbursement->amount = $transaction->transaction_amount;
+            $tempDisbursement->disbursement_method = 'digital_wallet';
+            $tempDisbursement->payment_provider_name = 'PayMongo';
+            $tempDisbursement->provider_transaction_id = $paymentId;
+            $tempDisbursement->account_number = $application->wallet_account_number;
+            $tempDisbursement->disbursed_at = now();
+
+            $receiptPath = $receiptService->generateReceipt($tempDisbursement, $application, $transaction);
+
+            // Create disbursement record
+            $disbursementData = [
+                'application_id' => $application->id,
+                'payment_transaction_id' => $transaction->id,
+                'application_number' => $application->application_number,
+                'student_id' => $application->student_id,
+                'school_id' => $application->school_id,
+                'amount' => $transaction->transaction_amount,
+                'disbursement_method' => 'digital_wallet',
+                'payment_provider_name' => 'PayMongo',
+                'payment_provider' => 'paymongo',
+                'provider_transaction_id' => $paymentId,
+                'account_number' => $application->wallet_account_number,
+                'disbursement_reference_number' => $referenceNumber,
+                'disbursement_status' => 'completed',
+                'receipt_path' => $receiptPath,
+                'disbursed_at' => now(),
+                'disbursed_by_user_id' => $transaction->initiated_by_user_id,
+                'disbursed_by_name' => $transaction->initiated_by_name ?? 'System',
+            ];
+
+            // Backward compatibility
+            if (Schema::hasColumn('aid_disbursements', 'method')) {
+                $disbursementData['method'] = 'digital_wallet';
+            }
+            if (Schema::hasColumn('aid_disbursements', 'provider_name')) {
+                $disbursementData['provider_name'] = 'PayMongo';
+            }
+            if (Schema::hasColumn('aid_disbursements', 'reference_number')) {
+                $disbursementData['reference_number'] = $referenceNumber;
+            }
+
+            $disbursement = AidDisbursement::create($disbursementData);
+
+            // Update application status
+            $application->status = 'grants_disbursed';
+            $application->save();
+
+            // Update budget allocation
+            $schoolYear = $this->getSchoolYearFromApplication($application);
+            $this->updateBudgetOnDisbursement($application, (float) $transaction->transaction_amount, $schoolYear);
+
+            // Log audit
+            AuditLogService::logAction(
+                'payment_completed',
+                "Payment completed for application #{$application->application_number}",
+                'scholarship_application',
+                (string) $application->id,
+                null,
+                [
+                    'payment_transaction_id' => $transaction->id,
+                    'disbursement_id' => $disbursement->id,
+                    'amount' => $transaction->transaction_amount,
+                ]
+            );
+
+            DB::commit();
+
+            Log::info('Payment processed successfully via Service', [
+                'application_id' => $application->id,
+                'transaction_id' => $transaction->id,
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to process payment success', [
+                'error' => $e->getMessage(),
+                'transaction_id' => $transaction->id,
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Get school year from application or return current school year
+     */
+    private function getSchoolYearFromApplication($application): string
+    {
+        try {
+            if ($application->student_id) {
+                $academicRecord = DB::table('academic_records')
+                    ->where('student_id', $application->student_id)
+                    ->where('is_current', true)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                if ($academicRecord && isset($academicRecord->school_year)) {
+                    return $academicRecord->school_year;
+                }
+            }
+        } catch (\Exception $e) {
+            // Fall through to default
+        }
+
+        // Default to current school year
+        $currentYear = date('Y');
+        $nextYear = date('Y') + 1;
+        return "{$currentYear}-{$nextYear}";
+    }
+
+    /**
+     * Update budget allocation when disbursement is processed
+     */
+    private function updateBudgetOnDisbursement($application, float $amount, string $schoolYear): void
+    {
+        try {
+            if (!DB::getSchemaBuilder()->hasTable('budget_allocations')) {
+                return;
+            }
+
+            $budgetType = 'scholarship_benefits'; // Default
+
+            $budgetAllocation = BudgetAllocation::where('budget_type', $budgetType)
+                ->where('school_year', $schoolYear)
+                ->where('is_active', true)
+                ->first();
+
+            if ($budgetAllocation) {
+                $budgetAllocation->incrementDisbursed($amount);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to update budget allocation', [
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

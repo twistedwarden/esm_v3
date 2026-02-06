@@ -1559,4 +1559,94 @@ class SchoolAidController extends Controller
             return null;
         }
     }
+
+    public function verifyPayment(Request $request, PaymentService $paymentService): JsonResponse
+    {
+        try {
+            $applicationId = $request->input('application_id');
+            $sessionId = $request->input('session_id');
+
+            if (!$applicationId) {
+                return response()->json(['error' => 'Application ID is required'], 400);
+            }
+
+            $application = ScholarshipApplication::find($applicationId);
+            if (!$application) {
+                return response()->json(['error' => 'Application not found'], 404);
+            }
+
+            // If session ID is explicitly provided, use it. Otherwise, find the latest pending transaction.
+            $transaction = null;
+            $sessionIdToVerify = $sessionId;
+
+            if ($sessionId) {
+                $transaction = PaymentTransaction::where('provider_transaction_id', $sessionId)
+                    ->first();
+            } else {
+                $transaction = PaymentTransaction::where('application_id', $application->id)
+                    ->where('transaction_status', 'pending')
+                    ->latest()
+                    ->first();
+
+                if ($transaction) {
+                    $sessionIdToVerify = $transaction->provider_transaction_id;
+                }
+            }
+
+            // If session ID is available (either from request or DB), verify it
+            if ($sessionIdToVerify) {
+                // Verify the session
+                try {
+                    $verificationResult = $paymentService->verifyCheckoutSession($sessionIdToVerify);
+
+                    if (!$transaction) {
+                        $transaction = PaymentTransaction::where('provider_transaction_id', $verificationResult['id'])
+                            ->first();
+                    }
+
+                    if ($transaction) {
+                        // Process if paid
+                        $status = $verificationResult['payment_intent_status'] ?? $verificationResult['status'];
+                        if ($status === 'succeeded' || $status === 'paid') {
+
+                            $paymentService->processPaymentSuccess($transaction, $verificationResult);
+
+                            return response()->json([
+                                'success' => true,
+                                'status' => 'paid',
+                                'message' => 'Payment verified and processed successfully'
+                            ]);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Session verification failed during manual check', [
+                        'error' => $e->getMessage(),
+                        'session_id' => $sessionIdToVerify
+                    ]);
+                }
+            }
+
+            // If no session ID or verification failed, check if application is already updated
+            if ($application->status === 'grants_disbursed') {
+                return response()->json([
+                    'success' => true,
+                    'status' => 'paid',
+                    'message' => 'Application already marked as paid'
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'status' => 'pending',
+                'message' => 'Payment not yet completed'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Payment manual verification failed', [
+                'error' => $e->getMessage(),
+                'application_id' => $request->input('application_id'),
+            ]);
+            return response()->json(['error' => 'Verification failed: ' . $e->getMessage()], 500);
+        }
+    }
 }
