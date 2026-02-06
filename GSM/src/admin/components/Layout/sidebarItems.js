@@ -86,12 +86,15 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
         ];
     }
 
+
     // Staff users are restricted - they must have a system_role from scholarship service
     if (userRole === 'staff') {
-        // If no system_role, deny all access
+        // If no system_role, show minimal access (dashboard + settings)
+        // This can happen if the scholarship service is temporarily unavailable
         if (!userSystemRole) {
             return [
-                { id: 'access-denied', icon: Shield, label: t('Access Denied') }
+                { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
+                { id: 'settings', icon: Settings, label: t('Settings') }
             ];
         }
 
