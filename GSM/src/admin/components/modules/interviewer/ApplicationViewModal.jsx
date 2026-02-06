@@ -38,11 +38,16 @@ function ApplicationViewModal({ isOpen, onClose, application }) {
   ];
 
   const getDocumentUrl = (document) => {
-    if (document.file_path) {
-      return document.file_path.startsWith('http')
-        ? document.file_path
-        : `${API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL}/storage/${document.file_path}`;
+    if (document.file_path && document.file_path.startsWith('http')) {
+      return document.file_path;
     }
+
+    // Use the API endpoint for secure document viewing
+    // This avoids issues with public storage links and proper file locations
+    if (document.id) {
+      return `${API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL}${API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.DOCUMENT_VIEW(document.id)}`;
+    }
+
     return null;
   };
 
