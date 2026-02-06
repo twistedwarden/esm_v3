@@ -399,7 +399,7 @@ export const ScholarshipDashboard: React.FC = () => {
   const standardRequiredDocuments = [
     // Academic Documents
     {
-      id: 1, // Transcript of Records - was using 8 (Birth Cert's ID), needs 1 (what Birth Cert was using)
+      id: 8, // Transcript of Records (actual ID being saved in database)
       name: 'Transcript of Records (Latest)',
       description: 'Official transcript showing your latest academic performance and grades',
       category: 'academic',
@@ -407,7 +407,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 1
     },
     {
-      id: 2, // Certificate of Good Moral - was using 11 (Barangay's ID), needs 2 (what Valid ID was using)
+      id: 11, // Certificate of Good Moral (actual ID being saved in database)
       name: 'Certificate of Good Moral',
       description: 'Certificate from your school confirming your good moral character',
       category: 'academic',
@@ -415,7 +415,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 2
     },
     {
-      id: 17, // Certificate of Enrollment (from database)
+      id: 10, // Certificate of Enrollment (actual ID being saved in database)
       name: 'Certificate of Enrollment',
       description: 'Document proving your current enrollment status',
       category: 'academic',
@@ -424,7 +424,7 @@ export const ScholarshipDashboard: React.FC = () => {
     },
     // Financial Documents
     {
-      id: 3, // Income Certificate (from database)
+      id: 13, // Income Certificate (actual ID being saved in database)
       name: 'Income Certificate',
       description: 'Official document showing your family\'s income status from BIR or barangay',
       category: 'financial',
@@ -441,7 +441,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 5
     },
     {
-      id: 5, // Valid ID (Government-issued) (from database)
+      id: 2, // Valid ID (Government-issued) (actual ID being saved in database)
       name: 'Valid ID (Government-issued)',
       description: 'Government-issued identification document (Driver\'s License, Passport, etc.)',
       category: 'personal',
@@ -449,7 +449,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 6
     },
     {
-      id: 6, // Birth Certificate (from database)
+      id: 1, // Birth Certificate (actual ID being saved in database)
       name: 'Birth Certificate',
       description: 'Official birth certificate from PSA (Philippine Statistics Authority)',
       category: 'personal',
