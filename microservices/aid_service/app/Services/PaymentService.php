@@ -18,7 +18,7 @@ class PaymentService
         $this->secretKey = config('payment.paymongo.secret_key');
         $this->publicKey = config('payment.paymongo.public_key');
         $this->mockEnabled = config('payment.mock_enabled', false);
-        $this->baseUrl = config('payment.mode') === 'test' 
+        $this->baseUrl = config('payment.mode') === 'test'
             ? 'https://api.paymongo.com/v1'
             : 'https://api.paymongo.com/v1';
     }
@@ -34,7 +34,7 @@ class PaymentService
 
         try {
             $amount = $application->approved_amount ?? 0;
-            $amountInCents = (int)($amount * 100); // Convert to cents
+            $amountInCents = (int) ($amount * 100); // Convert to cents
             $frontendUrl = config('payment.frontend.current');
 
             // Load student information for auto-population
@@ -48,10 +48,10 @@ class PaymentService
                 $fullName = trim(($student->first_name ?? '') . ' ' . ($student->middle_name ?? '') . ' ' . ($student->last_name ?? ''));
                 $fullName = $fullName ?: ($student->full_name ?? 'Student');
                 $billing['name'] = $fullName;
-                
+
                 // Email - check multiple possible field names from scholarship_service Student model
                 $email = $student->email_address ?? $student->email ?? null;
-                
+
                 // If student doesn't have email, try to get from user account (if user_id exists)
                 if (empty($email) && !empty($student->user_id)) {
                     try {
@@ -69,7 +69,7 @@ class PaymentService
                         ]);
                     }
                 }
-                
+
                 if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $billing['email'] = trim($email);
                 } else {
@@ -82,7 +82,7 @@ class PaymentService
                         'user_id' => $student->user_id ?? null,
                     ]);
                 }
-                
+
                 // Phone - check multiple possible field names (format for Philippines)
                 $phone = $student->contact_number ?? $student->preferred_mobile_number ?? $student->phone ?? null;
                 if (!empty($phone)) {
@@ -122,7 +122,7 @@ class PaymentService
                         'currency' => 'PHP',
                     ],
                 ],
-                'payment_method_types' => ['paymaya', 'gcash', 'grab_pay', 'card'],
+                'payment_method_types' => ['gcash', 'card'],
                 'success_url' => $frontendUrl . '/admin/school-aid/payment/success?application_id=' . $application->id,
                 'cancel_url' => $frontendUrl . '/admin/school-aid/payment/cancel?application_id=' . $application->id,
                 'metadata' => [
@@ -163,10 +163,10 @@ class PaymentService
                 'Authorization' => 'Basic ' . base64_encode($this->secretKey . ':'),
                 'Content-Type' => 'application/json',
             ])->post($this->baseUrl . '/checkout_sessions', [
-                'data' => [
-                    'attributes' => $attributes,
-                ],
-            ]);
+                        'data' => [
+                            'attributes' => $attributes,
+                        ],
+                    ]);
 
             if (!$response->successful()) {
                 $error = $response->json();
@@ -245,7 +245,7 @@ class PaymentService
     private function createMockPaymentLink(ScholarshipApplication $application): array
     {
         $paymentId = 'mock_' . uniqid();
-        
+
         return [
             'success' => true,
             'payment_id' => $paymentId,
@@ -285,7 +285,7 @@ class PaymentService
         if (substr($phone, 0, 2) === '63') {
             $phone = substr($phone, 2);
         }
-        
+
         // If it starts with 0, remove the leading 0
         if (substr($phone, 0, 1) === '0') {
             $phone = substr($phone, 1);
@@ -304,7 +304,7 @@ class PaymentService
     {
         // Try to get address from student model or related address table
         // This is a placeholder - adjust based on your schema
-        
+
         try {
             // Option 1: If address is stored directly on student
             if (isset($student->address) && !empty($student->address)) {
