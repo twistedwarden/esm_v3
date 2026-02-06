@@ -122,7 +122,8 @@ class PaymentService
                         'currency' => 'PHP',
                     ],
                 ],
-                'payment_method_types' => ['gcash', 'card'],
+                // Determine payment method types based on user preference
+                'payment_method_types' => $this->getPaymentMethodTypes($application),
                 'success_url' => $frontendUrl . '/admin/school-aid/payment/success?application_id=' . $application->id,
                 'cancel_url' => $frontendUrl . '/admin/school-aid/payment/cancel?application_id=' . $application->id,
                 'metadata' => [
@@ -346,4 +347,48 @@ class PaymentService
 
         return null;
     }
+
+    /**
+     * Get payment method types based on application preference
+     */
+    private function getPaymentMethodTypes(ScholarshipApplication $application): array
+    {
+        // Extract payment method from digital_wallets
+        $digitalWallets = $application->digital_wallets ?? [];
+        $preferredMethod = null;
+
+        if (is_array($digitalWallets) && count($digitalWallets) > 0) {
+            $preferredMethod = $digitalWallets[0];
+        } elseif (is_string($digitalWallets)) {
+            // In case it's stored as JSON string
+            $decoded = json_decode($digitalWallets, true);
+            if (is_array($decoded) && count($decoded) > 0) {
+                $preferredMethod = $decoded[0];
+            } else {
+                $preferredMethod = $digitalWallets;
+            }
+        }
+
+        // Always include 'card'
+        $methods = ['card'];
+
+        // Add the preferred method if it's a valid PayMongo type
+        if ($preferredMethod) {
+            $method = strtolower($preferredMethod);
+            if ($method === 'gcash') {
+                $methods[] = 'gcash';
+            } elseif ($method === 'paymaya' || $method === 'maya') {
+                $methods[] = 'paymaya';
+            } elseif ($method === 'grab_pay' || $method === 'grabpay') {
+                $methods[] = 'grab_pay';
+            }
+        } else {
+            // Fallback if no preference found: include generally available ones
+            // Only adding gcash as safe default for now to avoid "Not Configured" error
+            $methods[] = 'gcash';
+        }
+
+        return array_unique($methods);
+    }
 }
+
