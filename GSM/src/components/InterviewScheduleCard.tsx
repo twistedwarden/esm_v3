@@ -385,29 +385,29 @@ END:VCALENDAR`;
         )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+        <div className="flex flex-wrap gap-3 pt-4 border-t">
           <button
             onClick={addToCalendar}
-            className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+            className="flex-1 min-w-[140px] flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
           >
             <Calendar className="h-4 w-4" />
-            <span>Add to Calendar</span>
+            <span className="whitespace-nowrap">Add to Calendar</span>
           </button>
 
           {schedule.interview_type === 'online' && schedule.meeting_link && (
             <button
               onClick={joinMeeting}
-              className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 shadow-sm transition-colors"
+              className="flex-1 min-w-[140px] flex items-center justify-center space-x-2 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 shadow-sm transition-colors"
             >
               <Video className="h-4 w-4" />
-              <span>Join Meeting</span>
+              <span className="whitespace-nowrap">Join Meeting</span>
               <ExternalLink className="h-3 w-3 opacity-75" />
             </button>
           )}
 
           <button
             onClick={fetchInterviewSchedule}
-            className="w-full sm:w-auto sm:ml-auto flex items-center justify-center space-x-2 bg-gray-100 text-gray-600 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex-1 min-w-[100px] flex items-center justify-center space-x-2 bg-gray-100 text-gray-600 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
             title="Refresh Schedule"
           >
             <RefreshCw className="h-4 w-4" />
