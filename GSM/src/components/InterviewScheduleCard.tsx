@@ -324,18 +324,18 @@ END:VCALENDAR`;
               ) : (
                 <MapPin className="h-5 w-5 text-gray-500" />
               )}
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-gray-600">
                   {schedule.interview_type === 'online' ? 'Meeting Link' : 'Location'}
                 </p>
-                <div className="text-gray-900 truncate max-w-[200px]">
+                <div className="text-gray-900 truncate" title={schedule.interview_type === 'online' ? schedule.meeting_link : schedule.interview_location}>
                   {schedule.interview_type === 'online'
                     ? (schedule.meeting_link ? (
                       <a
                         href={schedule.meeting_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                        className="text-blue-600 hover:text-blue-800 hover:underline block truncate"
                       >
                         {schedule.meeting_link}
                       </a>
