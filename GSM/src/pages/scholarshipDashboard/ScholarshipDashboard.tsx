@@ -394,12 +394,12 @@ export const ScholarshipDashboard: React.FC = () => {
   }, [currentApplication]);
 
   // Standard required documents for scholarship applications
-  // Using actual document type IDs from the database
+  // Using CORRECT document type IDs from the document_types table
   // Ordered to match UI display: Academic → Financial → Personal
   const standardRequiredDocuments = [
     // Academic Documents
     {
-      id: 8, // Transcript of Records (actual ID being saved in database)
+      id: 1, // Transcript of Records (Latest) - correct ID from document_types table
       name: 'Transcript of Records (Latest)',
       description: 'Official transcript showing your latest academic performance and grades',
       category: 'academic',
@@ -407,7 +407,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 1
     },
     {
-      id: 11, // Certificate of Good Moral (actual ID being saved in database)
+      id: 2, // Certificate of Good Moral - correct ID from document_types table
       name: 'Certificate of Good Moral',
       description: 'Certificate from your school confirming your good moral character',
       category: 'academic',
@@ -415,7 +415,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 2
     },
     {
-      id: 10, // Certificate of Enrollment (actual ID being saved in database)
+      id: 17, // Certificate of Enrollment - correct ID from document_types table
       name: 'Certificate of Enrollment',
       description: 'Document proving your current enrollment status',
       category: 'academic',
@@ -424,7 +424,7 @@ export const ScholarshipDashboard: React.FC = () => {
     },
     // Financial Documents
     {
-      id: 13, // Income Certificate (actual ID being saved in database)
+      id: 3, // Income Certificate - correct ID from document_types table
       name: 'Income Certificate',
       description: 'Official document showing your family\'s income status from BIR or barangay',
       category: 'financial',
@@ -433,7 +433,7 @@ export const ScholarshipDashboard: React.FC = () => {
     },
     // Personal Documents
     {
-      id: 4, // Barangay Certificate (from database)
+      id: 4, // Barangay Certificate - correct ID from document_types table
       name: 'Barangay Certificate',
       description: 'Certificate from your barangay confirming your residency',
       category: 'personal',
@@ -441,7 +441,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 5
     },
     {
-      id: 2, // Valid ID (Government-issued) (actual ID being saved in database)
+      id: 5, // Valid ID (Government-issued) - correct ID from document_types table
       name: 'Valid ID (Government-issued)',
       description: 'Government-issued identification document (Driver\'s License, Passport, etc.)',
       category: 'personal',
@@ -449,7 +449,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 6
     },
     {
-      id: 1, // Birth Certificate (actual ID being saved in database)
+      id: 6, // Birth Certificate - correct ID from document_types table
       name: 'Birth Certificate',
       description: 'Official birth certificate from PSA (Philippine Statistics Authority)',
       category: 'personal',
