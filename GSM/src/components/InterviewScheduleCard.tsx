@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Video, 
-  Phone, 
-  User, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Video,
+  Phone,
+  User,
+  CheckCircle,
+  XCircle,
   AlertCircle,
   RefreshCw,
   ExternalLink
@@ -28,8 +28,11 @@ const InterviewScheduleCard: React.FC<InterviewScheduleCardProps> = ({
   const fetchInterviewSchedule = useCallback(async () => {
     try {
       setLoading(true);
-      const schedules = await scholarshipApiService.getInterviewSchedules();
-      const studentSchedule = schedules.find(s => s.application_id === applicationId);
+      const response = await scholarshipApiService.getInterviewSchedules();
+      const schedules = response.data || [];
+      const studentSchedule = Array.isArray(schedules)
+        ? schedules.find(s => s.application_id === applicationId)
+        : null;
       setSchedule(studentSchedule || null);
     } catch (err) {
       console.error('Error fetching interview schedule:', err);
@@ -122,7 +125,7 @@ const InterviewScheduleCard: React.FC<InterviewScheduleCardProps> = ({
 
     // Try to create a valid date object
     let interviewDate: Date;
-    
+
     // Handle different date formats
     if (date.includes('T')) {
       // Already in ISO format
@@ -162,7 +165,7 @@ const InterviewScheduleCard: React.FC<InterviewScheduleCardProps> = ({
     if (!schedule || !schedule.interview_date || !schedule.interview_time) return;
 
     let startDate: Date;
-    
+
     // Handle different date formats
     if (schedule.interview_date.includes('T')) {
       startDate = new Date(schedule.interview_date);
@@ -187,14 +190,14 @@ const InterviewScheduleCard: React.FC<InterviewScheduleCardProps> = ({
     const calendarData = {
       title: 'Scholarship Interview',
       description: `Interview for scholarship application. ${schedule.interview_notes || ''}`,
-      location: schedule.interview_type === 'online' ? schedule.meeting_link : schedule.interview_location,
+      location: (schedule.interview_type === 'online' ? schedule.meeting_link : schedule.interview_location) || '',
       start: formatDate(startDate),
       end: formatDate(endDate)
     };
 
     // Google Calendar
     const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(calendarData.title)}&dates=${calendarData.start}/${calendarData.end}&details=${encodeURIComponent(calendarData.description)}&location=${encodeURIComponent(calendarData.location)}`;
-    
+
     // iCal format
     const icalContent = `BEGIN:VCALENDAR
 VERSION:2.0
@@ -326,7 +329,7 @@ END:VCALENDAR`;
                   {schedule.interview_type === 'online' ? 'Meeting Link' : 'Location'}
                 </p>
                 <p className="text-gray-900">
-                  {schedule.interview_type === 'online' 
+                  {schedule.interview_type === 'online'
                     ? schedule.meeting_link || 'Link not provided'
                     : schedule.interview_location
                   }
