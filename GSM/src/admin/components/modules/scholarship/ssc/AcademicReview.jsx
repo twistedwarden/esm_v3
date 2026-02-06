@@ -165,31 +165,8 @@ function AcademicReview() {
   };
 
   const getDocumentUrl = (doc) => {
-    let url = doc?.file_url || doc?.url || doc?.download_url || doc?.view_url || doc?.file_path || '';
-
-    // If URL doesn't start with http, prepend the scholarship service base URL
-    if (url && !url.startsWith('http')) {
-      const baseUrl = import.meta.env.VITE_SCHOLARSHIP_SERVICE_URL || 'http://localhost:8001';
-
-      // Normalize path - remove leading slash
-      const cleanPath = url.startsWith('/') ? url.substring(1) : url;
-
-      // Add /storage prefix if the path starts with documents/ or is just a filename
-      if (cleanPath.startsWith('documents/') || !cleanPath.includes('/')) {
-        // If it already has storage/ prefix, don't add it again
-        if (!cleanPath.startsWith('storage/')) {
-          url = `/storage/${cleanPath}`;
-        } else {
-          url = `/${cleanPath}`;
-        }
-      } else {
-        url = `/${cleanPath}`;
-      }
-
-      url = `${baseUrl}${url}`;
-    }
-
-    return url;
+    const baseUrl = import.meta.env.VITE_SCHOLARSHIP_SERVICE_URL || 'http://localhost:8001';
+    return doc?.id ? `${baseUrl}/api/documents/${doc.id}/view` : null;
   };
 
   if (loading) {

@@ -556,22 +556,10 @@ function DocumentVerificationReview() {
 
                         return allDocs.map((doc, idx) => {
                           const label = doc?.documentType?.name || doc?.document_type?.name || doc?.original_name || doc?.filename || `Document ${idx + 1}`;
-                          let url = doc?.file_url || doc?.url || doc?.download_url || doc?.view_url || doc?.file_path || '';
 
-                          if (url && !url.startsWith('http')) {
-                            const baseUrl = import.meta.env.VITE_SCHOLARSHIP_SERVICE_URL || 'http://localhost:8001';
-                            const cleanPath = url.startsWith('/') ? url.substring(1) : url;
-                            if (cleanPath.startsWith('documents/') || !cleanPath.includes('/')) {
-                              if (!cleanPath.startsWith('storage/')) {
-                                url = `/storage/${cleanPath}`;
-                              } else {
-                                url = `/${cleanPath}`;
-                              }
-                            } else {
-                              url = `/${cleanPath}`;
-                            }
-                            url = `${baseUrl}${url}`;
-                          }
+                          // Use the API endpoint for viewing documents
+                          const baseUrl = import.meta.env.VITE_SCHOLARSHIP_SERVICE_URL || 'http://localhost:8001';
+                          const url = doc?.id ? `${baseUrl}/api/documents/${doc.id}/view` : null;
 
                           return (
                             <div key={doc.id || idx} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
