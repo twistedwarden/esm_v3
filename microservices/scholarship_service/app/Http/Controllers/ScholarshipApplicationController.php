@@ -835,7 +835,7 @@ class ScholarshipApplicationController extends Controller
             'subcategory',
             'school',
             'documents.documentType',
-            'statusHistory.changedBy'
+            'statusHistory'
         ]);
 
         return response()->json([

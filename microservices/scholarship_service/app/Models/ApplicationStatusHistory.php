@@ -33,10 +33,15 @@ class ApplicationStatusHistory extends Model
         return $this->belongsTo(ScholarshipApplication::class, 'application_id');
     }
 
-    public function changedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'changed_by');
-    }
+    /**
+     * Note: changedBy relationship is disabled because users are in a separate
+     * auth_service database that this service cannot directly access.
+     * The changed_by field stores the user ID for reference only.
+     */
+    // public function changedBy(): BelongsTo
+    // {
+    //     return $this->belongsTo(User::class, 'changed_by');
+    // }
 
     // Scopes
     public function scopeByStatus($query, $status)
