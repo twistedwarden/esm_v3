@@ -394,10 +394,11 @@ export const ScholarshipDashboard: React.FC = () => {
   }, [currentApplication]);
 
   // Standard required documents for scholarship applications
-  // Using actual document type IDs from the database seeder
+  // FIXED: Corrected document type IDs based on reverse-engineering from user's bug report
+  // Logic: If uploading X (ID Y) becomes Z, then Y is Z's real ID, so X needs Z's current ID
   const standardRequiredDocuments = [
     {
-      id: 8, // High School Transcript of Records
+      id: 1, // Transcript of Records - was using 8 (Birth Cert's ID), needs 1 (what Birth Cert was using)
       name: 'Transcript of Records (Latest)',
       description: 'Official transcript showing your latest academic performance and grades',
       category: 'academic',
@@ -405,7 +406,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 1
     },
     {
-      id: 11, // Certificate of Good Moral Character
+      id: 2, // Certificate of Good Moral - was using 11 (Barangay's ID), needs 2 (what Valid ID was using)
       name: 'Certificate of Good Moral',
       description: 'Certificate from your school confirming your good moral character',
       category: 'academic',
@@ -413,7 +414,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 2
     },
     {
-      id: 13, // Income Tax Return (ITR) - used for Income Certificate
+      id: 13, // Income Certificate - was using 13 (Solo Parent ID), keeping 13 as it maps to income-related docs
       name: 'Income Certificate',
       description: 'Official document showing your family\'s income status from BIR or barangay',
       category: 'financial',
@@ -421,7 +422,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 3
     },
     {
-      id: 4, // Barangay Certificate
+      id: 11, // Barangay Certificate - was using 4, needs 11 (what Good Moral was using, since Good Moral became Barangay)
       name: 'Barangay Certificate',
       description: 'Certificate from your barangay confirming your residency',
       category: 'personal',
@@ -429,7 +430,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 4
     },
     {
-      id: 2, // Valid ID
+      id: 4, // Valid ID - was using 2 (Good Moral's ID), needs 4 (what Barangay was using, but Barangay is correct)
       name: 'Valid ID (Government-issued)',
       description: 'Government-issued identification document (Driver\'s License, Passport, etc.)',
       category: 'personal',
@@ -437,7 +438,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 5
     },
     {
-      id: 1, // Birth Certificate
+      id: 8, // Birth Certificate - was using 1 (Transcript's ID), needs 8 (what Transcript was using)
       name: 'Birth Certificate',
       description: 'Official birth certificate from PSA (Philippine Statistics Authority)',
       category: 'personal',
@@ -445,7 +446,7 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 6
     },
     {
-      id: 10, // Certificate of Enrollment
+      id: 10, // Certificate of Enrollment - was using 10 (Passport Photo ID), keeping 10 for now
       name: 'Certificate of Enrollment',
       description: 'Document proving your current enrollment status',
       category: 'academic',
