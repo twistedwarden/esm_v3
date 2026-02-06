@@ -394,9 +394,10 @@ export const ScholarshipDashboard: React.FC = () => {
   }, [currentApplication]);
 
   // Standard required documents for scholarship applications
-  // FIXED: Corrected document type IDs based on reverse-engineering from user's bug report
-  // Logic: If uploading X (ID Y) becomes Z, then Y is Z's real ID, so X needs Z's current ID
+  // Using actual document type IDs from the database
+  // Ordered to match UI display: Academic → Financial → Personal
   const standardRequiredDocuments = [
+    // Academic Documents
     {
       id: 1, // Transcript of Records - was using 8 (Birth Cert's ID), needs 1 (what Birth Cert was using)
       name: 'Transcript of Records (Latest)',
@@ -414,42 +415,44 @@ export const ScholarshipDashboard: React.FC = () => {
       priority: 2
     },
     {
-      id: 13, // Income Certificate - was using 13 (Solo Parent ID), keeping 13 as it maps to income-related docs
+      id: 17, // Certificate of Enrollment (from database)
+      name: 'Certificate of Enrollment',
+      description: 'Document proving your current enrollment status',
+      category: 'academic',
+      is_required: true,
+      priority: 3
+    },
+    // Financial Documents
+    {
+      id: 3, // Income Certificate (from database)
       name: 'Income Certificate',
       description: 'Official document showing your family\'s income status from BIR or barangay',
       category: 'financial',
       is_required: true,
-      priority: 3
-    },
-    {
-      id: 11, // Barangay Certificate - was using 4, needs 11 (what Good Moral was using, since Good Moral became Barangay)
-      name: 'Barangay Certificate',
-      description: 'Certificate from your barangay confirming your residency',
-      category: 'personal',
-      is_required: true,
       priority: 4
     },
+    // Personal Documents
     {
-      id: 4, // Valid ID - was using 2 (Good Moral's ID), needs 4 (what Barangay was using, but Barangay is correct)
-      name: 'Valid ID (Government-issued)',
-      description: 'Government-issued identification document (Driver\'s License, Passport, etc.)',
+      id: 4, // Barangay Certificate (from database)
+      name: 'Barangay Certificate',
+      description: 'Certificate from your barangay confirming your residency',
       category: 'personal',
       is_required: true,
       priority: 5
     },
     {
-      id: 8, // Birth Certificate - was using 1 (Transcript's ID), needs 8 (what Transcript was using)
-      name: 'Birth Certificate',
-      description: 'Official birth certificate from PSA (Philippine Statistics Authority)',
+      id: 5, // Valid ID (Government-issued) (from database)
+      name: 'Valid ID (Government-issued)',
+      description: 'Government-issued identification document (Driver\'s License, Passport, etc.)',
       category: 'personal',
       is_required: true,
       priority: 6
     },
     {
-      id: 10, // Certificate of Enrollment - was using 10 (Passport Photo ID), keeping 10 for now
-      name: 'Certificate of Enrollment',
-      description: 'Document proving your current enrollment status',
-      category: 'academic',
+      id: 6, // Birth Certificate (from database)
+      name: 'Birth Certificate',
+      description: 'Official birth certificate from PSA (Philippine Statistics Authority)',
+      category: 'personal',
       is_required: true,
       priority: 7
     }
