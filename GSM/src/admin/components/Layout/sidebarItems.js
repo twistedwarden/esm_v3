@@ -103,12 +103,6 @@ export const getSidebarItems = (userRole, userSystemRole, t = null) => {
             return [
                 { id: 'dashboard', icon: LayoutDashboard, label: t('Dashboard') },
                 {
-                    id: 'scholarship', icon: GraduationCap, label: t('Scholarship'),
-                    subItems: [
-                        { id: 'scholarship-applications', label: t('Applications') }
-                    ]
-                },
-                {
                     id: 'interviews', icon: ClipboardList, label: t('My Interviews'),
                     subItems: [
                         { id: 'interviews-pending', label: t('Pending Interviews') },
