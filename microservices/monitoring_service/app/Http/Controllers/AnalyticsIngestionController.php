@@ -55,9 +55,10 @@ class AnalyticsIngestionController extends Controller
         $byCategory = $apps['by_category'] ?? [];
 
         try {
-            // Calculate approval rate
+            // Calculate approval rate (include released as they were approved before disbursement)
+            $approvedCount = ($byStatus['approved'] ?? 0) + ($byStatus['released'] ?? 0);
             $approvalRate = ($apps['total'] ?? 0) > 0
-                ? round((($byStatus['approved'] ?? 0) / $apps['total']) * 100, 2)
+                ? round(($approvedCount / $apps['total']) * 100, 2)
                 : 0;
 
             $data = [
@@ -99,9 +100,7 @@ class AnalyticsIngestionController extends Controller
                 'pending_review' => $data['submitted_count'] + $data['reviewed_count'],
                 'approved_count' => $data['approved_count'],
                 'rejected_count' => $data['rejected_count'],
-                'approval_rate' => $data['total_applications'] > 0
-                    ? round(($data['approved_count'] / $data['total_applications']) * 100, 2)
-                    : 0,
+                'approval_rate' => $data['approval_rate'],
                 'by_status' => $byStatus,
                 'by_type' => $byType,
                 'snapshot_date' => $snapshotDate,
