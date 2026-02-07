@@ -22,7 +22,19 @@ class GeminiAnalyticsService
     {
         if (!$this->apiKey) {
             Log::warning('Gemini API key not configured');
-            return $this->getMockInsights();
+            return [
+                'keyFindings' => [
+                    [
+                        'title' => 'Service Not Configured',
+                        'description' => 'The Gemini AI service is not properly configured. Please check your GEMINI_API_KEY environment variable.',
+                        'recommendation' => 'Contact the system administrator to configure the AI service.'
+                    ]
+                ],
+                'failureAnalysis' => [],
+                'recommendations' => [],
+                'riskFactors' => [],
+                'successPatterns' => []
+            ];
         }
 
         try {
@@ -50,17 +62,43 @@ class GeminiAnalyticsService
 
             if ($response->successful()) {
                 $result = $response->json();
-                $generatedText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
-
-                return $this->parseGeminiResponse($generatedText);
+                // Check if content exists
+                if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
+                    $generatedText = $result['candidates'][0]['content']['parts'][0]['text'];
+                    return $this->parseGeminiResponse($generatedText);
+                }
             }
 
             Log::error('Gemini API error: ' . $response->body());
-            return $this->getMockInsights();
+            return [
+                'keyFindings' => [
+                    [
+                        'title' => 'Generation Failed',
+                        'description' => 'Unable to generate insights from the AI service. The service may be busy or unavailable.',
+                        'recommendation' => 'Please try again in a few moments.'
+                    ]
+                ],
+                'failureAnalysis' => [],
+                'recommendations' => [],
+                'riskFactors' => [],
+                'successPatterns' => []
+            ];
 
         } catch (\Exception $e) {
             Log::error('Gemini Analytics Service error: ' . $e->getMessage());
-            return $this->getMockInsights();
+            return [
+                'keyFindings' => [
+                    [
+                        'title' => 'System Error',
+                        'description' => 'An unexpected error occurred while generating insights.',
+                        'recommendation' => 'Please check the system logs for more details.'
+                    ]
+                ],
+                'failureAnalysis' => [],
+                'recommendations' => [],
+                'riskFactors' => [],
+                'successPatterns' => []
+            ];
         }
     }
 

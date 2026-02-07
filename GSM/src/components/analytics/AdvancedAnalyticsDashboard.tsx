@@ -60,13 +60,10 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
         setLoading(true);
         try {
             const data = await getComprehensiveAnalytics(selectedTimeRange, selectedCategory);
-            // If data is empty or invalid, you might want to load mock data here for demonstration
-            // For now, we assume the API returns valid data or throws
             setAnalyticsData(data);
         } catch (error) {
             console.error('Error fetching analytics:', error);
-            // Fallback to mock data if API fails (optional, good for demo)
-            setAnalyticsData(mockData as any);
+            setAnalyticsData(null);
         } finally {
             setLoading(false);
         }
@@ -85,51 +82,21 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
         }
     };
 
-    // Mock data for fallback/demonstration
-    const mockData = {
-        failureReasons: [
-            { reason: 'Incomplete Documents', count: 45, percentage: 28 },
-            { reason: 'Low GPA', count: 38, percentage: 24 },
-            { reason: 'Family Income Too High', count: 32, percentage: 20 },
-            { reason: 'Failed Interview', count: 25, percentage: 16 },
-            { reason: 'Missing Requirements', count: 20, percentage: 12 }
-        ],
-        financialDistribution: [
-            { range: '< ₱10,000', approved: 85, rejected: 15, total: 100 },
-            { range: '₱10,000 - ₱20,000', approved: 120, rejected: 30, total: 150 },
-            { range: '₱20,000 - ₱30,000', approved: 90, rejected: 45, total: 135 },
-            { range: '₱30,000 - ₱50,000', approved: 50, rejected: 60, total: 110 },
-            { range: '> ₱50,000', approved: 20, rejected: 80, total: 100 }
-        ],
-        familyBackgroundImpact: [
-            { factor: 'Single Parent', impact: 75, applications: 120 },
-            { factor: 'Both Parents', impact: 65, applications: 280 },
-            { factor: 'Guardian', impact: 70, applications: 45 },
-            { factor: 'Orphan', impact: 90, applications: 25 }
-        ],
-        gpaVsApproval: [
-            { gpa: '1.0-1.5', approved: 95, rejected: 5 },
-            { gpa: '1.6-2.0', approved: 85, rejected: 15 },
-            { gpa: '2.1-2.5', approved: 70, rejected: 30 },
-            { gpa: '2.6-3.0', approved: 45, rejected: 55 },
-            { gpa: '3.1-4.0', approved: 20, rejected: 80 }
-        ],
-        monthlyTrends: [
-            { month: 'Jan', applications: 120, approved: 85, rejected: 35 },
-            { month: 'Feb', applications: 150, approved: 105, rejected: 45 },
-            { month: 'Mar', applications: 180, approved: 130, rejected: 50 },
-            { month: 'Apr', applications: 200, approved: 145, rejected: 55 },
-            { month: 'May', applications: 165, approved: 120, rejected: 45 },
-            { month: 'Jun', applications: 140, approved: 100, rejected: 40 }
-        ],
-        documentCompleteness: [
-            { category: 'Complete', value: 320, color: COLORS.success },
-            { category: 'Missing 1-2', value: 180, color: COLORS.warning },
-            { category: 'Missing 3+', value: 95, color: COLORS.danger }
-        ]
-    };
-
-    const dataToUse = analyticsData || mockData as any;
+    // Default empty structure for real data
+    const dataToUse = analyticsData || {
+        failureReasons: [],
+        financialDistribution: [],
+        familyBackgroundImpact: [],
+        gpaVsApproval: [],
+        monthlyTrends: [],
+        documentCompleteness: [],
+        summary: {
+            totalApplications: 0,
+            approvalRate: 0,
+            avgProcessingTime: 0,
+            totalAidDistributed: 0
+        }
+    } as unknown as ComprehensiveAnalytics;
 
     const InsightCard = ({ title, value, trend, icon: Icon, color }: any) => (
         <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
