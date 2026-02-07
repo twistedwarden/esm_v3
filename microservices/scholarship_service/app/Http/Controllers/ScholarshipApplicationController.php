@@ -3404,6 +3404,9 @@ class ScholarshipApplicationController extends Controller
                 ]
             );
 
+            // Trigger real-time monitoring sync
+            $this->triggerMonitoringSync();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application approved successfully.',
@@ -3526,6 +3529,9 @@ class ScholarshipApplicationController extends Controller
                     'rejection_reason' => $request->rejection_reason,
                 ]
             );
+
+            // Trigger real-time monitoring sync
+            $this->triggerMonitoringSync();
 
             return response()->json([
                 'success' => true,
