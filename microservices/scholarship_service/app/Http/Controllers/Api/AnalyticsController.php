@@ -30,6 +30,8 @@ class AnalyticsController extends Controller
             $timeRange = $request->input('timeRange', 'all');
             $category = $request->input('category', 'all');
 
+            Log::info("Fetching analytics - TimeRange: {$timeRange}, Category: {$category}");
+
             $query = ScholarshipApplication::query();
 
             // Apply time filter
@@ -37,6 +39,8 @@ class AnalyticsController extends Controller
 
             // Get all applications for analysis
             $applications = $query->with(['student', 'documents'])->get();
+
+            Log::info("Found {$applications->count()} applications for analysis");
 
             $analytics = [
                 'failureReasons' => $this->analyzeFailureReasons($applications),
@@ -57,13 +61,20 @@ class AnalyticsController extends Controller
                 ]
             ];
 
+            Log::info("Analytics generated successfully", [
+                'totalApplications' => $analytics['summary']['totalApplications'],
+                'approvalRate' => $analytics['summary']['approvalRate']
+            ]);
+
             return response()->json([
                 'success' => true,
                 'data' => $analytics
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Analytics error: ' . $e->getMessage());
+            Log::error('Analytics error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
                 'success' => false,
@@ -86,7 +97,16 @@ class AnalyticsController extends Controller
                 'academic_performance'
             ]);
 
+            Log::info('Generating Gemini insights', [
+                'dataSize' => count($analyticsData),
+                'focusAreas' => $focusAreas
+            ]);
+
             $insights = $this->geminiService->generateInsights($analyticsData, $focusAreas);
+
+            Log::info('Gemini insights generated', [
+                'keyFindingsCount' => count($insights['keyFindings'] ?? [])
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -94,7 +114,9 @@ class AnalyticsController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Gemini insights error: ' . $e->getMessage());
+            Log::error('Gemini insights error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
                 'success' => false,
