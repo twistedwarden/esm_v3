@@ -55,10 +55,9 @@ class AnalyticsIngestionController extends Controller
         $byCategory = $apps['by_category'] ?? [];
 
         try {
-            // Calculate approval rate (include released as they were approved before disbursement)
-            $approvedCount = ($byStatus['approved'] ?? 0) + ($byStatus['released'] ?? 0);
+            // Calculate approval rate (approved count now includes grants_processing + grants_disbursed)
             $approvalRate = ($apps['total'] ?? 0) > 0
-                ? round(($approvedCount / $apps['total']) * 100, 2)
+                ? round((($byStatus['approved'] ?? 0) / $apps['total']) * 100, 2)
                 : 0;
 
             $data = [
