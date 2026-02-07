@@ -758,7 +758,26 @@ class SchoolAidController extends Controller
         }
 
         // Construct filename with correct extension
-        $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '.' . $extension;
+        // Force .pdf extension if content type will be application/pdf after conversion
+        $downloadExtension = $extension;
+        if ($contentType === 'text/html' || $extension === 'html') {
+            $downloadExtension = 'pdf';
+            $contentType = 'application/pdf';
+        }
+
+        $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '.' . $downloadExtension;
+
+        // If it's HTML, convert on the fly
+        if ($mimeType === 'text/html' || $extension === 'html') {
+            $htmlContent = Storage::disk('public')->get($relativePath);
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($htmlContent);
+            $pdf->setPaper('a4', 'portrait');
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->output();
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
 
         return response()->download($absolutePath, $filename, [
             'Content-Type' => $contentType,
