@@ -590,4 +590,5 @@ Route::prefix('partner-school')->group(function () {
     Route::get('/flexible/students', [PartnerSchoolController::class, 'getFlexibleStudents']);
     Route::get('/student-population', [PartnerSchoolController::class, 'getStudentPopulation']);
     Route::get('/schools', [PartnerSchoolController::class, 'getSchools']);
+    Route::post('/match-headers', [PartnerSchoolController::class, 'matchHeaders']);
 });

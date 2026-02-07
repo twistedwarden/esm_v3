@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/v1authStore';
-import { 
-  Upload, 
-  Download, 
-  Users, 
-  FileText, 
-  BarChart3, 
+import {
+  Upload,
+  Download,
+  Users,
+  FileText,
+  BarChart3,
   Settings,
   CheckCircle,
   AlertCircle,
@@ -29,14 +29,15 @@ import {
   EyeOff,
   Lock,
 } from 'lucide-react';
-import { 
-  fetchPartnerSchoolInfo, 
-  fetchPartnerSchoolStats, 
+import {
+  fetchPartnerSchoolInfo,
+  fetchPartnerSchoolStats,
   fetchPartnerSchoolStudents,
   uploadEnrollmentData,
   fetchEnrollmentData,
   uploadFlexibleData,
-  fetchFlexibleStudents
+  fetchFlexibleStudents,
+  matchHeaders
 } from '../services/partnerSchoolService';
 import { API_CONFIG, getAuthServiceUrl } from '../config/api';
 // import * as XLSX from 'xlsx';
@@ -54,7 +55,7 @@ const PartnerSchoolDashboard = () => {
   const [theme, setTheme] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
+
   // School information state
   const [schoolInfo, setSchoolInfo] = useState(null);
   const [schoolStats, setSchoolStats] = useState(null);
@@ -89,10 +90,10 @@ const PartnerSchoolDashboard = () => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -207,7 +208,7 @@ const PartnerSchoolDashboard = () => {
   // Handle password change submission
   const handlePasswordChangeSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       alert('New passwords do not match');
       return;
@@ -219,7 +220,7 @@ const PartnerSchoolDashboard = () => {
     }
 
     setIsChangingPassword(true);
-    
+
     try {
       const response = await fetch(`${getAuthServiceUrl('/api/change-password')}`, {
         method: 'POST',
@@ -288,14 +289,14 @@ const PartnerSchoolDashboard = () => {
         setSchoolStats(statsData);
       } catch (err) {
         console.error('Error fetching school data:', err);
-        
+
         // Handle specific error cases
         if (err.message.includes('No school assigned')) {
           setError('No school has been assigned to your account. Please contact the administrator to assign a school to your account.');
         } else {
           setError(err.message);
         }
-        
+
         setSchoolInfo(null);
         setSchoolStats(null);
       } finally {
@@ -367,41 +368,41 @@ const PartnerSchoolDashboard = () => {
       console.log('Token:', token ? 'Present' : 'Missing');
       console.log('Filter status:', filterStatus);
       console.log('Search term:', searchTerm);
-      
+
       // Fetch enrollment data (which includes students with their academic records)
       const [enrollmentData, flexibleData] = await Promise.allSettled([
-        fetchEnrollmentData(token, { 
-          status: filterStatus, 
+        fetchEnrollmentData(token, {
+          status: filterStatus,
           search: searchTerm,
           per_page: 1000  // Increase limit to show 100+ students
         }),
-        fetchFlexibleStudents(token, { 
+        fetchFlexibleStudents(token, {
           search: searchTerm,
           per_page: 1000  // Increase limit to show 100+ students
         })
       ]);
-      
+
       // Handle the results
       const enrollmentResult = enrollmentData.status === 'fulfilled' ? enrollmentData.value : null;
       const flexibleResult = flexibleData.status === 'fulfilled' ? flexibleData.value : null;
-      
+
       if (enrollmentData.status === 'rejected') {
         console.error('❌ Error fetching enrollment data:', enrollmentData.reason);
       }
       if (flexibleData.status === 'rejected') {
         console.error('❌ Error fetching flexible students:', flexibleData.reason);
       }
-      
+
       console.log('✅ Enrollment data received:', enrollmentResult);
       console.log('✅ Flexible data received:', flexibleResult);
       console.log('🔍 Enrollment data type:', typeof enrollmentResult);
       console.log('🔍 Enrollment data.data type:', typeof enrollmentResult?.data);
       console.log('🔍 Enrollment data.data is array:', Array.isArray(enrollmentResult?.data));
-      
+
       // Handle paginated response for enrollment data
       let studentsArray = [];
       let flexibleArray = [];
-      
+
       if (enrollmentResult) {
         // Check if enrollmentResult.data is directly an array
         if (Array.isArray(enrollmentResult.data)) {
@@ -427,7 +428,7 @@ const PartnerSchoolDashboard = () => {
           studentsArray = enrollmentResult;
         }
       }
-      
+
       if (flexibleResult) {
         // Check if it's a paginated response
         if (flexibleResult.data && typeof flexibleResult.data === 'object') {
@@ -445,20 +446,20 @@ const PartnerSchoolDashboard = () => {
           }
         }
       }
-      
+
       console.log('Processed students array:', studentsArray);
       console.log('Processed flexible array:', flexibleArray);
-      
+
       // Process enrollment data and attach it to students
       const processedStudents = studentsArray.map(student => {
         console.log('Processing student:', student.student_id_number);
         console.log('Student data:', student);
-        
+
         // The student object should already contain enrollment data
         // Let's ensure it's properly structured
         const enrollmentData = student.enrollmentData || [];
         console.log('Enrollment data for', student.student_id_number, ':', enrollmentData);
-        
+
         return {
           ...student,
           enrollmentData: enrollmentData,
@@ -470,7 +471,7 @@ const PartnerSchoolDashboard = () => {
           isFlexible: false
         };
       });
-      
+
       // Convert flexible data to student format for display
       const flexibleStudents = flexibleArray.map(flexible => {
         console.log('Processing flexible student:', flexible);
@@ -486,7 +487,7 @@ const PartnerSchoolDashboard = () => {
           isFlexible: true
         };
       });
-      
+
       // Group flexible students by student_id_number and keep the most recent record
       const groupedFlexibleStudents = flexibleStudents.reduce((acc, student) => {
         const key = student.student_id_number;
@@ -495,16 +496,16 @@ const PartnerSchoolDashboard = () => {
         }
         return acc;
       }, {});
-      
+
       // Convert back to array
       const uniqueFlexibleStudents = Object.values(groupedFlexibleStudents);
-      
+
       console.log('Grouped flexible students:', uniqueFlexibleStudents);
       console.log('Total flexible students after grouping:', uniqueFlexibleStudents.length);
-      
+
       // Combine both arrays
       const allStudents = [...processedStudents, ...uniqueFlexibleStudents];
-      
+
       // Debug each student's data
       allStudents.forEach((student, index) => {
         console.log(`Student ${index + 1}:`, {
@@ -518,7 +519,7 @@ const PartnerSchoolDashboard = () => {
           scholarshipApplications: student.scholarshipApplications
         });
       });
-      
+
       setStudents(allStudents);
     } catch (err) {
       console.error('Error fetching students data:', err);
@@ -536,11 +537,11 @@ const PartnerSchoolDashboard = () => {
     if (file) {
       setUploadFile(file);
       setUploadProgress({ status: 'processing', message: 'Processing file...' });
-      
+
       try {
         let csvData;
         const fileExtension = file.name.split('.').pop().toLowerCase();
-        
+
         if (fileExtension === 'xlsx' || fileExtension === 'xls') {
           // Parse Excel file - temporarily disabled
           setUploadProgress({ status: 'error', message: 'Excel file support temporarily disabled' });
@@ -550,22 +551,22 @@ const PartnerSchoolDashboard = () => {
           setUploadProgress({ status: 'processing', message: 'Processing CSV file...' });
           csvData = await parseCSVFile(file);
         }
-        
+
         const headers = Object.keys(csvData[0] || {});
-        
+
         console.log('Parsed data:', csvData);
         console.log('Headers:', headers);
         console.log('Number of records:', csvData.length);
-        
-        setUploadProgress({ 
-          status: 'ready', 
-          message: `File processed successfully! ${csvData.length} student records found. Ready to upload.` 
+
+        setUploadProgress({
+          status: 'ready',
+          message: `File processed successfully! ${csvData.length} student records found. Ready to upload.`
         });
-        
+
         // Store the parsed data for upload
         setParsedCSVData(csvData);
         setParsedHeaders(headers);
-        
+
       } catch (error) {
         console.error('Error processing CSV file:', error);
         setUploadProgress({ status: 'error', message: 'Error processing CSV file: ' + error.message });
@@ -858,49 +859,49 @@ const PartnerSchoolDashboard = () => {
       'cs': 'Bachelor of Science in Computer Science',
       'computer sci': 'Bachelor of Science in Computer Science',
       'comp sci': 'Bachelor of Science in Computer Science',
-      
+
       // Psychology variations
       'psychology': 'Bachelor of Arts in Psychology',
       'ba psychology': 'Bachelor of Arts in Psychology',
       'bapsych': 'Bachelor of Arts in Psychology',
       'psych': 'Bachelor of Arts in Psychology',
-      
+
       // Engineering variations
       'civil engineering': 'Bachelor of Science in Civil Engineering',
       'bs civil engineering': 'Bachelor of Science in Civil Engineering',
       'bscivil': 'Bachelor of Science in Civil Engineering',
       'ce': 'Bachelor of Science in Civil Engineering',
-      
+
       'electrical engineering': 'Bachelor of Science in Electrical Engineering',
       'bs electrical engineering': 'Bachelor of Science in Electrical Engineering',
       'bsee': 'Bachelor of Science in Electrical Engineering',
       'ee': 'Bachelor of Science in Electrical Engineering',
-      
+
       'mechanical engineering': 'Bachelor of Science in Mechanical Engineering',
       'bs mechanical engineering': 'Bachelor of Science in Mechanical Engineering',
       'bsme': 'Bachelor of Science in Mechanical Engineering',
       'me': 'Bachelor of Science in Mechanical Engineering',
-      
+
       // Business variations
       'business administration': 'Bachelor of Science in Business Administration',
       'bsba': 'Bachelor of Science in Business Administration',
       'bs business admin': 'Bachelor of Science in Business Administration',
       'business admin': 'Bachelor of Science in Business Administration',
-      
+
       // Education variations
       'elementary education': 'Bachelor of Elementary Education',
       'beed': 'Bachelor of Elementary Education',
       'bs elementary ed': 'Bachelor of Elementary Education',
-      
+
       'secondary education': 'Bachelor of Secondary Education',
       'bsed': 'Bachelor of Secondary Education',
       'bs secondary ed': 'Bachelor of Secondary Education',
-      
+
       // Nursing variations
       'nursing': 'Bachelor of Science in Nursing',
       'bsn': 'Bachelor of Science in Nursing',
       'bs nursing': 'Bachelor of Science in Nursing',
-      
+
       // Accountancy variations
       'accountancy': 'Bachelor of Science in Accountancy',
       'bsa': 'Bachelor of Science in Accountancy',
@@ -912,69 +913,69 @@ const PartnerSchoolDashboard = () => {
   // Function to normalize a header name with fuzzy matching
   const normalizeHeader = (csvHeader) => {
     if (!csvHeader || typeof csvHeader !== 'string') return null;
-    
+
     // Clean the header: remove quotes, extra spaces, and convert to lowercase
     const cleanHeader = csvHeader.trim().replace(/['"]/g, '').toLowerCase();
-    
+
     // Remove all non-alphanumeric characters for better matching
     const normalizedHeader = cleanHeader.replace(/[^a-z0-9]/g, '');
-    
+
     // First try exact matches
     for (const canonicalField in headerMap) {
-      if (headerMap[canonicalField].some(alias => 
+      if (headerMap[canonicalField].some(alias =>
         alias.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedHeader
       )) {
         return canonicalField;
       }
     }
-    
+
     // Then try partial matches (contains)
     for (const canonicalField in headerMap) {
-      if (headerMap[canonicalField].some(alias => 
+      if (headerMap[canonicalField].some(alias =>
         normalizedHeader.includes(alias.toLowerCase().replace(/[^a-z0-9]/g, '')) ||
         alias.toLowerCase().replace(/[^a-z0-9]/g, '').includes(normalizedHeader)
       )) {
         return canonicalField;
       }
     }
-    
+
     // Finally try word-based matching
     const words = normalizedHeader.split(/(?=[a-z])/).filter(w => w.length > 2);
     for (const canonicalField in headerMap) {
       for (const alias of headerMap[canonicalField]) {
         const aliasWords = alias.toLowerCase().replace(/[^a-z0-9]/g, '').split(/(?=[a-z])/).filter(w => w.length > 2);
-        if (words.some(word => aliasWords.some(aliasWord => 
+        if (words.some(word => aliasWords.some(aliasWord =>
           word.includes(aliasWord) || aliasWord.includes(word)
         ))) {
           return canonicalField;
         }
       }
     }
-    
+
     return null; // Return null if no match found
   };
 
   // Enhanced function to normalize field values - CAPTURE AS-IS
   const normalizeValue = (field, value) => {
     if (!value || typeof value !== 'string') return value;
-    
+
     const originalValue = value;
     const cleanValue = value.trim().toLowerCase();
-    
+
     // Log value transformations for debugging
     const logTransformation = (original, normalized, reason = '') => {
       if (original !== normalized) {
         console.log(`🔄 Value normalized: "${original}" → "${normalized}" (field: ${field}) ${reason}`);
       }
     };
-    
+
     // Handle name fields - KEEP AS-IS (no capitalization)
     if (field === 'first_name' || field === 'last_name') {
       const normalized = value.trim(); // Keep original case
       logTransformation(originalValue, normalized, '[Name kept as-is]');
       return normalized;
     }
-    
+
     // Handle middle name - KEEP AS-IS but allow empty
     if (field === 'middle_name') {
       if (!value.trim()) return null; // Allow empty middle names
@@ -982,48 +983,48 @@ const PartnerSchoolDashboard = () => {
       logTransformation(originalValue, normalized, '[Middle name kept as-is]');
       return normalized;
     }
-    
+
     // Handle extension name - KEEP AS-IS
     if (field === 'extension_name') {
       const normalized = value.trim(); // Keep original case
       logTransformation(originalValue, normalized, '[Extension name kept as-is]');
       return normalized;
     }
-    
+
     // Handle student ID - ensure it's uppercase and clean with intelligent formatting
     if (field === 'student_id_number') {
       let normalized = value.trim().toUpperCase();
-      
+
       // Remove common prefixes/suffixes that might be inconsistent
       normalized = normalized.replace(/^(STU|STUDENT|ID|NO|NUMBER)[\s\-_]*/i, '');
       normalized = normalized.replace(/[\s\-_]*$/i, '');
-      
+
       // Add STU- prefix if not present and looks like a number
       if (!normalized.startsWith('STU-') && /^\d+/.test(normalized)) {
         normalized = `STU-${normalized}`;
       }
-      
+
       logTransformation(originalValue, normalized, '[Student ID formatting]');
       return normalized;
     }
-    
+
     // Handle citizen ID - clean and format
     if (field === 'citizen_id') {
       let normalized = value.trim().toUpperCase();
-      
+
       // Remove common prefixes
       normalized = normalized.replace(/^(CIT|CITIZEN|ID|NO|NUMBER)[\s\-_]*/i, '');
       normalized = normalized.replace(/[\s\-_]*$/i, '');
-      
+
       // Add CIT- prefix if not present and looks like a number
       if (!normalized.startsWith('CIT-') && /^\d+/.test(normalized)) {
         normalized = `CIT-${normalized}`;
       }
-      
+
       logTransformation(originalValue, normalized, '[Citizen ID formatting]');
       return normalized;
     }
-    
+
     // Handle enrollment year - normalize format
     if (field === 'enrollment_year') {
       const yearMatch = cleanValue.match(/(\d{4})[-\/]?(\d{4})?/);
@@ -1033,7 +1034,7 @@ const PartnerSchoolDashboard = () => {
         return `${startYear}-${endYear}`;
       }
     }
-    
+
     // Handle enrollment date - normalize format with intelligent parsing
     if (field === 'enrollment_date') {
       // Try to parse various date formats
@@ -1044,7 +1045,7 @@ const PartnerSchoolDashboard = () => {
         /(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})/, // MM/DD/YY or MM-DD-YY
         /(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/, // YYYY/MM/DD or YYYY-MM-DD
       ];
-      
+
       for (const format of dateFormats) {
         const match = value.match(format);
         if (match) {
@@ -1065,17 +1066,17 @@ const PartnerSchoolDashboard = () => {
             // MM DD YYYY format
             [, month, day, year] = match;
           }
-          
+
           // Ensure two digits for month and day
           month = month.padStart(2, '0');
           day = day.padStart(2, '0');
-          
+
           const normalized = `${year}-${month}-${day}`;
           logTransformation(originalValue, normalized, '[Date formatting]');
           return normalized;
         }
       }
-      
+
       // Try to parse text-based dates
       const textDateFormats = [
         /(jan|january)\s+(\d{1,2}),?\s+(\d{4})/i,
@@ -1091,9 +1092,9 @@ const PartnerSchoolDashboard = () => {
         /(nov|november)\s+(\d{1,2}),?\s+(\d{4})/i,
         /(dec|december)\s+(\d{1,2}),?\s+(\d{4})/i,
       ];
-      
+
       const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-      
+
       for (const format of textDateFormats) {
         const match = value.match(format);
         if (match) {
@@ -1101,14 +1102,14 @@ const PartnerSchoolDashboard = () => {
           const day = match[2].padStart(2, '0');
           const year = match[3];
           const month = (monthNames.indexOf(monthName) + 1).toString().padStart(2, '0');
-          
+
           const normalized = `${year}-${month}-${day}`;
           logTransformation(originalValue, normalized, '[Text date formatting]');
           return normalized;
         }
       }
     }
-    
+
     // Handle birth date - same logic as enrollment date
     if (field === 'birth_date') {
       // Use the same date parsing logic as enrollment_date
@@ -1118,7 +1119,7 @@ const PartnerSchoolDashboard = () => {
         /(\d{1,2})\s+(\d{1,2})\s+(\d{4})/, // MM DD YYYY
         /(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})/, // MM/DD/YY or MM-DD-YY
       ];
-      
+
       for (const format of dateFormats) {
         const match = value.match(format);
         if (match) {
@@ -1133,31 +1134,31 @@ const PartnerSchoolDashboard = () => {
           } else {
             [, year, month, day] = match;
           }
-          
+
           month = month.padStart(2, '0');
           day = day.padStart(2, '0');
-          
+
           const normalized = `${year}-${month}-${day}`;
           logTransformation(originalValue, normalized, '[Birth date formatting]');
           return normalized;
         }
       }
     }
-    
+
     // Check if this field has value mappings
     if (valueMaps[field]) {
       // First try exact match
       if (valueMaps[field][cleanValue]) {
         return valueMaps[field][cleanValue];
       }
-      
+
       // Then try partial matching
       for (const [key, normalizedValue] of Object.entries(valueMaps[field])) {
         if (cleanValue.includes(key) || key.includes(cleanValue)) {
           return normalizedValue;
         }
       }
-      
+
       // For enrollment_term, try to extract semester number
       if (field === 'enrollment_term') {
         const semesterMatch = cleanValue.match(/(\d+)(?:st|nd|rd|th)?\s*(?:sem|semester)/);
@@ -1166,12 +1167,12 @@ const PartnerSchoolDashboard = () => {
           if (num === 1) return '1st Semester';
           if (num === 2) return '2nd Semester';
         }
-        
+
         // Check for summer/midyear keywords
         if (cleanValue.includes('summer')) return 'Summer';
         if (cleanValue.includes('midyear') || cleanValue.includes('mid year')) return 'Midyear';
       }
-      
+
       // For year_level, try to extract year number with enhanced mapping
       if (field === 'year_level') {
         // Handle FIRST_YEAR, SECOND_YEAR, etc. (uppercase with underscores)
@@ -1200,7 +1201,7 @@ const PartnerSchoolDashboard = () => {
           logTransformation(originalValue, normalized, '[Year level - fifth year]');
           return normalized;
         }
-        
+
         // Handle GRADE_12, GRADE_11, etc. (uppercase with underscores)
         const gradeMatch = cleanValue.match(/grade[_\s]*(\d+)/i);
         if (gradeMatch) {
@@ -1211,7 +1212,7 @@ const PartnerSchoolDashboard = () => {
             return normalized;
           }
         }
-        
+
         // Handle regular year patterns
         const yearMatch = cleanValue.match(/(\d+)(?:st|nd|rd|th)?\s*(?:year|yr)/i);
         if (yearMatch) {
@@ -1223,7 +1224,7 @@ const PartnerSchoolDashboard = () => {
             return normalized;
           }
         }
-        
+
         // Handle simple numbers (1, 2, 3, etc.)
         const simpleMatch = cleanValue.match(/^(\d+)$/);
         if (simpleMatch) {
@@ -1236,14 +1237,14 @@ const PartnerSchoolDashboard = () => {
           }
         }
       }
-      
+
       // For is_currently_enrolled, ALWAYS set to "enrolled" regardless of input
       if (field === 'is_currently_enrolled') {
         const normalized = 'enrolled'; // Always set to enrolled
         logTransformation(originalValue, normalized, '[Enrollment status - always enrolled]');
         return normalized;
       }
-      
+
       // Handle enrollment_status - normalize to standard values
       if (field === 'enrollment_status') {
         const statusMap = {
@@ -1264,16 +1265,16 @@ const PartnerSchoolDashboard = () => {
           'completed': 'INACTIVE',
           'finished': 'INACTIVE'
         };
-        
+
         const normalized = statusMap[cleanValue] || value.toUpperCase();
         logTransformation(originalValue, normalized, '[Enrollment status normalization]');
         return normalized;
       }
-      
+
       // Handle academic_year - normalize format
       if (field === 'academic_year') {
         let normalized = value.trim();
-        
+
         // Handle formats like 2024-2025, 2024/2025, 2024-25, etc.
         const yearMatch = normalized.match(/(\d{4})[-\/]?(\d{2,4})?/);
         if (yearMatch) {
@@ -1281,11 +1282,11 @@ const PartnerSchoolDashboard = () => {
           const endYear = yearMatch[2] || (parseInt(startYear) + 1).toString();
           normalized = `${startYear}-${endYear}`;
         }
-        
+
         logTransformation(originalValue, normalized, '[Academic year formatting]');
         return normalized;
       }
-      
+
       // Handle semester - normalize to standard values
       if (field === 'semester') {
         const semesterMap = {
@@ -1309,17 +1310,17 @@ const PartnerSchoolDashboard = () => {
           'sem3': 'THIRD',
           'sem4': 'FOURTH'
         };
-        
+
         const normalized = semesterMap[cleanValue] || value.toUpperCase();
         logTransformation(originalValue, normalized, '[Semester normalization]');
         return normalized;
       }
-      
+
       // For is_graduating, try intelligent boolean detection
       if (field === 'is_graduating') {
         const positiveValues = ['true', 'yes', '1', 'y', 'graduating', 'will graduate', 'willgraduate', 'final year', 'finalyear', 'senior', 'last year', 'lastyear'];
         const negativeValues = ['false', 'no', '0', 'n', 'not graduating', 'notgraduating', 'not final year', 'notfinalyear', 'not senior', 'notsenior'];
-        
+
         if (positiveValues.some(val => cleanValue.includes(val))) {
           const normalized = 'true';
           logTransformation(originalValue, normalized, '[Graduating status - positive]');
@@ -1331,7 +1332,7 @@ const PartnerSchoolDashboard = () => {
           return normalized;
         }
       }
-      
+
       // For program, try intelligent program detection
       if (field === 'program') {
         // First try exact matches
@@ -1342,7 +1343,7 @@ const PartnerSchoolDashboard = () => {
             return normalized;
           }
         }
-        
+
         // Enhanced program pattern detection
         const programPatterns = [
           // Computer Science patterns
@@ -1350,36 +1351,36 @@ const PartnerSchoolDashboard = () => {
           { pattern: /information\s*technology|it|infotech/i, value: 'Bachelor of Science in Information Technology' },
           { pattern: /software\s*engineering|se|soft\s*eng/i, value: 'Bachelor of Science in Software Engineering' },
           { pattern: /computer\s*engineering|ce|comp\s*eng/i, value: 'Bachelor of Science in Computer Engineering' },
-          
+
           // Psychology patterns
           { pattern: /psychology|psych|psy/i, value: 'Bachelor of Arts in Psychology' },
           { pattern: /clinical\s*psychology|clinical\s*psych/i, value: 'Bachelor of Arts in Clinical Psychology' },
-          
+
           // Engineering patterns
           { pattern: /civil\s*engineering|ce|civil\s*eng/i, value: 'Bachelor of Science in Civil Engineering' },
           { pattern: /mechanical\s*engineering|me|mech\s*eng/i, value: 'Bachelor of Science in Mechanical Engineering' },
           { pattern: /electrical\s*engineering|ee|elec\s*eng/i, value: 'Bachelor of Science in Electrical Engineering' },
           { pattern: /chemical\s*engineering|che|chem\s*eng/i, value: 'Bachelor of Science in Chemical Engineering' },
           { pattern: /industrial\s*engineering|ie|ind\s*eng/i, value: 'Bachelor of Science in Industrial Engineering' },
-          
+
           // Business patterns
           { pattern: /business\s*administration|ba|bus\s*admin/i, value: 'Bachelor of Science in Business Administration' },
           { pattern: /accountancy|accounting|bsa/i, value: 'Bachelor of Science in Accountancy' },
           { pattern: /marketing|mkt/i, value: 'Bachelor of Science in Marketing' },
           { pattern: /finance|fin/i, value: 'Bachelor of Science in Finance' },
           { pattern: /management|mgt/i, value: 'Bachelor of Science in Management' },
-          
+
           // Education patterns
           { pattern: /elementary\s*education|elem\s*ed|elem\s*educ/i, value: 'Bachelor of Elementary Education' },
           { pattern: /secondary\s*education|sec\s*ed|sec\s*educ/i, value: 'Bachelor of Secondary Education' },
           { pattern: /early\s*childhood\s*education|ece|early\s*childhood/i, value: 'Bachelor of Early Childhood Education' },
-          
+
           // Health patterns
           { pattern: /nursing|bsn|bachelor\s*of\s*nursing/i, value: 'Bachelor of Science in Nursing' },
           { pattern: /medicine|md|doctor\s*of\s*medicine/i, value: 'Doctor of Medicine' },
           { pattern: /pharmacy|pharm|bachelor\s*of\s*pharmacy/i, value: 'Bachelor of Science in Pharmacy' },
           { pattern: /physical\s*therapy|pt|phys\s*ther/i, value: 'Bachelor of Science in Physical Therapy' },
-          
+
           // Arts and Sciences patterns
           { pattern: /biology|bio|bachelor\s*of\s*biology/i, value: 'Bachelor of Science in Biology' },
           { pattern: /chemistry|chem|bachelor\s*of\s*chemistry/i, value: 'Bachelor of Science in Chemistry' },
@@ -1388,19 +1389,19 @@ const PartnerSchoolDashboard = () => {
           { pattern: /english|lit|literature/i, value: 'Bachelor of Arts in English' },
           { pattern: /history|hist/i, value: 'Bachelor of Arts in History' },
           { pattern: /political\s*science|pol\s*sci|poli\s*sci/i, value: 'Bachelor of Arts in Political Science' },
-          
+
           // Technology patterns
           { pattern: /multimedia|multimedia\s*arts|mma/i, value: 'Bachelor of Multimedia Arts' },
           { pattern: /graphics|graphic\s*design|gd/i, value: 'Bachelor of Fine Arts in Graphic Design' },
           { pattern: /animation|anim/i, value: 'Bachelor of Fine Arts in Animation' },
-          
+
           // Generic patterns
           { pattern: /bachelor\s*of\s*science|bs|bsc/i, value: 'Bachelor of Science' },
           { pattern: /bachelor\s*of\s*arts|ba|baa/i, value: 'Bachelor of Arts' },
           { pattern: /bachelor\s*of\s*engineering|be|beng/i, value: 'Bachelor of Engineering' },
           { pattern: /bachelor\s*of\s*education|bed|beduc/i, value: 'Bachelor of Education' },
         ];
-        
+
         for (const { pattern, value } of programPatterns) {
           if (pattern.test(cleanValue)) {
             const normalized = value;
@@ -1408,7 +1409,7 @@ const PartnerSchoolDashboard = () => {
             return normalized;
           }
         }
-        
+
         // Try to detect common program patterns (legacy)
         if (cleanValue.includes('computer') && cleanValue.includes('science')) {
           const normalized = 'Bachelor of Science in Computer Science';
@@ -1435,7 +1436,7 @@ const PartnerSchoolDashboard = () => {
           return 'Bachelor of Science in Accountancy';
         }
       }
-      
+
       // For enrollment_date, try to parse and format dates
       if (field === 'enrollment_date') {
         // Try to parse various date formats
@@ -1445,7 +1446,7 @@ const PartnerSchoolDashboard = () => {
           /(\d{1,2})-(\d{1,2})-(\d{4})/, // MM-DD-YYYY
           /(\d{4})\/(\d{1,2})\/(\d{1,2})/, // YYYY/MM/DD
         ];
-        
+
         for (const format of dateFormats) {
           const match = cleanValue.match(format);
           if (match) {
@@ -1458,62 +1459,62 @@ const PartnerSchoolDashboard = () => {
                 // MM/DD/YYYY or MM-DD-YYYY
                 [, month, day, year] = match;
               }
-              
+
               // Ensure month and day are zero-padded
               month = month.padStart(2, '0');
               day = day.padStart(2, '0');
-              
+
               return `${year}-${month}-${day}`;
             } catch (e) {
               // If parsing fails, continue to next format
             }
           }
         }
-        
+
         // If no date format matches, return original value
         return cleanValue;
       }
     }
-    
+
     // Handle contact number - clean and validate
     if (field === 'contact_number') {
       let normalized = value.trim().replace(/[^\d+\-\(\)\s]/g, ''); // Keep only digits, +, -, (, ), spaces
-      
+
       // Remove common prefixes
       normalized = normalized.replace(/^(\+63|63|0)/, '');
-      
+
       // Ensure it starts with 09 for mobile numbers
       if (normalized.startsWith('9') && normalized.length === 10) {
         normalized = '0' + normalized;
       }
-      
+
       // Format as 09XX-XXX-XXXX
       if (normalized.length === 11 && normalized.startsWith('09')) {
         normalized = `${normalized.slice(0, 4)}-${normalized.slice(4, 7)}-${normalized.slice(7)}`;
       }
-      
+
       logTransformation(originalValue, normalized, '[Contact number formatting]');
       return normalized;
     }
-    
+
     // Handle email - clean and validate
     if (field === 'email_address') {
       let normalized = value.trim().toLowerCase();
-      
+
       // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(normalized)) {
         console.warn(`⚠️ Invalid email format: "${originalValue}"`);
       }
-      
+
       logTransformation(originalValue, normalized, '[Email formatting]');
       return normalized;
     }
-    
+
     // Handle GPA - normalize decimal format
     if (field === 'gpa') {
       let normalized = value.trim();
-      
+
       // Extract number from text
       const numberMatch = normalized.match(/(\d+\.?\d*)/);
       if (numberMatch) {
@@ -1525,7 +1526,7 @@ const PartnerSchoolDashboard = () => {
         }
       }
     }
-    
+
     // Handle units enrolled - ensure it's a number
     if (field === 'units_enrolled') {
       const numberMatch = value.match(/(\d+)/);
@@ -1535,12 +1536,12 @@ const PartnerSchoolDashboard = () => {
         return normalized;
       }
     }
-    
+
     // Log any unhandled values for debugging
     if (originalValue !== value) {
       console.log(`ℹ️ Value kept as-is: "${originalValue}" (field: ${field})`);
     }
-    
+
     return value; // Return original value if no normalization found
   };
 
@@ -1568,21 +1569,21 @@ const PartnerSchoolDashboard = () => {
         try {
           const data = e.target.result;
           const workbook = XLSX.read(data, { type: 'binary' });
-          
+
           // Get the first worksheet
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
-          
+
           // Convert to JSON
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          
+
           if (jsonData.length < 2) {
             throw new Error('Excel file must have at least a header row and one data row');
           }
-          
+
           // Get headers from first row
           const rawHeaders = jsonData[0].map(h => String(h).trim().replace(/"/g, ''));
-          
+
           // Map raw headers to normalized field names (same logic as CSV)
           const headerMapping = {};
           rawHeaders.forEach(header => {
@@ -1591,7 +1592,7 @@ const PartnerSchoolDashboard = () => {
               headerMapping[header] = normalized;
             }
           });
-          
+
           // Convert data rows to objects
           const processedData = jsonData.slice(1).map((row, index) => {
             const rowObj = {};
@@ -1604,13 +1605,13 @@ const PartnerSchoolDashboard = () => {
             });
             return rowObj;
           }).filter(row => Object.keys(row).length > 0); // Remove empty rows
-          
+
           console.log('Excel file processed:', {
             originalHeaders: rawHeaders,
             mappedHeaders: Object.keys(headerMapping),
             processedRows: processedData.length
           });
-          
+
           resolve(processedData);
         } catch (error) {
           console.error('Error parsing Excel file:', error);
@@ -1626,60 +1627,79 @@ const PartnerSchoolDashboard = () => {
   const parseCSVFile = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const csv = e.target.result;
           const lines = csv.split('\n').filter(line => line.trim());
           const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-          
+
           // Map raw headers to normalized field names
-          const headerMapping = {};
+          let headerMapping = {};
           const normalizedHeaders = [];
-          
-          rawHeaders.forEach(rawHeader => {
-            const normalizedHeader = normalizeHeader(rawHeader);
-            if (normalizedHeader) {
-              headerMapping[rawHeader] = normalizedHeader;
-              if (!normalizedHeaders.includes(normalizedHeader)) {
-                normalizedHeaders.push(normalizedHeader);
+
+          // Try AI Smart Matching first
+          try {
+            if (token) {
+              console.log('🤖 Attempting AI Smart Matching for headers...', rawHeaders);
+              const aiMapping = await matchHeaders(token, rawHeaders);
+              if (aiMapping) {
+                headerMapping = aiMapping;
+                console.log('✅ AI Smart Matching successful:', headerMapping);
               }
             }
+          } catch (err) {
+            console.warn('⚠️ AI matching failed, falling back to local logic', err);
+          }
+
+          rawHeaders.forEach(rawHeader => {
+            // Only map if not already mapped by AI
+            if (!headerMapping[rawHeader]) {
+              const normalizedHeader = normalizeHeader(rawHeader);
+              if (normalizedHeader) {
+                headerMapping[rawHeader] = normalizedHeader;
+              }
+            }
+
+            // Add to list of found headers if mapped
+            if (headerMapping[rawHeader] && !normalizedHeaders.includes(headerMapping[rawHeader])) {
+              normalizedHeaders.push(headerMapping[rawHeader]);
+            }
           });
-          
+
           console.log('=== CSV HEADER MAPPING DEBUG ===');
           console.log('Raw headers from CSV:', rawHeaders);
           console.log('Header mapping:', headerMapping);
           console.log('Normalized headers:', normalizedHeaders);
           console.log('Unmapped headers:', rawHeaders.filter(h => !headerMapping[h]));
           console.log('================================');
-          
+
           const data = [];
-          
+
           for (let i = 1; i < lines.length; i++) {
             const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
             const row = {};
-            
+
             rawHeaders.forEach((rawHeader, index) => {
               const normalizedHeader = headerMapping[rawHeader];
               if (normalizedHeader) {
                 const rawValue = values[index] || '';
                 // Apply smart value normalization
                 const normalizedValue = normalizeValue(normalizedHeader, rawValue);
-                
+
                 // Log value transformations for debugging
                 if (rawValue !== normalizedValue) {
                   console.log(`Value normalized: "${rawValue}" → "${normalizedValue}" (field: ${normalizedHeader})`);
                 } else {
                   console.log(`Value kept as-is: "${rawValue}" (field: ${normalizedHeader})`);
                 }
-                
+
                 row[normalizedHeader] = normalizedValue;
               }
             });
-            
+
             data.push(row);
           }
-          
+
           resolve(data);
         } catch (error) {
           reject(error);
@@ -1705,7 +1725,7 @@ const PartnerSchoolDashboard = () => {
       let hasWarnings = false;
       const rowErrors = [];
       const rowWarnings = [];
-      
+
       // Check for missing required fields
       requiredFields.forEach(field => {
         if (!row[field] || row[field].trim() === '') {
@@ -1715,8 +1735,8 @@ const PartnerSchoolDashboard = () => {
       });
 
       // Check if we have either enrollment_year OR enrollment_date
-      if ((!row.enrollment_year || row.enrollment_year.trim() === '') && 
-          (!row.enrollment_date || row.enrollment_date.trim() === '')) {
+      if ((!row.enrollment_year || row.enrollment_year.trim() === '') &&
+        (!row.enrollment_date || row.enrollment_date.trim() === '')) {
         rowErrors.push(`Must provide either 'enrollment_year' or 'enrollment_date'`);
         hasErrors = true;
       }
@@ -1837,28 +1857,28 @@ const PartnerSchoolDashboard = () => {
       console.log('Uploading flexible CSV data:', parsedCSVData);
       console.log('Headers:', parsedHeaders);
       console.log('Number of records:', parsedCSVData.length);
-      
+
       const result = await uploadEnrollmentData(token, parsedCSVData, uploadMode);
-      
-      setUploadProgress({ 
-        status: 'success', 
-        message: `Successfully uploaded ${result.data?.processed_count || result.processed} student records` 
+
+      setUploadProgress({
+        status: 'success',
+        message: `Successfully uploaded ${result.data?.processed_count || result.processed} student records`
       });
-      
+
       // Refresh students data
       await fetchStudentsData();
-      
+
       // Reset form
       setUploadFile(null);
       setUploadProgress(null);
       setParsedCSVData(null);
       setParsedHeaders(null);
-      
+
     } catch (error) {
       console.error('Error uploading CSV:', error);
-      setUploadProgress({ 
-        status: 'error', 
-        message: 'Upload failed: ' + error.message 
+      setUploadProgress({
+        status: 'error',
+        message: 'Upload failed: ' + error.message
       });
     }
   };
@@ -1872,36 +1892,32 @@ const PartnerSchoolDashboard = () => {
   };
 
   const StatCard = ({ title, value, change, changeType, icon: Icon, color }) => (
-    <div className={`bg-white dark:bg-slate-800 rounded-lg shadow-sm border-l-4 p-6 border border-slate-200 dark:border-slate-700 ${
-      color === 'blue' ? 'border-l-[#4A90E2] bg-blue-50 dark:bg-blue-900/20' :
+    <div className={`bg-white dark:bg-slate-800 rounded-lg shadow-sm border-l-4 p-6 border border-slate-200 dark:border-slate-700 ${color === 'blue' ? 'border-l-[#4A90E2] bg-blue-50 dark:bg-blue-900/20' :
       color === 'green' ? 'border-l-[#4CAF50] bg-green-50 dark:bg-green-900/20' :
-      color === 'purple' ? 'border-l-[#4CAF50] bg-green-50 dark:bg-green-900/20' :
-      'border-l-[#FDA811] bg-orange-50 dark:bg-orange-900/20'
-    }`}>
+        color === 'purple' ? 'border-l-[#4CAF50] bg-green-50 dark:bg-green-900/20' :
+          'border-l-[#FDA811] bg-orange-50 dark:bg-orange-900/20'
+      }`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{title}</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-          <p className={`text-sm ${
-            changeType === 'increase' ? 'text-[#4CAF50]' :
+          <p className={`text-sm ${changeType === 'increase' ? 'text-[#4CAF50]' :
             changeType === 'decrease' ? 'text-red-600 dark:text-red-400' :
-            'text-gray-600 dark:text-gray-400'
-          }`}>
+              'text-gray-600 dark:text-gray-400'
+            }`}>
             {changeType === 'increase' ? '↗' : changeType === 'decrease' ? '↘' : '→'} {change}
           </p>
         </div>
-        <div className={`p-3 rounded-full ${
-          color === 'blue' ? 'bg-blue-100 dark:bg-blue-800' :
+        <div className={`p-3 rounded-full ${color === 'blue' ? 'bg-blue-100 dark:bg-blue-800' :
           color === 'green' ? 'bg-green-100 dark:bg-green-800' :
-          color === 'purple' ? 'bg-green-100 dark:bg-green-800' :
-          'bg-orange-100 dark:bg-orange-800'
-        }`}>
-          <Icon className={`w-6 h-6 ${
-            color === 'blue' ? 'text-[#4A90E2]' :
+            color === 'purple' ? 'bg-green-100 dark:bg-green-800' :
+              'bg-orange-100 dark:bg-orange-800'
+          }`}>
+          <Icon className={`w-6 h-6 ${color === 'blue' ? 'text-[#4A90E2]' :
             color === 'green' ? 'text-[#4CAF50]' :
-            color === 'purple' ? 'text-[#4CAF50]' :
-            'text-[#FDA811]'
-          }`} />
+              color === 'purple' ? 'text-[#4CAF50]' :
+                'text-[#FDA811]'
+            }`} />
         </div>
       </div>
     </div>
@@ -1961,7 +1977,7 @@ const PartnerSchoolDashboard = () => {
                 className="pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-[#4CAF50] focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
             </div>
-            <button 
+            <button
               onClick={() => setActiveTab('upload')}
               className="bg-[#4CAF50] text-white px-4 py-2 rounded-lg hover:bg-[#45A049] flex items-center space-x-2"
             >
@@ -1994,7 +2010,7 @@ const PartnerSchoolDashboard = () => {
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button 
+          <button
             onClick={() => setActiveTab('upload')}
             className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
           >
@@ -2004,7 +2020,7 @@ const PartnerSchoolDashboard = () => {
               <p className="text-sm text-gray-600 dark:text-gray-300">Upload enrollment data</p>
             </div>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('students')}
             className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
           >
@@ -2014,7 +2030,7 @@ const PartnerSchoolDashboard = () => {
               <p className="text-sm text-gray-600 dark:text-gray-300">View and edit student records</p>
             </div>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('reports')}
             className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
           >
@@ -2127,7 +2143,7 @@ const PartnerSchoolDashboard = () => {
       {uploadFile && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">File Ready for Upload</h3>
-          
+
           {/* File Details */}
           <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <div className="flex items-center space-x-4">
@@ -2135,8 +2151,8 @@ const PartnerSchoolDashboard = () => {
               <div>
                 <p className="font-medium text-gray-900 dark:text-white">{uploadFile.name}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Size: {uploadFile.size > 1024 * 1024 ? 
-                    `${(uploadFile.size / 1024 / 1024).toFixed(2)} MB` : 
+                  Size: {uploadFile.size > 1024 * 1024 ?
+                    `${(uploadFile.size / 1024 / 1024).toFixed(2)} MB` :
                     `${(uploadFile.size / 1024).toFixed(2)} KB`
                   }
                 </p>
@@ -2183,11 +2199,10 @@ const PartnerSchoolDashboard = () => {
 
           {/* Upload Progress */}
           {uploadProgress && (
-            <div className={`mb-4 p-4 rounded-lg ${
-              uploadProgress.status === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' :
+            <div className={`mb-4 p-4 rounded-lg ${uploadProgress.status === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' :
               uploadProgress.status === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300' :
-              'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
-            }`}>
+                'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
+              }`}>
               <div className="flex items-center space-x-2">
                 {uploadProgress.status === 'success' && <CheckCircle className="w-5 h-5" />}
                 {uploadProgress.status === 'error' && <XCircle className="w-5 h-5" />}
@@ -2200,14 +2215,14 @@ const PartnerSchoolDashboard = () => {
 
           {/* Action Buttons */}
           <div className="flex space-x-4">
-            <button 
+            <button
               onClick={handleCSVUpload}
               disabled={uploadProgress?.status === 'uploading' || uploadProgress?.status === 'processing'}
               className="bg-[#4CAF50] text-white px-6 py-2 rounded-lg hover:bg-[#45A049] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploadProgress?.status === 'uploading' ? 'Uploading...' : 'Upload Data'}
             </button>
-            <button 
+            <button
               onClick={() => {
                 setUploadFile(null);
                 setUploadProgress(null);
@@ -2220,28 +2235,28 @@ const PartnerSchoolDashboard = () => {
         </div>
       )}
 
-       {/* Validation Results */}
-       {validationResults && (
-         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
-           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Validation Results</h3>
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-             <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-               <p className="text-2xl font-bold text-[#4CAF50] dark:text-green-300">{validationResults.validRecords}</p>
-               <p className="text-sm text-green-800 dark:text-green-300">Valid Records</p>
-             </div>
-             <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-               <p className="text-2xl font-bold text-red-600 dark:text-red-400">{validationResults.errorRecords}</p>
-               <p className="text-sm text-red-800 dark:text-red-300">Error Records</p>
-             </div>
-             <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-               <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{validationResults.warningRecords}</p>
-               <p className="text-sm text-yellow-800 dark:text-yellow-300">Warning Records</p>
-             </div>
-             <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-               <p className="text-2xl font-bold text-[#4CAF50] dark:text-green-300">{validationResults.newRecords}</p>
-               <p className="text-sm text-green-800 dark:text-green-300">New Records</p>
-             </div>
-           </div>
+      {/* Validation Results */}
+      {validationResults && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Validation Results</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <p className="text-2xl font-bold text-[#4CAF50] dark:text-green-300">{validationResults.validRecords}</p>
+              <p className="text-sm text-green-800 dark:text-green-300">Valid Records</p>
+            </div>
+            <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{validationResults.errorRecords}</p>
+              <p className="text-sm text-red-800 dark:text-red-300">Error Records</p>
+            </div>
+            <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{validationResults.warningRecords}</p>
+              <p className="text-sm text-yellow-800 dark:text-yellow-300">Warning Records</p>
+            </div>
+            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <p className="text-2xl font-bold text-[#4CAF50] dark:text-green-300">{validationResults.newRecords}</p>
+              <p className="text-sm text-green-800 dark:text-green-300">New Records</p>
+            </div>
+          </div>
           <div className="flex flex-col space-y-4">
             {/* Upload Mode Selection */}
             <div className="flex items-center space-x-4">
@@ -2271,14 +2286,13 @@ const PartnerSchoolDashboard = () => {
                 </label>
               </div>
             </div>
-            
+
             {/* Upload Progress */}
             {uploadProgress && (
-              <div className={`p-4 rounded-lg ${
-                uploadProgress.status === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' :
+              <div className={`p-4 rounded-lg ${uploadProgress.status === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' :
                 uploadProgress.status === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300' :
-                'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
-              }`}>
+                  'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
+                }`}>
                 <div className="flex items-center space-x-2">
                   {uploadProgress.status === 'success' && <CheckCircle className="w-5 h-5" />}
                   {uploadProgress.status === 'error' && <XCircle className="w-5 h-5" />}
@@ -2288,71 +2302,71 @@ const PartnerSchoolDashboard = () => {
                 </div>
               </div>
             )}
-            
+
             {/* Action Buttons */}
-           {/* Error Details */}
-           {validationResults?.errors && validationResults.errors.length > 0 && (
-             <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-               <h4 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-3">Error Details:</h4>
-               <div className="max-h-60 overflow-y-auto">
-                 {validationResults.errors.slice(0, 10).map((error, index) => (
-                   <div key={index} className="text-sm text-red-700 dark:text-red-300 mb-1 p-2 bg-red-100 dark:bg-red-800/30 rounded">
-                     {error}
-                   </div>
-                 ))}
-                 {validationResults.errors.length > 10 && (
-                   <div className="text-sm text-red-600 dark:text-red-400 font-medium mt-2">
-                     ... and {validationResults.errors.length - 10} more errors
-                   </div>
-                 )}
-               </div>
-             </div>
-           )}
+            {/* Error Details */}
+            {validationResults?.errors && validationResults.errors.length > 0 && (
+              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <h4 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-3">Error Details:</h4>
+                <div className="max-h-60 overflow-y-auto">
+                  {validationResults.errors.slice(0, 10).map((error, index) => (
+                    <div key={index} className="text-sm text-red-700 dark:text-red-300 mb-1 p-2 bg-red-100 dark:bg-red-800/30 rounded">
+                      {error}
+                    </div>
+                  ))}
+                  {validationResults.errors.length > 10 && (
+                    <div className="text-sm text-red-600 dark:text-red-400 font-medium mt-2">
+                      ... and {validationResults.errors.length - 10} more errors
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-           {/* Warning Details */}
-           {validationResults?.warnings && validationResults.warnings.length > 0 && (
-             <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-               <h4 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-3">Warning Details:</h4>
-               <div className="max-h-60 overflow-y-auto">
-                 {validationResults.warnings.slice(0, 10).map((warning, index) => (
-                   <div key={index} className="text-sm text-yellow-700 dark:text-yellow-300 mb-1 p-2 bg-yellow-100 dark:bg-yellow-800/30 rounded">
-                     {warning}
-                   </div>
-                 ))}
-                 {validationResults.warnings.length > 10 && (
-                   <div className="text-sm text-yellow-600 dark:text-yellow-400 font-medium mt-2">
-                     ... and {validationResults.warnings.length - 10} more warnings
-                   </div>
-                 )}
-               </div>
-             </div>
-           )}
+            {/* Warning Details */}
+            {validationResults?.warnings && validationResults.warnings.length > 0 && (
+              <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <h4 className="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mb-3">Warning Details:</h4>
+                <div className="max-h-60 overflow-y-auto">
+                  {validationResults.warnings.slice(0, 10).map((warning, index) => (
+                    <div key={index} className="text-sm text-yellow-700 dark:text-yellow-300 mb-1 p-2 bg-yellow-100 dark:bg-yellow-800/30 rounded">
+                      {warning}
+                    </div>
+                  ))}
+                  {validationResults.warnings.length > 10 && (
+                    <div className="text-sm text-yellow-600 dark:text-yellow-400 font-medium mt-2">
+                      ... and {validationResults.warnings.length - 10} more warnings
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-           <div className="flex space-x-4">
-             {validationResults && validationResults.errorRecords === 0 && (
-               <button 
-                 onClick={handleCSVUpload}
-                 disabled={uploadProgress?.status === 'uploading'}
-                 className="bg-[#4CAF50] text-white px-6 py-2 rounded-lg hover:bg-[#45A049] disabled:opacity-50 disabled:cursor-not-allowed"
-               >
-                 {uploadProgress?.status === 'uploading' ? 'Uploading...' : 'Upload Data'}
-               </button>
-             )}
-             <button 
-               onClick={downloadTemplate}
-               className="bg-gray-600 dark:bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-slate-700"
-             >
-               Download Template
-             </button>
-             {validationResults?.errors && validationResults.errors.length > 0 && (
-               <button className="bg-red-600 dark:bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 dark:hover:bg-red-700">
-                 Download Error Report
-               </button>
-             )}
-           </div>
+            <div className="flex space-x-4">
+              {validationResults && validationResults.errorRecords === 0 && (
+                <button
+                  onClick={handleCSVUpload}
+                  disabled={uploadProgress?.status === 'uploading'}
+                  className="bg-[#4CAF50] text-white px-6 py-2 rounded-lg hover:bg-[#45A049] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploadProgress?.status === 'uploading' ? 'Uploading...' : 'Upload Data'}
+                </button>
+              )}
+              <button
+                onClick={downloadTemplate}
+                className="bg-gray-600 dark:bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 dark:hover:bg-slate-700"
+              >
+                Download Template
+              </button>
+              {validationResults?.errors && validationResults.errors.length > 0 && (
+                <button className="bg-red-600 dark:bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 dark:hover:bg-red-700">
+                  Download Error Report
+                </button>
+              )}
+            </div>
           </div>
-         </div>
-       )}
+        </div>
+      )}
     </div>
   );
 
@@ -2437,14 +2451,14 @@ const PartnerSchoolDashboard = () => {
                       <div>
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white">No students found</h3>
                         <p className="text-gray-500 dark:text-gray-400">
-                          {searchTerm || filterStatus !== 'all' 
+                          {searchTerm || filterStatus !== 'all'
                             ? 'No students match your current search or filter criteria.'
                             : 'Upload student enrollment data to get started.'
                           }
                         </p>
                       </div>
                       {!searchTerm && filterStatus === 'all' && (
-                        <button 
+                        <button
                           onClick={() => setActiveTab('upload')}
                           className="bg-[#4CAF50] text-white px-4 py-2 rounded-lg hover:bg-[#45A049] transition-colors"
                         >
@@ -2469,25 +2483,25 @@ const PartnerSchoolDashboard = () => {
                       statusMatch = latestEnrollment && latestEnrollment.is_currently_enrolled;
                     }
                   }
-                  
+
                   // Check search term
-                  const searchMatch = searchTerm === '' || 
+                  const searchMatch = searchTerm === '' ||
                     (student.first_name && student.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (student.last_name && student.last_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (student.student_id_number && student.student_id_number.toLowerCase().includes(searchTerm.toLowerCase()));
-                  
+
                   return statusMatch && searchMatch;
                 })
                 .map((student) => {
                   // Get enrollment data for this student from the student object
                   const studentEnrollmentData = student.enrollmentData || [];
                   const latestEnrollment = studentEnrollmentData[0]; // Most recent enrollment data
-                  
+
                   // Debug logging
                   console.log('Student:', student.student_id_number, 'Enrollment data:', studentEnrollmentData);
                   console.log('Latest enrollment:', latestEnrollment);
                   console.log('Student full object:', student);
-                  
+
                   // For flexible data, extract the actual data
                   let flexibleData = null;
                   if (student.isFlexible && student.flexibleData) {
@@ -2497,7 +2511,7 @@ const PartnerSchoolDashboard = () => {
                     console.log('Program:', flexibleData.program);
                     console.log('Enrollment Date:', flexibleData.enrollment_date);
                   }
-                  
+
                   return (
                     <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
@@ -2510,12 +2524,11 @@ const PartnerSchoolDashboard = () => {
                         <div className="flex flex-col space-y-1">
                           {/* Application Status */}
                           {student.scholarshipApplications && student.scholarshipApplications.length > 0 && (
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              student.scholarshipApplications[0].status === 'approved' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${student.scholarshipApplications[0].status === 'approved' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
                               student.scholarshipApplications[0].status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
-                              student.scholarshipApplications[0].status === 'rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
-                              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
-                            }`}>
+                                student.scholarshipApplications[0].status === 'rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300' :
+                                  'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                              }`}>
                               App: {student.scholarshipApplications[0].status}
                             </span>
                           )}
@@ -2526,19 +2539,19 @@ const PartnerSchoolDashboard = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {student.isFlexible && flexibleData ? 
+                        {student.isFlexible && flexibleData ?
                           (flexibleData.year_level || flexibleData['year level'] || flexibleData.grade || 'N/A') :
                           (latestEnrollment?.year_level || student.currentAcademicRecord?.year_level || student.yearLevel || 'N/A')
                         }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {student.isFlexible && flexibleData ? 
+                        {student.isFlexible && flexibleData ?
                           (flexibleData.program || flexibleData.course || flexibleData.major || 'N/A') :
                           (latestEnrollment?.program || student.currentAcademicRecord?.program || student.program || 'N/A')
                         }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {student.isFlexible && flexibleData ? 
+                        {student.isFlexible && flexibleData ?
                           (flexibleData.enrollment_date || flexibleData['enrollment date'] || flexibleData.date || 'N/A') :
                           (latestEnrollment?.enrollment_date || latestEnrollment?.created_at || student.enrollmentDate || 'N/A')
                         }
@@ -2572,7 +2585,7 @@ const PartnerSchoolDashboard = () => {
     <div className="space-y-6">
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Reports & Analytics</h1>
-        
+
         {/* Charts Placeholder */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-6">
@@ -2634,7 +2647,7 @@ const PartnerSchoolDashboard = () => {
     <div className="space-y-6">
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 border border-slate-200 dark:border-slate-700">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
-        
+
         <div className="space-y-8">
           {/* School Information */}
           <div>
@@ -2658,72 +2671,72 @@ const PartnerSchoolDashboard = () => {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
                 />
               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contact Person</label>
-                 <input
-                   type="text"
-                   value={currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : ''}
-                   readOnly
-                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
-                 <input
-                   type="email"
-                   value={schoolInfo?.school?.email || ''}
-                   readOnly
-                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone</label>
-                 <input
-                   type="text"
-                   value={schoolInfo?.school?.contact_number || ''}
-                   readOnly
-                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
-                 <input
-                   type="text"
-                   value={schoolInfo?.school?.address ? `${schoolInfo.school.address}, ${schoolInfo.school.city}, ${schoolInfo.school.province}` : ''}
-                   readOnly
-                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
-                 />
-               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Contact Person</label>
+                <input
+                  type="text"
+                  value={currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : ''}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={schoolInfo?.school?.email || ''}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone</label>
+                <input
+                  type="text"
+                  value={schoolInfo?.school?.contact_number || ''}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
+                <input
+                  type="text"
+                  value={schoolInfo?.school?.address ? `${schoolInfo.school.address}, ${schoolInfo.school.city}, ${schoolInfo.school.province}` : ''}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-900 dark:text-white"
+                />
+              </div>
             </div>
           </div>
 
-           {/* Upload Settings */}
-           <div>
-             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Upload Settings</h3>
-             <div className="space-y-4">
-               <div className="flex items-center">
-                 <input
-                   type="checkbox"
-                   id="auto-approve"
-                   className="h-4 w-4 text-[#4CAF50] focus:ring-[#4CAF50] border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700"
-                 />
-                 <label htmlFor="auto-approve" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                   Auto-approve uploads
-                 </label>
-               </div>
-               <div className="flex items-center">
-                 <input
-                   type="checkbox"
-                   id="require-verification"
-                   defaultChecked
-                   className="h-4 w-4 text-[#4CAF50] focus:ring-[#4CAF50] border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700"
-                 />
-                 <label htmlFor="require-verification" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                   Require manual verification
-                 </label>
-               </div>
-             </div>
-           </div>
+          {/* Upload Settings */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Upload Settings</h3>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="auto-approve"
+                  className="h-4 w-4 text-[#4CAF50] focus:ring-[#4CAF50] border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700"
+                />
+                <label htmlFor="auto-approve" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  Auto-approve uploads
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="require-verification"
+                  defaultChecked
+                  className="h-4 w-4 text-[#4CAF50] focus:ring-[#4CAF50] border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700"
+                />
+                <label htmlFor="require-verification" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  Require manual verification
+                </label>
+              </div>
+            </div>
+          </div>
 
           {/* Password Change Section */}
           <div>
@@ -2784,7 +2797,7 @@ const PartnerSchoolDashboard = () => {
                       )}
                     </button>
                   </div>
-                  
+
                   {/* Password Strength Indicator */}
                   {passwordForm.newPassword && (
                     <div className="mt-3">
@@ -2792,41 +2805,37 @@ const PartnerSchoolDashboard = () => {
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Password Strength
                         </span>
-                        <span className={`text-sm font-medium ${
-                          passwordStrength.score === 100 ? 'text-green-600' :
+                        <span className={`text-sm font-medium ${passwordStrength.score === 100 ? 'text-green-600' :
                           passwordStrength.score >= 60 ? 'text-yellow-600' :
-                          'text-red-600'
-                        }`}>
+                            'text-red-600'
+                          }`}>
                           {passwordStrength.score === 100 ? 'Strong' :
-                           passwordStrength.score >= 60 ? 'Medium' :
-                           'Weak'}
+                            passwordStrength.score >= 60 ? 'Medium' :
+                              'Weak'}
                         </span>
                       </div>
-                      
+
                       {/* Strength Bar */}
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3">
                         <div
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            passwordStrength.score === 100 ? 'bg-green-500' :
+                          className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.score === 100 ? 'bg-green-500' :
                             passwordStrength.score >= 60 ? 'bg-yellow-500' :
-                            'bg-red-500'
-                          }`}
+                              'bg-red-500'
+                            }`}
                           style={{ width: `${passwordStrength.score}%` }}
                         ></div>
                       </div>
-                      
+
                       {/* Password Requirements */}
                       <div className="space-y-1">
                         {passwordStrength.feedback.map((requirement, index) => (
                           <div key={index} className="flex items-center space-x-2">
-                            <CheckCircle 
-                              className={`h-4 w-4 ${
-                                requirement.valid ? 'text-green-500' : 'text-gray-400'
-                              }`} 
+                            <CheckCircle
+                              className={`h-4 w-4 ${requirement.valid ? 'text-green-500' : 'text-gray-400'
+                                }`}
                             />
-                            <span className={`text-sm ${
-                              requirement.valid ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
-                            }`}>
+                            <span className={`text-sm ${requirement.valid ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
+                              }`}>
                               {requirement.text}
                             </span>
                           </div>
@@ -2862,18 +2871,16 @@ const PartnerSchoolDashboard = () => {
                       )}
                     </button>
                   </div>
-                  
+
                   {/* Password Match Indicator */}
                   {passwordForm.confirmPassword && (
                     <div className="mt-2 flex items-center space-x-2">
-                      <CheckCircle 
-                        className={`h-4 w-4 ${
-                          passwordForm.newPassword === passwordForm.confirmPassword ? 'text-green-500' : 'text-red-500'
-                        }`} 
+                      <CheckCircle
+                        className={`h-4 w-4 ${passwordForm.newPassword === passwordForm.confirmPassword ? 'text-green-500' : 'text-red-500'
+                          }`}
                       />
-                      <span className={`text-sm ${
-                        passwordForm.newPassword === passwordForm.confirmPassword ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                      }`}>
+                      <span className={`text-sm ${passwordForm.newPassword === passwordForm.confirmPassword ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        }`}>
                         {passwordForm.newPassword === passwordForm.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
                       </span>
                     </div>
@@ -2931,37 +2938,37 @@ const PartnerSchoolDashboard = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Mobile Overlay */}
       {isMobile && !sidebarCollapsed && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setSidebarCollapsed(true)}
         />
       )}
 
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 ${sidebarCollapsed ? (isMobile ? '-translate-x-full' : 'w-16') : 'w-64'} bg-white border-r border-slate-200/50 flex flex-col transition-all duration-300 ease-in-out shadow-lg dark:bg-slate-900 dark:border-slate-700/50 z-50`}>
-         <div className={`${sidebarCollapsed ? 'p-3' : 'p-6'} flex-shrink-0`}>
-           <div className="flex items-center space-x-3">
-             <div className="w-10 h-10 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-               <img src="/GSM_logo.png" alt="GSM Logo" className="w-full h-full object-contain" />
-             </div>
-             {!sidebarCollapsed && (
-               <div className="min-w-0">
-                 <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">
-                   {loading ? (
-                     <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
-                   ) : schoolInfo ? (
-                     schoolInfo.school.name.split(' ')[0]
-                   ) : (
-                     'School'
-                   )}
-                 </h1>
-                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">Partner School</p>
-               </div>
-             )}
-           </div>
-         </div>
-         <hr className="border-slate-200 dark:border-slate-700 mx-2 flex-shrink-0" />
-        
+        <div className={`${sidebarCollapsed ? 'p-3' : 'p-6'} flex-shrink-0`}>
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+              <img src="/GSM_logo.png" alt="GSM Logo" className="w-full h-full object-contain" />
+            </div>
+            {!sidebarCollapsed && (
+              <div className="min-w-0">
+                <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                  {loading ? (
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+                  ) : schoolInfo ? (
+                    schoolInfo.school.name.split(' ')[0]
+                  ) : (
+                    'School'
+                  )}
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">Partner School</p>
+              </div>
+            )}
+          </div>
+        </div>
+        <hr className="border-slate-200 dark:border-slate-700 mx-2 flex-shrink-0" />
+
         <nav className="flex-1 p-2 md:p-4 space-y-1 md:space-y-2 overflow-y-auto">
           {[
             { id: 'overview', label: 'Overview', icon: Home },
@@ -2973,11 +2980,10 @@ const PartnerSchoolDashboard = () => {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-               className={`w-full flex items-center space-x-3 p-2 md:p-2 rounded-xl transition-all duration-200 text-left ${sidebarCollapsed ? 'px-2 justify-center' : 'px-3'} ${
-                 activeTab === item.id
-                   ? 'bg-orange-200 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-semibold'
-                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300'
-               }`}
+              className={`w-full flex items-center space-x-3 p-2 md:p-2 rounded-xl transition-all duration-200 text-left ${sidebarCollapsed ? 'px-2 justify-center' : 'px-3'} ${activeTab === item.id
+                ? 'bg-orange-200 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
               {!sidebarCollapsed && (
@@ -2987,13 +2993,13 @@ const PartnerSchoolDashboard = () => {
           ))}
         </nav>
 
-         {/* Logout button at the bottom */}
-         <div className="flex-shrink-0 p-2 md:p-4 border-t border-slate-200 dark:border-slate-700">
-           <button
-             onClick={handleLogout}
-             disabled={isLoggingOut}
-             className={`w-full flex items-center space-x-3 p-2 md:p-3 rounded-xl transition-all duration-200 text-left ${sidebarCollapsed ? 'px-2 justify-center' : 'px-3'} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed`}
-           >
+        {/* Logout button at the bottom */}
+        <div className="flex-shrink-0 p-2 md:p-4 border-t border-slate-200 dark:border-slate-700">
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className={`w-full flex items-center space-x-3 p-2 md:p-3 rounded-xl transition-all duration-200 text-left ${sidebarCollapsed ? 'px-2 justify-center' : 'px-3'} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {!sidebarCollapsed && (
               <span className="text-sm font-medium">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
@@ -3006,8 +3012,8 @@ const PartnerSchoolDashboard = () => {
       <div className={`${isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-16' : 'ml-64')} bg-white/80 backdrop-blur-xl border-b border-slate-200 px-6 py-4 transition-all duration-300 dark:bg-slate-800 dark:border-slate-700/50`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button 
-              className="p-2 rounded-lg text-slate-500 hover:bg-slate-200 transition-colors duration-200" 
+            <button
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-200 transition-colors duration-200"
               onClick={handleSidebarToggle}
             >
               <Menu className="w-6 h-6" />
@@ -3016,11 +3022,11 @@ const PartnerSchoolDashboard = () => {
               <div className="hidden md:flex items-center space-x-1">
                 <h1 className="text-md font-bold dark:text-white">EDUCATION & SCHOLARSHIP MANAGEMENT</h1>
               </div>
-               <div>
-                 <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
-                   {getBreadcrumb().join(' > ')}
-                 </span>
-               </div>
+              <div>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
+                  {getBreadcrumb().join(' > ')}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -3032,25 +3038,25 @@ const PartnerSchoolDashboard = () => {
                 {currentUser?.role || 'ps_rep'}
               </span>
             </div>
-            
+
             <button className="relative rounded-xl p-2 text-slate-600 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer">
               <Bell className="w-6 h-6" />
               <span className="absolute top-0 w-4 h-4 text-white text-xs bg-red-500 rounded-full flex items-center justify-center">1</span>
             </button>
-            
-            <button 
-              className="ml-2 rounded-xl p-2 bg-slate-300 text-slate-600 hover:bg-slate-400 dark:bg-slate-700 dark:text-yellow-400 dark:hover:bg-slate-900 transition-colors cursor-pointer" 
-              onClick={toggleTheme} 
+
+            <button
+              className="ml-2 rounded-xl p-2 bg-slate-300 text-slate-600 hover:bg-slate-400 dark:bg-slate-700 dark:text-yellow-400 dark:hover:bg-slate-900 transition-colors cursor-pointer"
+              onClick={toggleTheme}
               aria-label="Toggle dark mode"
             >
               {theme === 'dark' ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" fill="none"/>
-                  <path stroke="currentColor" strokeWidth="2" d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.95 7.07l-1.41-1.41M6.46 6.46L5.05 5.05m13.9 0l-1.41 1.41M6.46 17.54l-1.41 1.41"/>
+                  <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" fill="none" />
+                  <path stroke="currentColor" strokeWidth="2" d="M12 1v2m0 18v2m11-11h-2M3 12H1m16.95 7.07l-1.41-1.41M6.46 6.46L5.05 5.05m13.9 0l-1.41 1.41M6.46 17.54l-1.41 1.41" />
                 </svg>
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke="currentColor" strokeWidth="2" d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/>
+                  <path stroke="currentColor" strokeWidth="2" d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" />
                 </svg>
               )}
             </button>
@@ -3067,51 +3073,51 @@ const PartnerSchoolDashboard = () => {
         {activeTab === 'settings' && renderSettings()}
       </div>
 
-       {/* Field Guide Modal */}
-       {showFieldGuide && (
-         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-           <div className="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-             <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
-               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Data Upload Field Guide</h2>
-               <button
-                 onClick={() => setShowFieldGuide(false)}
-                 className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-               >
-                 ✕
-               </button>
-             </div>
-             <div className="p-6">
-               <div className="space-y-6">
-                 <div>
-                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Required Fields</h3>
-                   <div className="space-y-3">
-                     {[
-                       { field: 'student_id_number', description: 'Unique student identifier', example: '2024-001' },
-                       { field: 'first_name', description: 'Student\'s first name', example: 'Juan' },
-                       { field: 'last_name', description: 'Student\'s last name', example: 'Cruz' },
-                       { field: 'enrollment_status', description: 'ACTIVE, INACTIVE, GRADUATED, or DROPPED', example: 'ACTIVE' },
-                       { field: 'academic_year', description: 'Academic year (YYYY-YYYY)', example: '2024-2025' },
-                       { field: 'semester', description: 'FIRST, SECOND, or SUMMER', example: 'FIRST' },
-                       { field: 'year_level', description: 'GRADE_7 to GRADE_12 or FIRST_YEAR to FIFTH_YEAR', example: 'GRADE_11' },
-                       { field: 'enrollment_date', description: 'Date in YYYY-MM-DD format', example: '2024-06-15' }
-                     ].map((item, index) => (
-                       <div key={index} className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
-                         <div className="flex items-center justify-between">
-                           <div>
-                             <h4 className="font-semibold text-gray-900 dark:text-white">{item.field}</h4>
-                             <p className="text-sm text-gray-600 dark:text-gray-300">{item.description}</p>
-                           </div>
-                           <code className="text-sm bg-white dark:bg-slate-600 text-gray-900 dark:text-white px-2 py-1 rounded border border-gray-200 dark:border-slate-600">{item.example}</code>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-               </div>
-             </div>
-           </div>
-         </div>
-       )}
+      {/* Field Guide Modal */}
+      {showFieldGuide && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Data Upload Field Guide</h2>
+              <button
+                onClick={() => setShowFieldGuide(false)}
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Required Fields</h3>
+                  <div className="space-y-3">
+                    {[
+                      { field: 'student_id_number', description: 'Unique student identifier', example: '2024-001' },
+                      { field: 'first_name', description: 'Student\'s first name', example: 'Juan' },
+                      { field: 'last_name', description: 'Student\'s last name', example: 'Cruz' },
+                      { field: 'enrollment_status', description: 'ACTIVE, INACTIVE, GRADUATED, or DROPPED', example: 'ACTIVE' },
+                      { field: 'academic_year', description: 'Academic year (YYYY-YYYY)', example: '2024-2025' },
+                      { field: 'semester', description: 'FIRST, SECOND, or SUMMER', example: 'FIRST' },
+                      { field: 'year_level', description: 'GRADE_7 to GRADE_12 or FIRST_YEAR to FIFTH_YEAR', example: 'GRADE_11' },
+                      { field: 'enrollment_date', description: 'Date in YYYY-MM-DD format', example: '2024-06-15' }
+                    ].map((item, index) => (
+                      <div key={index} className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-white">{item.field}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{item.description}</p>
+                          </div>
+                          <code className="text-sm bg-white dark:bg-slate-600 text-gray-900 dark:text-white px-2 py-1 rounded border border-gray-200 dark:border-slate-600">{item.example}</code>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

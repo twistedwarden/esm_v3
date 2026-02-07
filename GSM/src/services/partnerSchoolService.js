@@ -23,7 +23,7 @@ export const fetchPartnerSchoolInfo = async (token) => {
     }
 
     const userData = await userResponse.json();
-    
+
     if (!userData.success || !userData.data?.user?.assigned_school_id) {
       throw new Error('No school assigned to this user');
     }
@@ -43,7 +43,7 @@ export const fetchPartnerSchoolInfo = async (token) => {
     }
 
     const schoolData = await schoolResponse.json();
-    
+
     if (schoolData.success) {
       return {
         school: schoolData.data,
@@ -77,7 +77,7 @@ export const fetchPartnerSchoolStats = async (token) => {
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -109,7 +109,7 @@ export const fetchPartnerSchoolStudents = async (token, params = {}) => {
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -145,7 +145,7 @@ export const uploadEnrollmentData = async (token, csvData, updateMode = 'merge')
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -177,7 +177,7 @@ export const fetchEnrollmentData = async (token, params = {}) => {
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -194,7 +194,7 @@ export const uploadFlexibleData = async (token, csvData, headers, updateMode = '
   try {
     console.log('uploadFlexibleData called with:', { token, csvDataLength: csvData.length, headers, updateMode });
     console.log('SCHOLARSHIP_API_BASE_URL:', SCHOLARSHIP_API_BASE_URL);
-    
+
     const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/partner-school/flexible/upload`, {
       method: 'POST',
       headers: {
@@ -216,7 +216,7 @@ export const uploadFlexibleData = async (token, csvData, headers, updateMode = '
 
     const data = await response.json();
     console.log('Upload response:', data);
-    
+
     if (data.success) {
       return data;
     } else {
@@ -232,11 +232,11 @@ export const uploadFlexibleData = async (token, csvData, headers, updateMode = '
 export const fetchFlexibleStudents = async (token, params = {}) => {
   try {
     const queryParams = new URLSearchParams();
-    
+
     if (params.page) queryParams.append('page', params.page);
     queryParams.append('per_page', params.per_page || 1000); // Request up to 1000 records
     if (params.search) queryParams.append('search', params.search);
-    
+
     const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/partner-school/flexible/students?${queryParams}`, {
       method: 'GET',
       headers: {
@@ -250,7 +250,7 @@ export const fetchFlexibleStudents = async (token, params = {}) => {
     }
 
     const data = await response.json();
-    
+
     if (data.success) {
       return data.data;
     } else {
@@ -259,5 +259,36 @@ export const fetchFlexibleStudents = async (token, params = {}) => {
   } catch (error) {
     console.error('Error fetching flexible students:', error);
     throw error;
+  }
+};
+
+// Match headers using AI (or Smart Matching Service)
+export const matchHeaders = async (token, headers) => {
+  try {
+    const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/partner-school/match-headers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ headers })
+    });
+
+    if (!response.ok) {
+      // If service is down or error, fallback gracefully (throw error to be caught)
+      const errorText = await response.text();
+      console.warn('Match headers service warning:', errorText);
+      throw new Error(`Service returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (data.success) {
+      return data.data; // Returns a map { "Header": "field" }
+    } else {
+      throw new Error(data.message || 'Failed to match headers');
+    }
+  } catch (error) {
+    console.warn('Error matching headers via service (will use local fallback):', error);
+    return null; // Return null to indicate fallback should be used
   }
 };
