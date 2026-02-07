@@ -8,11 +8,14 @@ use Illuminate\Support\Facades\Log;
 class GeminiAnalyticsService
 {
     protected $apiKey;
-    protected $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+    protected $model;
+    protected $apiUrl;
 
     public function __construct()
     {
         $this->apiKey = env('GEMINI_API_KEY');
+        $this->model = env('GEMINI_MODEL', 'gemini-pro');
+        $this->apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent";
     }
 
     /**
