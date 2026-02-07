@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Search,
   Download,
   Eye,
   FileText,
@@ -8,15 +10,31 @@ import {
   XCircle,
   Clock,
   RotateCcw,
-  Calendar,
+
   PhilippinePeso,
   Grid3X3,
-  List
+  List,
+  Lock,
+  RefreshCw,
+  X,
+  FileBarChart
 } from 'lucide-react';
 
 const DisbursementHistory = () => {
-  const [history, setHistory] = useState([]);
-  const [filteredHistory, setFilteredHistory] = useState([]);
+  // Define interface for data items
+  interface Disbursement {
+    id: string;
+    scholarName: string;
+    schoolName: string;
+    amount: number;
+    method: string;
+    disbursementDate: string;
+    referenceNumber: string;
+    status: string;
+  }
+
+  const [history, setHistory] = useState<Disbursement[]>([]);
+  const [filteredHistory, setFilteredHistory] = useState<Disbursement[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     dateFrom: '',
@@ -27,6 +45,12 @@ const DisbursementHistory = () => {
   });
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
+
+  // Export State
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [reportFormat, setReportFormat] = useState('pdf');
 
   useEffect(() => {
     fetchHistory();
@@ -41,9 +65,9 @@ const DisbursementHistory = () => {
       // TODO: Replace with actual API call
       // const response = await fetch('/api/disbursements/history');
       // const data = await response.json();
-      
+
       // Mock data
-      const mockData = [
+      const mockData: Disbursement[] = [
         {
           id: 'DISB-2024-101',
           scholarName: 'Carlos Mendoza',
@@ -95,7 +119,7 @@ const DisbursementHistory = () => {
           status: 'Completed',
         },
       ];
-      
+
       setHistory(mockData);
       setFilteredHistory(mockData);
     } catch (error) {
@@ -120,12 +144,12 @@ const DisbursementHistory = () => {
 
     // Date range filter
     if (filters.dateFrom) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         new Date(item.disbursementDate) >= new Date(filters.dateFrom)
       );
     }
     if (filters.dateTo) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         new Date(item.disbursementDate) <= new Date(filters.dateTo)
       );
     }
@@ -148,14 +172,14 @@ const DisbursementHistory = () => {
     setFilteredHistory(filtered);
   };
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
       currency: 'PHP',
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-PH', {
       year: 'numeric',
       month: 'short',
@@ -163,7 +187,7 @@ const DisbursementHistory = () => {
     });
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Completed':
         return <CheckCircle className="w-5 h-5 text-green-600" />;
@@ -178,8 +202,8 @@ const DisbursementHistory = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const styles = {
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
       'Completed': 'bg-green-100 text-green-800',
       'Pending Confirmation': 'bg-yellow-100 text-yellow-800',
       'Failed': 'bg-red-100 text-red-800',
@@ -189,8 +213,111 @@ const DisbursementHistory = () => {
   };
 
   const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Exporting data...');
+    setShowExportModal(true);
+  };
+
+  const confirmExport = async () => {
+    setExporting(true);
+    try {
+      // Client-side PDF generation with encryption support
+
+      // Dynamically import jsPDF
+      const jspdfModule = await import('jspdf');
+      const jspdfAny = jspdfModule as any;
+
+      // Robust constructor detection
+      let JsPDFConstructor;
+      if (typeof jspdfAny.jsPDF === 'function') {
+        JsPDFConstructor = jspdfAny.jsPDF;
+      } else if (typeof jspdfAny.default === 'function') {
+        JsPDFConstructor = jspdfAny.default;
+      } else if (jspdfAny.default && typeof jspdfAny.default.jsPDF === 'function') {
+        JsPDFConstructor = jspdfAny.default.jsPDF;
+      } else if (jspdfAny.default && typeof jspdfAny.default.default === 'function') {
+        JsPDFConstructor = jspdfAny.default.default;
+      } else {
+        throw new Error('Failed to locate jsPDF constructor');
+      }
+
+      // Import autotable plugin
+      const autoTableModule = await import('jspdf-autotable');
+      const autoTable = autoTableModule.default || autoTableModule.applyPlugin || autoTableModule;
+
+      // Configure PDF options
+      const pdfOptions: any = { orientation: 'landscape' };
+      if (password) {
+        pdfOptions.encryption = {
+          userPassword: password,
+          ownerPassword: password,
+          userPermissions: ["print", "modify", "copy", "annot-forms"]
+        };
+      }
+
+      const doc = new JsPDFConstructor(pdfOptions);
+
+      // Apply plugin
+      if (typeof autoTable === 'function' && !(doc as any).autoTable) {
+        try {
+          (autoTable as any).default?.(doc) || (autoTable as any)(doc);
+        } catch (e: any) {
+          console.log('autoTable plugin application attempt:', e.message);
+        }
+      }
+
+      const timestamp = new Date().toLocaleString();
+
+      // Header
+      doc.setFontSize(18);
+      doc.setTextColor(40);
+      doc.text("Disbursement History Report", 14, 20);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${timestamp}`, 14, 28);
+      doc.text(`Records: ${filteredHistory.length}`, 14, 33);
+
+      doc.setLineWidth(0.5);
+      doc.line(14, 38, 283, 38);
+
+      const tableRows = filteredHistory.map(item => [
+        item.id,
+        item.scholarName,
+        item.schoolName,
+        formatCurrency(item.amount),
+        item.method,
+        formatDate(item.disbursementDate),
+        item.referenceNumber,
+        item.status
+      ]);
+
+      autoTable(doc, {
+        startY: 45,
+        head: [['ID', 'Scholar', 'School', 'Amount', 'Method', 'Date', 'Ref #', 'Status']],
+        body: tableRows,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] },
+        styles: { fontSize: 8 },
+      });
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, 14, 200);
+        doc.text("Confidential - School Aid Module", 283, 200, { align: 'right' });
+      }
+
+      doc.save(`disbursement_history_${new Date().toISOString().split('T')[0]}.pdf`);
+
+      setShowExportModal(false);
+      setPassword('');
+
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const uniqueSchools = [...new Set(history.map(h => h.schoolName))];
@@ -310,22 +437,20 @@ const DisbursementHistory = () => {
               <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
-                    viewMode === 'table'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'table'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
                 >
                   <List className="w-4 h-4" />
                   Table
                 </button>
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'grid'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
                 >
                   <Grid3X3 className="w-4 h-4" />
                   Grid
@@ -333,10 +458,11 @@ const DisbursementHistory = () => {
               </div>
               <button
                 onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                title="Export data"
               >
                 <Download className="w-4 h-4" />
-                Export to Excel
+                Export
               </button>
             </div>
           </div>
@@ -380,7 +506,7 @@ const DisbursementHistory = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredHistory.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                       <div className="flex flex-col items-center">
                         <FileText className="w-12 h-12 text-gray-400 mb-2" />
                         <p>No disbursement history found</p>
@@ -549,9 +675,113 @@ const DisbursementHistory = () => {
           </div>
         </div>
       </div>
+
+      {createPortal(
+        <AnimatePresence>
+          {showExportModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowExportModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden"
+              >
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900">Export Report</h3>
+                  <button onClick={() => setShowExportModal(false)} className="text-gray-400 hover:text-gray-500">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Format</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${reportFormat === 'pdf'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                          }`}
+                        onClick={() => setReportFormat('pdf')}
+                      >
+                        <FileText className="w-5 h-5" />
+                        <span className="font-medium">PDF Document</span>
+                      </button>
+                      <button
+                        className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${reportFormat === 'csv'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                          }`}
+                        onClick={() => setReportFormat('csv')}
+                      >
+                        <FileBarChart className="w-5 h-5" />
+                        <span className="font-medium">Excel / CSV</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {reportFormat === 'pdf' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Password Protection (Optional)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Enter password to encrypt PDF"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-10"
+                        />
+                        <Lock className="w-4 h-4 text-gray-400 absolute right-3 top-3" />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Leave blank for an unprotected PDF.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
+                  <button
+                    onClick={() => setShowExportModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmExport}
+                    disabled={exporting}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {exporting ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        Export Report
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };
-
 export default DisbursementHistory;
 
