@@ -519,10 +519,29 @@ class PaymentService
         $paymentId = 'mock_' . uniqid();
         $amount = $application->approved_amount ?? 0;
 
+        // Determine preferred method for auto-selection in demo
+        $method = 'gcash'; // Default
+        if (!empty($application->payment_method)) {
+            $val = strtolower($application->payment_method);
+            if (str_contains($val, 'maya'))
+                $method = 'maya';
+            elseif (str_contains($val, 'card') || str_contains($val, 'credit') || str_contains($val, 'debit'))
+                $method = 'card';
+            elseif (str_contains($val, 'bank'))
+                $method = 'bank_transfer';
+            elseif (str_contains($val, 'cash'))
+                $method = 'gcash'; // Cash -> GCash as fallback/proxy
+        } elseif (!empty($application->digital_wallets)) {
+            $val = is_array($application->digital_wallets) ? ($application->digital_wallets[0] ?? '') : $application->digital_wallets;
+            if (str_contains(strtolower($val), 'maya'))
+                $method = 'maya';
+        }
+
         // Build URL with query params for mock checkout
         $checkoutUrl = route('payment.mock-checkout', ['id' => $paymentId]) .
             '?application_id=' . $application->id .
-            '&amount=' . $amount;
+            '&amount=' . $amount .
+            '&method=' . $method;
 
         return [
             'success' => true,

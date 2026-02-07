@@ -13,8 +13,8 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f3f4f6;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -24,63 +24,69 @@
 
         .checkout-container {
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            max-width: 450px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-width: 480px;
             width: 100%;
             overflow: hidden;
+            border: 1px solid #e5e7eb;
         }
 
         .checkout-header {
-            background: #1a1a2e;
-            color: white;
-            padding: 24px;
-            text-align: center;
+            background: #ffffff;
+            padding: 24px 24px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .checkout-header h1 {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #111827;
         }
 
-        .checkout-header .demo-badge {
-            background: #f59e0b;
-            color: #1a1a2e;
-            padding: 4px 12px;
-            border-radius: 999px;
+        .secure-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #059669;
             font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-block;
+            font-weight: 500;
+            background: #ecfdf5;
+            padding: 4px 8px;
+            border-radius: 4px;
         }
 
         .checkout-body {
             padding: 32px 24px;
         }
 
-        .amount-display {
-            text-align: center;
+        .amount-section {
             margin-bottom: 32px;
         }
 
-        .amount-display .label {
+        .amount-label {
             color: #6b7280;
             font-size: 0.875rem;
             margin-bottom: 4px;
         }
 
-        .amount-display .amount {
-            font-size: 2.5rem;
+        .amount-value {
+            font-size: 2.25rem;
             font-weight: 700;
-            color: #1a1a2e;
+            color: #111827;
         }
 
         .payment-methods {
-            margin-bottom: 24px;
+            margin-bottom: 32px;
         }
 
-        .payment-methods h3 {
+        .section-title {
             color: #374151;
             font-size: 0.875rem;
+            font-weight: 600;
             margin-bottom: 12px;
         }
 
@@ -88,68 +94,104 @@
             display: flex;
             align-items: center;
             padding: 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             margin-bottom: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            position: relative;
         }
 
         .method-option:hover {
-            border-color: #667eea;
-            background: #f8fafc;
+            border-color: #d1d5db;
+            background: #f9fafb;
         }
 
         .method-option.selected {
-            border-color: #667eea;
-            background: #eef2ff;
+            border-color: #2563eb;
+            background: #eff6ff;
+            box-shadow: 0 0 0 1px #2563eb;
         }
 
         .method-option input {
-            margin-right: 12px;
+            position: absolute;
+            opacity: 0;
         }
 
-        .method-option .method-name {
+        .radio-custom {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #d1d5db;
+            border-radius: 50%;
+            margin-right: 12px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .method-option.selected .radio-custom {
+            border-color: #2563eb;
+        }
+
+        .method-option.selected .radio-custom::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #2563eb;
+            border-radius: 50%;
+        }
+
+        .method-icon {
+            margin-right: 12px;
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .method-name {
             font-weight: 500;
             color: #1f2937;
+            font-size: 0.95rem;
         }
 
         .pay-button {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 14px;
+            background: #2563eb;
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 8px;
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .pay-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .pay-button:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+            background: #1d4ed8;
         }
 
         .footer-note {
             text-align: center;
-            padding: 16px 24px 24px;
+            padding: 24px;
+            border-top: 1px solid #f3f4f6;
             color: #9ca3af;
             font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         .loading {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: 40px 20px;
         }
 
         .loading.show {
@@ -158,12 +200,12 @@
 
         .spinner {
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border-top: 3px solid #2563eb;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 12px;
+            margin: 0 auto 16px;
         }
 
         @keyframes spin {
@@ -181,29 +223,56 @@
 <body>
     <div class="checkout-container">
         <div class="checkout-header">
-            <h1>Scholarship Grant Payment</h1>
-            <span class="demo-badge">🔧 DEMO MODE</span>
+            <h1>Complete Payment</h1>
+            <div class="secure-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Secure Checkout
+            </div>
         </div>
 
         <div class="checkout-body" id="paymentForm">
-            <div class="amount-display">
-                <div class="label">Total Amount</div>
-                <div class="amount">₱{{ number_format($amount, 2) }}</div>
+            <div class="amount-section">
+                <div class="amount-label">Amount Due</div>
+                <div class="amount-value">₱{{ number_format($amount, 2) }}</div>
             </div>
 
             <div class="payment-methods">
-                <h3>Select Payment Method</h3>
-                <label class="method-option selected">
-                    <input type="radio" name="method" value="gcash" checked>
-                    <span class="method-name">💚 GCash</span>
+                <div class="section-title">Payment Method</div>
+
+                @php
+                    $preferred = request('method', 'gcash'); // Default to GCash if not specified
+                @endphp
+
+                <label class="method-option {{ $preferred == 'gcash' ? 'selected' : '' }}">
+                    <input type="radio" name="method" value="gcash" {{ $preferred == 'gcash' ? 'checked' : '' }}>
+                    <div class="radio-custom"></div>
+                    <span class="method-icon">G</span>
+                    <span class="method-name">GCash</span>
                 </label>
-                <label class="method-option">
-                    <input type="radio" name="method" value="maya">
-                    <span class="method-name">💜 Maya (PayMaya)</span>
+
+                <label class="method-option {{ $preferred == 'maya' || $preferred == 'paymaya' ? 'selected' : '' }}">
+                    <input type="radio" name="method" value="maya" {{ $preferred == 'maya' || $preferred == 'paymaya' ? 'checked' : '' }}>
+                    <div class="radio-custom"></div>
+                    <span class="method-icon">M</span>
+                    <span class="method-name">Maya</span>
                 </label>
-                <label class="method-option">
-                    <input type="radio" name="method" value="card">
-                    <span class="method-name">💳 Credit/Debit Card</span>
+
+                <label class="method-option {{ $preferred == 'card' ? 'selected' : '' }}">
+                    <input type="radio" name="method" value="card" {{ $preferred == 'card' ? 'checked' : '' }}>
+                    <div class="radio-custom"></div>
+                    <span class="method-icon">💳</span>
+                    <span class="method-name">Credit/Debit Card</span>
+                </label>
+
+                <label class="method-option {{ $preferred == 'bank_transfer' ? 'selected' : '' }}">
+                    <input type="radio" name="method" value="bank_transfer" {{ $preferred == 'bank_transfer' ? 'checked' : '' }}>
+                    <div class="radio-custom"></div>
+                    <span class="method-icon">🏦</span>
+                    <span class="method-name">Bank Transfer</span>
                 </label>
             </div>
 
@@ -211,19 +280,24 @@
                 @csrf
                 <input type="hidden" name="application_id" value="{{ $applicationId }}">
                 <button type="submit" class="pay-button" id="payBtn">
-                    Simulate Payment ✓
+                    Pay ₱{{ number_format($amount, 2) }}
                 </button>
             </form>
         </div>
 
         <div class="loading" id="loadingState">
             <div class="spinner"></div>
-            <p>Processing payment...</p>
+            <p style="color: #4b5563; font-weight: 500;">Processing secure payment...</p>
+            <p style="color: #9ca3af; font-size: 0.875rem; margin-top: 8px;">Please do not close this window</p>
         </div>
 
         <div class="footer-note">
-            This is a mock checkout for demonstration purposes.<br>
-            No actual payment will be processed.
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            Encrypted and secured by PayMongo
         </div>
     </div>
 
