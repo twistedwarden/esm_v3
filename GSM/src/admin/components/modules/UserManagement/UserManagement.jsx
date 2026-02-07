@@ -2500,7 +2500,7 @@ const UserManagement = () => {
 
                                                     <option value="ps_rep">Partner School Representative</option>
 
-                                                    <option value="ssc">SSC - General</option>
+                                                    {/* <option value="ssc">SSC - General</option> */}
 
                                                     <option value="ssc_chairperson">SSC - Chairperson</option>
 
