@@ -1,6 +1,4 @@
 import { API_CONFIG } from '../config/api';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 
 const SCHOLARSHIP_API_BASE_URL = API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL;
 const AID_API_BASE_URL = API_CONFIG.AID_SERVICE.BASE_URL;
@@ -420,7 +418,19 @@ class DashboardService {
     console.log(`Generating ${type} report...`);
 
     try {
-      // Basic PDF without encryption for now
+      // Dynamically import jsPDF to avoid bundling issues
+      const jspdfModule = await import('jspdf');
+      // Try to get jsPDF constructor - check both default and named export
+      const jsPDF = jspdfModule.jsPDF || jspdfModule.default?.jsPDF || jspdfModule.default;
+
+      if (typeof jsPDF !== 'function') {
+        console.error('jsPDF is not a constructor:', jsPDF);
+        throw new Error('Failed to load jsPDF constructor');
+      }
+
+      // Import autotable plugin
+      await import('jspdf-autotable');
+
       const doc = new jsPDF();
       const overview = data?.overview || {};
       const timestamp = new Date().toLocaleString();
