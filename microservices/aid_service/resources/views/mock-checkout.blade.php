@@ -10,7 +10,7 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            background-color: #0f172a; /* Darker Slate Background */
             color: #1e293b;
             min-height: 100vh;
             display: flex;
@@ -25,12 +25,9 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
-            opacity: 0.05;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            opacity: 1; /* Fully opaque dark background */
             z-index: -1;
-            background-image: radial-gradient(#4f46e5 0.5px, transparent 0.5px), radial-gradient(#4f46e5 0.5px, #f8fafc 0.5px);
-            background-size: 20px 20px;
-            background-position: 0 0, 10px 10px;
         }
 
         .checkout-wrapper {
@@ -38,7 +35,7 @@
             max-width: 480px;
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); /* Stronger shadow for dark bg */
             overflow: hidden;
             position: relative;
         }
@@ -51,6 +48,8 @@
             align-items: center;
             background: #ffffff;
         }
+
+        /* ... (rest of styles remain same until buttons) ... */
 
         .brand {
             display: flex;
@@ -203,6 +202,13 @@
             font-size: 0.95rem;
         }
 
+        .btn-group {
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
         .submit-btn {
             width: 100%;
             padding: 18px;
@@ -213,7 +219,6 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            margin-top: 32px;
             transition: all 0.2s;
             box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
             display: flex;
@@ -228,8 +233,21 @@
             box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
         }
 
-        .submit-btn:active {
-            transform: translateY(0);
+        .cancel-btn {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            color: #64748b;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .cancel-btn:hover {
+            color: #1e293b;
+            text-decoration: underline;
         }
 
         .footer {
@@ -305,7 +323,7 @@
             <div class="order-summary">
                 <div class="summary-row">
                     <span>Reference</span>
-                    <span style="font-family: monospace;">APP-{{ request('application_id') ?? '2026-00000' }}</span>
+                    <span style="font-family: monospace;">APP-{{ request('application_id') ?? 'N/A' }}</span>
                 </div>
                 <div class="summary-row">
                     <span>Description</span>
@@ -368,10 +386,16 @@
                     </label>
                 </div>
 
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                    Pay ₱{{ number_format($amount, 2) }}
-                </button>
+                <div class="btn-group">
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        Pay ₱{{ number_format($amount, 2) }}
+                    </button>
+                    
+                    <a href="{{ $frontendUrl }}/admin/school-aid/applications" class="cancel-btn">
+                        Cancel Payment
+                    </a>
+                </div>
             </form>
         </div>
 
