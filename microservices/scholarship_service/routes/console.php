@@ -8,5 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule monitoring data sync daily at midnight
-Schedule::command('monitoring:sync')->daily()->at('00:00');
+// Schedule monitoring data sync hourly for real-time dashboard updates
+Schedule::command('monitoring:sync')->hourly();
