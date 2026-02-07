@@ -10,7 +10,6 @@ use App\Models\Student;
 use App\Models\Document;
 use App\Services\GeminiAnalyticsService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class AnalyticsController extends Controller
@@ -31,8 +30,6 @@ class AnalyticsController extends Controller
             $timeRange = $request->input('timeRange', 'all');
             $category = $request->input('category', 'all');
 
-            Log::info("Fetching analytics - TimeRange: {$timeRange}, Category: {$category}");
-
             $query = ScholarshipApplication::query();
 
             // Apply time filter
@@ -40,8 +37,6 @@ class AnalyticsController extends Controller
 
             // Get all applications for analysis
             $applications = $query->with(['student', 'documents'])->get();
-
-            Log::info("Found {$applications->count()} applications for analysis");
 
             $analytics = [
                 'failureReasons' => $this->analyzeFailureReasons($applications),
@@ -62,20 +57,13 @@ class AnalyticsController extends Controller
                 ]
             ];
 
-            Log::info("Analytics generated successfully", [
-                'totalApplications' => $analytics['summary']['totalApplications'],
-                'approvalRate' => $analytics['summary']['approvalRate']
-            ]);
-
             return response()->json([
                 'success' => true,
                 'data' => $analytics
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Analytics error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
+            \Log::error('Analytics error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -98,16 +86,7 @@ class AnalyticsController extends Controller
                 'academic_performance'
             ]);
 
-            Log::info('Generating Gemini insights', [
-                'dataSize' => count($analyticsData),
-                'focusAreas' => $focusAreas
-            ]);
-
             $insights = $this->geminiService->generateInsights($analyticsData, $focusAreas);
-
-            Log::info('Gemini insights generated', [
-                'keyFindingsCount' => count($insights['keyFindings'] ?? [])
-            ]);
 
             return response()->json([
                 'success' => true,
@@ -115,9 +94,7 @@ class AnalyticsController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Gemini insights error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
+            \Log::error('Gemini insights error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -482,7 +459,7 @@ class AnalyticsController extends Controller
         if ($total === 0)
             return 0;
 
-        $approved = $applications->where('status', 'approved')->count();
+        $approved = $applications->whereIn('status', ['approved', 'grants_processing', 'grants_disbursed'])->count();
         return round(($approved / $total) * 100, 1);
     }
 
@@ -506,8 +483,8 @@ class AnalyticsController extends Controller
 
     protected function calculateTotalAid($applications)
     {
-        // Use approved_amount if available, otherwise requested_amount
-        return $applications->where('status', 'approved')
+        // Use approved_amount if available, otherwise 0
+        return $applications->whereIn('status', ['approved', 'grants_processing', 'grants_disbursed'])
             ->sum('approved_amount') ?? 0;
     }
 }
