@@ -55,6 +55,11 @@ class AnalyticsIngestionController extends Controller
         $byCategory = $apps['by_category'] ?? [];
 
         try {
+            // Calculate approval rate
+            $approvalRate = ($apps['total'] ?? 0) > 0
+                ? round((($byStatus['approved'] ?? 0) / $apps['total']) * 100, 2)
+                : 0;
+
             $data = [
                 'snapshot_date' => $snapshotDate,
                 'total_applications' => $apps['total'] ?? 0,
@@ -78,6 +83,7 @@ class AnalyticsIngestionController extends Controller
                 'applications_rejected_today' => $apps['rejected_today'] ?? 0,
                 'total_requested_amount' => $apps['total_requested_amount'] ?? 0,
                 'total_approved_amount' => $apps['total_approved_amount'] ?? 0,
+                'approval_rate' => $approvalRate,
             ];
 
             AnalyticsApplicationDaily::updateOrCreate(
