@@ -1457,6 +1457,10 @@ const PartnerSchoolDashboard = () => {
         if (cleanValue.includes('accounting') || cleanValue.includes('accountancy')) {
           return 'Bachelor of Science in Accountancy';
         }
+
+        // If no pattern matches, return the original value as-is
+        console.log(`ℹ️ Program field kept as-is: "${originalValue}"`);
+        return value.trim(); // Return original value for custom programs
       }
 
       // For enrollment_date, try to parse and format dates
