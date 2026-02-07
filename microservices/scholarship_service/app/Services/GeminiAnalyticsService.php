@@ -13,9 +13,18 @@ class GeminiAnalyticsService
 
     public function __construct()
     {
-        // Use config() instead of env() for production compatibility
-        $this->apiKey = config('services.gemini.api_key') ?? env('GEMINI_API_KEY');
-        $this->model = config('services.gemini.model') ?? env('GEMINI_MODEL', 'gemini-pro');
+        // ALWAYS use config() in production. standard practice for Laravel.
+        // Direct env() calls return null if config is cached.
+        $this->apiKey = config('services.gemini.api_key');
+        $this->model = config('services.gemini.model', 'gemini-pro');
+
+        if (empty($this->apiKey)) {
+            Log::error('Gemini Service: API Key is MISSING in configuration. Please check .env and run "php artisan config:clear"');
+        } else {
+            // Log first 4 chars for verification (security safe)
+            $maskedKey = substr($this->apiKey, 0, 4) . '...';
+            Log::info("Gemini Service initialized. Model: {$this->model}, Key starts with: {$maskedKey}");
+        }
 
         $apiModel = $this->model;
         if (strpos($this->model, 'gemma-') === 0) {
@@ -23,8 +32,6 @@ class GeminiAnalyticsService
         }
 
         $this->apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$apiModel}:generateContent";
-
-        Log::info("Gemini Service initialized: {$apiModel}");
     }
 
     /**
