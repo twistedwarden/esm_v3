@@ -512,18 +512,24 @@ class PaymentService
     }
 
     /**
-     * Mock payment for local development
+     * Mock payment for local development/demo
      */
     private function createMockPaymentLink(ScholarshipApplication $application): array
     {
         $paymentId = 'mock_' . uniqid();
+        $amount = $application->approved_amount ?? 0;
+
+        // Build URL with query params for mock checkout
+        $checkoutUrl = route('payment.mock-checkout', ['id' => $paymentId]) .
+            '?application_id=' . $application->id .
+            '&amount=' . $amount;
 
         return [
             'success' => true,
             'payment_id' => $paymentId,
-            'checkout_url' => route('payment.mock-checkout', ['id' => $paymentId]),
+            'checkout_url' => $checkoutUrl,
             'reference_number' => 'MOCK-' . $application->application_number,
-            'amount' => $application->approved_amount ?? 0,
+            'amount' => $amount,
             'status' => 'pending',
         ];
     }
