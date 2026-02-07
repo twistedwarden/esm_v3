@@ -14,6 +14,7 @@ use App\Models\InterviewSchedule;
 use App\Models\AcademicPeriod;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
+use App\Traits\TriggersMonitoringSync;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,8 @@ use App\Models\ApplicationStatusHistory;
 
 class ScholarshipApplicationController extends Controller
 {
+    use TriggersMonitoringSync;
+
     protected $notificationService;
 
     public function __construct(NotificationService $notificationService)
@@ -169,6 +172,9 @@ class ScholarshipApplicationController extends Controller
                 'Your application has been successfully submitted and is now under review.'
             );
 
+            // Trigger real-time monitoring sync
+            $this->triggerMonitoringSync();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application submitted successfully',
@@ -246,6 +252,9 @@ class ScholarshipApplicationController extends Controller
                 $request->notes
             );
 
+            // Trigger real-time monitoring sync
+            $this->triggerMonitoringSync();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application approved successfully',
@@ -319,6 +328,9 @@ class ScholarshipApplicationController extends Controller
                 'rejected',
                 $request->rejection_reason
             );
+
+            // Trigger real-time monitoring sync
+            $this->triggerMonitoringSync();
 
             return response()->json([
                 'success' => true,
@@ -545,6 +557,9 @@ class ScholarshipApplicationController extends Controller
                 'released',
                 $request->notes
             );
+
+            // Trigger real-time monitoring sync
+            $this->triggerMonitoringSync();
 
             return response()->json([
                 'success' => true,
