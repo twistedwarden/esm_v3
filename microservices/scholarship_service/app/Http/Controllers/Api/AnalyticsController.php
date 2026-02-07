@@ -506,7 +506,8 @@ class AnalyticsController extends Controller
 
     protected function calculateTotalAid($applications)
     {
+        // Use approved_amount if available, otherwise requested_amount
         return $applications->where('status', 'approved')
-            ->sum('scholarship_amount') ?? 0;
+            ->sum('approved_amount') ?? 0;
     }
 }

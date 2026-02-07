@@ -13,10 +13,11 @@ class GeminiAnalyticsService
 
     public function __construct()
     {
-        $this->apiKey = env('GEMINI_API_KEY');
-        $this->model = env('GEMINI_MODEL', 'gemini-pro');
+        // Use config() instead of env() for production compatibility
+        $this->apiKey = config('services.gemini.api_key') ?? env('GEMINI_API_KEY');
+        $this->model = config('services.gemini.model') ?? env('GEMINI_MODEL', 'gemini-pro');
 
-        // Format model name for API (remove 'gemma-' prefix if present, use 'gemini-' instead)
+        // Format model name for API
         $apiModel = $this->model;
         if (strpos($this->model, 'gemma-') === 0) {
             // For Gemma models, use the full model name
@@ -25,7 +26,13 @@ class GeminiAnalyticsService
 
         $this->apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$apiModel}:generateContent";
 
-        Log::info("Gemini Service initialized with model: {$apiModel}");
+        // Log initialization with masked API key for security
+        $maskedKey = $this->apiKey ? substr($this->apiKey, 0, 10) . '...' : 'NOT SET';
+        Log::info("Gemini Service initialized", [
+            'model' => $apiModel,
+            'apiKey' => $maskedKey,
+            'url' => $this->apiUrl
+        ]);
     }
 
     /**
