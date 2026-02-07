@@ -27,6 +27,9 @@ trait TriggersMonitoringSync
             $monitoringUrl = config('services.monitoring.url', 'http://localhost:8003');
             $snapshotDate = Carbon::today()->toDateString();
 
+            // Small delay to ensure database transaction is fully committed
+            usleep(500000); // 500ms delay
+
             // Aggregate current metrics
             $byStatus = DB::table('scholarship_applications')
                 ->select('status', DB::raw('count(*) as count'))
