@@ -37,6 +37,8 @@ class GeminiAnalyticsService
     /**
      * Generate insights from scholarship application data
      */
+
+
     public function generateInsights(array $analyticsData, array $focusAreas = [])
     {
         if (!$this->apiKey) {
@@ -45,8 +47,8 @@ class GeminiAnalyticsService
                 'keyFindings' => [
                     [
                         'title' => 'Service Not Configured',
-                        'description' => 'The Gemini AI service is not properly configured. Please check your GEMINI_API_KEY environment variable.',
-                        'recommendation' => 'Contact the system administrator to configure the AI service.'
+                        'description' => 'The Gemini AI service is not properly configured. API Key is missing. Please check .env and config.',
+                        'recommendation' => 'Contact the system administrator.'
                     ]
                 ],
                 'failureAnalysis' => [],
@@ -81,20 +83,39 @@ class GeminiAnalyticsService
 
             if ($response->successful()) {
                 $result = $response->json();
-                // Check if content exists
                 if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
                     $generatedText = $result['candidates'][0]['content']['parts'][0]['text'];
                     return $this->parseGeminiResponse($generatedText);
+                } else {
+                    // Handle case where specific content structure is missing but response was "successful"
+                    Log::error('Gemini API malformed response: ' . $response->body());
+                    return [
+                        'keyFindings' => [
+                            [
+                                'title' => 'Unexpected Response Format',
+                                'description' => 'Received a successful response but could not parse the content. Raw: ' . substr($response->body(), 0, 200),
+                                'recommendation' => 'Check logs for full response.'
+                            ]
+                        ],
+                        'failureAnalysis' => [],
+                        'recommendations' => [],
+                        'riskFactors' => [],
+                        'successPatterns' => []
+                    ];
                 }
             }
 
-            Log::error('Gemini API error: ' . $response->body());
+            // Expose the actual API error
+            $errorBody = $response->json();
+            $errorMessage = $errorBody['error']['message'] ?? $response->body();
+            Log::error('Gemini API error: ' . $errorMessage);
+
             return [
                 'keyFindings' => [
                     [
-                        'title' => 'Generation Failed',
-                        'description' => 'Unable to generate insights from the AI service. The service may be busy or unavailable.',
-                        'recommendation' => 'Please try again in a few moments.'
+                        'title' => 'AI Generation Failed (' . $response->status() . ')',
+                        'description' => 'Error: ' . $errorMessage,
+                        'recommendation' => 'Please check your API quota or key permissions.'
                     ]
                 ],
                 'failureAnalysis' => [],
@@ -109,8 +130,8 @@ class GeminiAnalyticsService
                 'keyFindings' => [
                     [
                         'title' => 'System Error',
-                        'description' => 'An unexpected error occurred while generating insights.',
-                        'recommendation' => 'Please check the system logs for more details.'
+                        'description' => 'Exception: ' . $e->getMessage(),
+                        'recommendation' => 'Please check the system logs.'
                     ]
                 ],
                 'failureAnalysis' => [],

@@ -35,3 +35,23 @@ If you add a NEW variable to `.env` (like `GEMINI_API_KEY`) **AFTER** the config
    > `[2024-xx-xx] ... Gemini Service initialized. Model: gemini-pro, Key starts with: AIza...`
 
 If you see "Key starts with: AIza...", the service is correctly reading your key!
+
+## 🐛 Interpreting Error Messages in UI
+
+We have updated the system to show detailed errors directly in the "Key Findings" section if generation fails.
+
+- **"Service Not Configured"**:
+  - Means `GEMINI_API_KEY` is completely missing or empty.
+  - **Fix**: Check `.env` and run `php artisan config:clear`.
+
+- **"AI Generation Failed (400)"**:
+  - **Error: INVALID_ARGUMENT**: Usually means the API key is invalid.
+  - **Error: API key not valid**: Your key is definitely wrong.
+
+- **"AI Generation Failed (429)"**:
+  - **Error: Quota exceeded**: You have hit the rate limit for the free tier.
+  - **Fix**: Wait a few minutes or switch to a paid plan/different key.
+
+- **"Unexpected Response Format"**:
+  - The AI generated content but it wasn't valid JSON.
+  - **Fix**: Try generating again. It might be a one-off glitch.
