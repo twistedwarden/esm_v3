@@ -196,27 +196,35 @@ class SyncMonitoringData extends Command
             ->where('status', 'approved')
             ->sum('approved_amount') ?? 0;
 
-        // Get disbursement data
-        $disbursedBudget = DB::table('scholarship_applications')
-            ->where('status', 'released')
-            ->sum('approved_amount') ?? 0;
+        // Get disbursement data from aid_service.aid_disbursements table
+        // This is where actual payment records are stored
+        $disbursedBudget = DB::connection('aid')
+            ->table('aid_disbursements')
+            ->sum('amount') ?? 0;
 
-        $disbursementsToday = DB::table('scholarship_applications')
-            ->where('status', 'released')
-            ->whereDate('updated_at', Carbon::parse($snapshotDate))
+        $disbursementsToday = DB::connection('aid')
+            ->table('aid_disbursements')
+            ->whereDate('created_at', Carbon::parse($snapshotDate))
             ->count();
 
-        $disbursedAmountToday = DB::table('scholarship_applications')
-            ->where('status', 'released')
-            ->whereDate('updated_at', Carbon::parse($snapshotDate))
-            ->sum('approved_amount') ?? 0;
+        $disbursedAmountToday = DB::connection('aid')
+            ->table('aid_disbursements')
+            ->whereDate('created_at', Carbon::parse($snapshotDate))
+            ->sum('amount') ?? 0;
 
-        // Get disbursements by method (if you have payment method tracking)
+        // Get disbursements by payment method from aid_disbursements
+        $methodCounts = DB::connection('aid')
+            ->table('aid_disbursements')
+            ->select('disbursement_method', DB::raw('SUM(amount) as total'))
+            ->groupBy('disbursement_method')
+            ->pluck('total', 'disbursement_method')
+            ->toArray();
+
         $byMethod = [
-            'gcash' => 0,
-            'paymaya' => 0,
-            'bank' => 0,
-            'cash' => 0,
+            'gcash' => $methodCounts['gcash'] ?? $methodCounts['digital_wallet'] ?? 0,
+            'paymaya' => $methodCounts['paymaya'] ?? 0,
+            'bank' => $methodCounts['bank'] ?? $methodCounts['bank_transfer'] ?? 0,
+            'cash' => $methodCounts['cash'] ?? 0,
         ];
 
         return [
