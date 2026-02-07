@@ -2,8 +2,10 @@
 
 namespace App\Traits;
 
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 /**
  * Trait for triggering real-time monitoring data sync
@@ -14,24 +16,59 @@ use Illuminate\Support\Facades\Log;
 trait TriggersMonitoringSync
 {
     /**
-     * Trigger monitoring data sync asynchronously
+     * Trigger monitoring data sync via HTTP
      * 
-     * This runs the monitoring:sync command in the background
-     * to avoid blocking the current request.
+     * This sends the current application metrics directly to the
+     * monitoring service for immediate dashboard updates.
      */
     protected function triggerMonitoringSync(): void
     {
         try {
-            // Execute sync command via shell with correct PHP version
-            $phpPath = '/usr/local/lsws/lsphp82/bin/php';
-            $artisanPath = base_path('artisan');
-            $command = "$phpPath $artisanPath monitoring:sync > /dev/null 2>&1 &";
+            $monitoringUrl = config('services.monitoring.url', 'http://localhost:8003');
+            $snapshotDate = Carbon::today()->toDateString();
 
-            exec($command);
+            // Aggregate current metrics
+            $byStatus = DB::table('scholarship_applications')
+                ->select('status', DB::raw('count(*) as count'))
+                ->groupBy('status')
+                ->pluck('count', 'status')
+                ->toArray();
 
-            Log::info('Monitoring sync triggered by event', [
+            $byType = DB::table('scholarship_applications')
+                ->select('type', DB::raw('count(*) as count'))
+                ->groupBy('type')
+                ->pluck('count', 'type')
+                ->toArray();
+
+            $total = array_sum($byStatus);
+
+            $data = [
+                'snapshot_date' => $snapshotDate,
+                'applications' => [
+                    'total' => $total,
+                    'by_status' => [
+                        'submitted' => ($byStatus['submitted'] ?? 0) + ($byStatus['pending'] ?? 0) + ($byStatus['documents_pending'] ?? 0),
+                        'reviewed' => ($byStatus['documents_reviewed'] ?? 0) + ($byStatus['reviewed'] ?? 0) + ($byStatus['endorsed_to_ssc'] ?? 0),
+                        'approved' => ($byStatus['approved'] ?? 0) + ($byStatus['grants_processing'] ?? 0) + ($byStatus['grants_disbursed'] ?? 0),
+                        'rejected' => $byStatus['rejected'] ?? 0,
+                        'processing' => $byStatus['grants_processing'] ?? 0,
+                        'released' => $byStatus['grants_disbursed'] ?? 0,
+                    ],
+                    'by_type' => [
+                        'new' => $byType['new'] ?? 0,
+                        'renewal' => $byType['renewal'] ?? 0,
+                    ],
+                    'by_category' => [],
+                ]
+            ];
+
+            // Send to monitoring service
+            Http::timeout(10)->post("{$monitoringUrl}/api/internal/application-snapshot", $data);
+
+            Log::info('Monitoring sync triggered via HTTP', [
                 'controller' => static::class,
-                'triggered_at' => now()->toIso8601String()
+                'triggered_at' => now()->toIso8601String(),
+                'total_applications' => $total
             ]);
         } catch (\Exception $e) {
             // Don't fail the main request if monitoring sync fails
@@ -50,18 +87,7 @@ trait TriggersMonitoringSync
      */
     protected function triggerMonitoringSyncNow(): void
     {
-        try {
-            Artisan::call('monitoring:sync');
-
-            Log::info('Monitoring sync completed synchronously', [
-                'controller' => static::class,
-                'completed_at' => now()->toIso8601String()
-            ]);
-        } catch (\Exception $e) {
-            Log::warning('Failed to sync monitoring data', [
-                'error' => $e->getMessage(),
-                'controller' => static::class
-            ]);
-        }
+        $this->triggerMonitoringSync();
     }
 }
+

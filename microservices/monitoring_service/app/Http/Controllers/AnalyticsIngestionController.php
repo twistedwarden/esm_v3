@@ -725,4 +725,40 @@ class AnalyticsIngestionController extends Controller
             return 'medium';
         return 'low';
     }
+
+    /**
+     * Trigger sync endpoint - called by scholarship service when events occur
+     * This endpoint receives application metrics directly from the scholarship service
+     */
+    public function triggerSync(Request $request)
+    {
+        try {
+            // If data is provided, ingest it directly
+            if ($request->has('applications')) {
+                return $this->ingestApplicationSnapshot($request);
+            }
+
+            // Otherwise just acknowledge the trigger (sync will happen via cron)
+            Log::info('Monitoring sync triggered via HTTP', [
+                'source' => $request->ip(),
+                'triggered_at' => now()->toIso8601String()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sync trigger acknowledged',
+                'timestamp' => now()->toIso8601String()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to process sync trigger', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process sync trigger',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
