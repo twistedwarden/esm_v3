@@ -28,6 +28,7 @@ import {
     ComprehensiveAnalytics,
     GeminiInsights
 } from '../../services/scholarshipAnalyticsService';
+import { scholarshipApiService, ScholarshipCategory } from '../../services/scholarshipApiService';
 
 interface AdvancedAnalyticsDashboardProps {
     token?: string;
@@ -40,6 +41,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     const [insightsLoading, setInsightsLoading] = useState(false);
     const [selectedTimeRange, setSelectedTimeRange] = useState<'all' | 'year' | 'quarter' | 'month'>('all');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [categories, setCategories] = useState<ScholarshipCategory[]>([]);
 
     const COLORS = {
         primary: '#4CAF50',
@@ -55,6 +57,19 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     useEffect(() => {
         fetchAnalyticsData();
     }, [selectedTimeRange, selectedCategory]);
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const data = await scholarshipApiService.getScholarshipCategories();
+            setCategories(data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchAnalyticsData = async () => {
         setLoading(true);
@@ -203,6 +218,19 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                         <option value="year">This Year</option>
                         <option value="quarter">This Quarter</option>
                         <option value="month">This Month</option>
+                    </select>
+
+                    <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                    >
+                        <option value="all">All Categories</option>
+                        {categories.map((category) => (
+                            <option key={category.id} value={category.id.toString()}>
+                                {category.name}
+                            </option>
+                        ))}
                     </select>
                     <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
                         <Download className="w-4 h-4" />
