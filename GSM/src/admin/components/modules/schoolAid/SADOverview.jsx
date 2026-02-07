@@ -13,8 +13,7 @@ import {
     AlertCircle,
     FileBarChart,
     X,
-    Download,
-    Lock
+    Download
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -45,7 +44,6 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     const [showReportModal, setShowReportModal] = useState(false);
     const [generatingReport, setGeneratingReport] = useState(false);
     const [reportFormat, setReportFormat] = useState('pdf');
-    const [password, setPassword] = useState('');
     const [reportFilters, setReportFilters] = useState({
         startDate: '',
         endDate: ''
@@ -310,13 +308,6 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
 
                 // Configure PDF options
                 const pdfOptions = { orientation: 'portrait' };
-                if (password) {
-                    pdfOptions.encryption = {
-                        userPassword: password,
-                        ownerPassword: password,
-                        userPermissions: ["print", "modify", "copy", "annot-forms"]
-                    };
-                }
 
                 const doc = new JsPDFConstructor(pdfOptions);
 
@@ -414,7 +405,6 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                 doc.save(`aid_distribution_report_${new Date().toISOString().split('T')[0]}.pdf`);
             }
             setShowReportModal(false);
-            setPassword(''); // Reset password
         } catch (err) {
             console.error('Report generation failed', err);
         } finally {
@@ -820,26 +810,7 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                                             </p>
                                         </div>
 
-                                        {reportFormat === 'pdf' && (
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                                    Password Protection (Optional)
-                                                </label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="password"
-                                                        value={password}
-                                                        onChange={(e) => setPassword(e.target.value)}
-                                                        placeholder="Enter password to encrypt PDF"
-                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-10"
-                                                    />
-                                                    <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
-                                                </div>
-                                                <p className="text-xs text-slate-500 mt-1">
-                                                    Leave blank for an unprotected PDF.
-                                                </p>
-                                            </div>
-                                        )}
+
 
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
