@@ -2226,9 +2226,9 @@ const UserManagement = () => {
 
                                                     className={`p-1.5 sm:p-2 rounded-lg transition-colors ${user.is_active
 
-                                                            ? "text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                                                        ? "text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
 
-                                                            : "text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                        : "text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
 
                                                         }`}
 
@@ -2510,7 +2510,7 @@ const UserManagement = () => {
 
                                                     <option value="ssc_education_affairs">SSC - Education Affairs</option>
 
-                                                    <option value="ssc_hrd">SSC - HRD</option>
+                                                    {/* <option value="ssc_hrd">SSC - HRD</option>
 
                                                     <option value="ssc_social_services">SSC - Social Services</option>
 
@@ -2524,7 +2524,7 @@ const UserManagement = () => {
 
                                                     <option value="ssc_schools_division">SSC - Schools Division</option>
 
-                                                    <option value="ssc_qcu">SSC - QCU</option>
+                                                    <option value="ssc_qcu">SSC - QCU</option> */}
 
                                                 </select>
 
@@ -3378,9 +3378,9 @@ const UserManagement = () => {
 
                                                                             className={`p-3 border-b border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${formData.assigned_school_id === school.id
 
-                                                                                    ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-l-orange-500'
+                                                                                ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-l-orange-500'
 
-                                                                                    : ''
+                                                                                : ''
 
                                                                                 }`}
 
@@ -3414,9 +3414,9 @@ const UserManagement = () => {
 
                                                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${school.is_partner_school
 
-                                                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
 
-                                                                                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+                                                                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
 
                                                                                         }`}>
 
@@ -3528,9 +3528,9 @@ const UserManagement = () => {
 
                                     className={`px-6 py-3 rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg hover:shadow-xl ${isSubmitting || !isRoleSelected
 
-                                            ? 'bg-gray-400 cursor-not-allowed'
+                                        ? 'bg-gray-400 cursor-not-allowed'
 
-                                            : 'bg-blue-600 hover:bg-blue-700'
+                                        : 'bg-blue-600 hover:bg-blue-700'
 
                                         } text-white`}
 
