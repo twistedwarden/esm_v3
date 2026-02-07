@@ -14,7 +14,7 @@ import {
   PhilippinePeso,
   Grid3X3,
   List,
-  Lock,
+
   RefreshCw,
   X,
   FileBarChart
@@ -48,7 +48,6 @@ const DisbursementHistory = () => {
 
   // Export State
   const [showExportModal, setShowExportModal] = useState(false);
-  const [password, setPassword] = useState('');
   const [exporting, setExporting] = useState(false);
   const [reportFormat, setReportFormat] = useState('pdf');
 
@@ -219,7 +218,7 @@ const DisbursementHistory = () => {
   const confirmExport = async () => {
     setExporting(true);
     try {
-      // Client-side PDF generation with encryption support
+      // Client-side PDF generation
 
       // Dynamically import jsPDF
       const jspdfModule = await import('jspdf');
@@ -245,13 +244,6 @@ const DisbursementHistory = () => {
 
       // Configure PDF options
       const pdfOptions: any = { orientation: 'landscape' };
-      if (password) {
-        pdfOptions.encryption = {
-          userPassword: password,
-          ownerPassword: password,
-          userPermissions: ["print", "modify", "copy", "annot-forms"]
-        };
-      }
 
       const doc = new JsPDFConstructor(pdfOptions);
 
@@ -311,7 +303,6 @@ const DisbursementHistory = () => {
       doc.save(`disbursement_history_${new Date().toISOString().split('T')[0]}.pdf`);
 
       setShowExportModal(false);
-      setPassword('');
 
     } catch (error) {
       console.error('Export failed:', error);
@@ -727,26 +718,7 @@ const DisbursementHistory = () => {
                     </div>
                   </div>
 
-                  {reportFormat === 'pdf' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Password Protection (Optional)
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Enter password to encrypt PDF"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-10"
-                        />
-                        <Lock className="w-4 h-4 text-gray-400 absolute right-3 top-3" />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Leave blank for an unprotected PDF.
-                      </p>
-                    </div>
-                  )}
+
                 </div>
 
                 <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
