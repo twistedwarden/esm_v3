@@ -384,11 +384,21 @@ class SyncMonitoringData extends Command
      */
     private function getCurrentSchoolYear()
     {
+        // First, try to get current school year from academic_periods table
+        $currentPeriod = DB::table('academic_periods')
+            ->where('is_current', 1)
+            ->first();
+
+        if ($currentPeriod && !empty($currentPeriod->academic_year)) {
+            return $currentPeriod->academic_year;
+        }
+
+        // Fallback: Calculate based on current date
+        // School year typically starts in June/July
         $now = Carbon::now();
         $year = $now->year;
         $month = $now->month;
 
-        // School year typically starts in June/July
         if ($month >= 6) {
             return "{$year}-" . ($year + 1);
         } else {
