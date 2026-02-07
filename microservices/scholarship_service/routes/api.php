@@ -684,6 +684,9 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
 
     // Download MOA template
     Route::get('/download-moa', [PartnerSchoolApplicationController::class, 'downloadMOA']);
+
+    // AI Smart Matching for CSV headers
+    Route::post('/match-headers', [PartnerSchoolController::class, 'matchHeaders']);
 });
 
 // Partner School Verification Documents (public access for viewing)

@@ -12,16 +12,22 @@ use App\Services\SchoolSpecificTableService;
 use App\Services\UnifiedSchoolDataService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use App\Services\SmartFieldMatchingService;
 
 class PartnerSchoolController extends Controller
 {
     protected $schoolTableService;
     protected $unifiedService;
+    protected $matchingService;
 
-    public function __construct(SchoolSpecificTableService $schoolTableService, UnifiedSchoolDataService $unifiedService)
-    {
+    public function __construct(
+        SchoolSpecificTableService $schoolTableService,
+        UnifiedSchoolDataService $unifiedService,
+        SmartFieldMatchingService $matchingService
+    ) {
         $this->schoolTableService = $schoolTableService;
         $this->unifiedService = $unifiedService;
+        $this->matchingService = $matchingService;
     }
 
     /**
@@ -798,6 +804,42 @@ class PartnerSchoolController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch schools: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Match CSV headers using Smart AI-like matching
+     */
+    public function matchHeaders(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'headers' => 'required|array',
+            ]);
+
+            $headers = $validated['headers'];
+
+            // Use the smart matching service
+            $mapping = $this->matchingService->matchHeaders($headers);
+
+            \Log::info('Smart header matching completed', [
+                'input_headers' => $headers,
+                'mapped_fields' => $mapping
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $mapping,
+                'message' => 'Headers matched successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('PartnerSchool matchHeaders error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to match headers: ' . $e->getMessage()
             ], 500);
         }
     }

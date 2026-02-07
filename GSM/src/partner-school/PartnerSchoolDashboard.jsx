@@ -38,7 +38,8 @@ import {
   uploadEnrollmentData,
   fetchEnrollmentData,
   uploadFlexibleData,
-  fetchFlexibleStudents
+  fetchFlexibleStudents,
+  matchHeaders
 } from '../services/partnerSchoolService';
 import { API_CONFIG, getAuthServiceUrl } from '../config/api';
 import PartnerSchoolApplicationStatus from './PartnerSchoolApplicationStatus';
@@ -59,6 +60,8 @@ const PartnerSchoolDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [viewStudent, setViewStudent] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   // School information state
   const [schoolInfo, setSchoolInfo] = useState(null);
@@ -1653,22 +1656,45 @@ const PartnerSchoolDashboard = () => {
   const parseCSVFile = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const csv = e.target.result;
           const lines = csv.split('\n').filter(line => line.trim());
           const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
 
           // Map raw headers to normalized field names
-          const headerMapping = {};
+          // Map raw headers to normalized field names
+          let headerMapping = {};
           const normalizedHeaders = [];
 
+          // Try AI Smart Matching first
+          try {
+            if (token) {
+              console.log('🤖 Attempting AI Smart Matching for headers...', rawHeaders);
+              const aiMapping = await matchHeaders(token, rawHeaders);
+              if (aiMapping) {
+                headerMapping = aiMapping;
+                console.log('✅ AI Smart Matching successful:', headerMapping);
+
+                // Add mapped headers to normalizedHeaders list
+                Object.values(headerMapping).forEach(val => {
+                  if (!normalizedHeaders.includes(val)) normalizedHeaders.push(val);
+                });
+              }
+            }
+          } catch (err) {
+            console.warn('⚠️ AI matching failed, falling back to local logic', err);
+          }
+
           rawHeaders.forEach(rawHeader => {
-            const normalizedHeader = normalizeHeader(rawHeader);
-            if (normalizedHeader) {
-              headerMapping[rawHeader] = normalizedHeader;
-              if (!normalizedHeaders.includes(normalizedHeader)) {
-                normalizedHeaders.push(normalizedHeader);
+            // Only map if not already mapped by AI
+            if (!headerMapping[rawHeader]) {
+              const normalizedHeader = normalizeHeader(rawHeader);
+              if (normalizedHeader) {
+                headerMapping[rawHeader] = normalizedHeader;
+                if (!normalizedHeaders.includes(normalizedHeader)) {
+                  normalizedHeaders.push(normalizedHeader);
+                }
               }
             }
           });
@@ -2575,15 +2601,30 @@ const PartnerSchoolDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300" title="View Details">
+                          <button
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 transition-colors"
+                            title="View Details"
+                            onClick={() => {
+                              setViewStudent(student);
+                              setIsViewModalOpen(true);
+                            }}
+                          >
                             <Eye className="w-4 h-4" />
                           </button>
                           {latestEnrollment && (
-                            <button className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300" title="Enrollment Data Available">
+                            <button className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors" title="Enrollment Verified">
                               <ShieldCheck className="w-4 h-4" />
                             </button>
                           )}
-                          <button className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300" title="Edit">
+                          <button
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 transition-colors"
+                            title="Edit"
+                            onClick={() => {
+                              // For now, reuse view modal or create separate edit logic later
+                              setViewStudent(student);
+                              setIsViewModalOpen(true);
+                            }}
+                          >
                             <Edit className="w-4 h-4" />
                           </button>
                         </div>
@@ -3308,6 +3349,163 @@ const PartnerSchoolDashboard = () => {
                 className="px-6 py-2.5 bg-[#4CAF50] hover:bg-[#45A049] text-white font-medium rounded-lg shadow-sm transition-all transform active:scale-95"
               >
                 I Understand & Agree
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Student Details / Edit Modal */}
+      {isViewModalOpen && viewStudent && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col animate-fade-in-up border border-slate-200 dark:border-slate-700">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
+              <div className="flex items-center space-x-3">
+                <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                  <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Student Details</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">View and manage student information</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-lg transition-colors text-gray-500 dark:text-gray-400"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Personal Information */}
+                <div className="col-span-1 md:col-span-2">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4 border-b pb-2 border-slate-100 dark:border-slate-700">
+                    Personal Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">First Name</label>
+                      <p className="text-base font-semibold text-slate-800 dark:text-white mt-1">
+                        {viewStudent.first_name || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Last Name</label>
+                      <p className="text-base font-semibold text-slate-800 dark:text-white mt-1">
+                        {viewStudent.last_name || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Student ID Number</label>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <code className="text-base font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">
+                          {viewStudent.student_id_number || 'N/A'}
+                        </code>
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Gender</label>
+                      <p className="text-base font-medium text-slate-800 dark:text-white mt-1 capitalize">
+                        {viewStudent.sex || viewStudent.gender || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Academic Information */}
+                <div className="col-span-1 md:col-span-2">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4 border-b pb-2 border-slate-100 dark:border-slate-700 mt-2">
+                    Academic Information
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Program / Course</label>
+                      <p className="text-base font-medium text-slate-800 dark:text-white mt-1">
+                        {viewStudent.program || (viewStudent.enrollmentData && viewStudent.enrollmentData[0]?.program) || 'N/A'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                        <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Year Level</label>
+                        <p className="text-base font-medium text-slate-800 dark:text-white mt-1">
+                          {viewStudent.year_level || (viewStudent.enrollmentData && viewStudent.enrollmentData[0]?.year_level) || 'N/A'}
+                        </p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                        <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Status</label>
+                        <div className="mt-1">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                            ${(viewStudent.enrollment_status === 'ACTIVE' || viewStudent.is_currently_enrolled)
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                            {viewStudent.enrollment_status || (viewStudent.is_currently_enrolled ? 'ACTIVE' : 'INACTIVE')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                        <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Academic Year</label>
+                        <p className="text-base font-medium text-slate-800 dark:text-white mt-1">
+                          {viewStudent.academic_year || (viewStudent.enrollmentData && viewStudent.enrollmentData[0]?.academic_year) || 'N/A'}
+                        </p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                        <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Semester/Term</label>
+                        <p className="text-base font-medium text-slate-800 dark:text-white mt-1">
+                          {viewStudent.semester || viewStudent.enrollment_term || (viewStudent.enrollmentData && viewStudent.enrollmentData[0]?.enrollment_term) || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className="col-span-1 md:col-span-2">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4 border-b pb-2 border-slate-100 dark:border-slate-700 mt-2">
+                    Contact Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Email Address</label>
+                      <p className="text-sm font-medium text-slate-800 dark:text-white mt-1 break-all">
+                        {viewStudent.email_address || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                      <label className="text-xs text-slate-500 dark:text-slate-400 font-medium">Contact Number</label>
+                      <p className="text-base font-medium text-slate-800 dark:text-white mt-1">
+                        {viewStudent.contact_number || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-end space-x-3">
+              <button
+                onClick={() => setIsViewModalOpen(false)}
+                className="px-4 py-2 bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors font-medium text-sm"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  // Allow implementing edit logic here later
+                  console.log('Edit clicked for', viewStudent);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center shadow-sm"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Student
               </button>
             </div>
           </div>

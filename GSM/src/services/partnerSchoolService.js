@@ -345,3 +345,36 @@ export const updateWithdrawal = async (token, withdrawalId, formData) => {
     throw error;
   }
 };
+
+/**
+ * Match CSV headers using AI Smart Matching
+ */
+export const matchHeaders = async (token, headers) => {
+  try {
+    const response = await fetch(`${SCHOLARSHIP_API_BASE_URL}/api/partner-school/match-headers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ headers })
+    });
+
+    if (!response.ok) {
+      console.warn('Match headers service returned error:', response.status);
+      return null; // Return null to trigger fallback
+    }
+
+    const data = await response.json();
+    if (data.success) {
+      console.log('✅ AI Smart Matching successful:', data.data);
+      return data.data; // Returns a map { "Header": "field" }
+    } else {
+      console.warn('Match headers service failed:', data.message);
+      return null;
+    }
+  } catch (error) {
+    console.warn('Error calling match headers service (will use local fallback):', error);
+    return null; // Return null to indicate fallback should be used
+  }
+};
