@@ -31,6 +31,7 @@ import {
   type AIInsightsResponse,
   type Alert,
 } from '../../../../services/monitoringService';
+import { useRealtimeMetrics } from '../../../../hooks/useRealtimeMetrics';
 
 // ============================================================================
 // Utility Components
@@ -376,7 +377,14 @@ const MonitoringDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'pipeline' | 'insights'>('overview');
-  const [isConnected, setIsConnected] = useState(true);
+
+  // WebSocket real-time updates - get connection status and last update
+  const { isConnected: wsConnected, lastUpdate } = useRealtimeMetrics(
+    ['application', 'financial']
+  );
+
+  // Track if WebSocket is connected (fallback to true if no WebSocket)
+  const isConnected = wsConnected;
 
   // PDF Export Handler
   const handleExportPDF = () => {
@@ -588,7 +596,6 @@ const MonitoringDashboard: React.FC = () => {
 
       if (metricsResponse) {
         setMetrics(metricsResponse);
-        setIsConnected(true);
         console.log('Dashboard metrics loaded from database:', metricsResponse);
       }
 
@@ -600,7 +607,6 @@ const MonitoringDashboard: React.FC = () => {
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       setError('Unable to connect to monitoring service. Please ensure the service is running.');
-      setIsConnected(false);
     } finally {
       setLoading(false);
     }
@@ -641,6 +647,14 @@ const MonitoringDashboard: React.FC = () => {
       clearTimeout(aiTimeout);
     };
   }, [fetchDashboardData, fetchAIInsights]);
+
+  // Real-time WebSocket updates - refresh when we receive new data
+  useEffect(() => {
+    if (lastUpdate) {
+      console.log('Real-time metrics update received:', lastUpdate);
+      fetchDashboardData();
+    }
+  }, [lastUpdate, fetchDashboardData]);
 
   // Handle alert acknowledgment
   const handleAcknowledgeAlert = async (alertId: number) => {
