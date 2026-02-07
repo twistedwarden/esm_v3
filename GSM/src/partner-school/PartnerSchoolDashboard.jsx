@@ -44,6 +44,7 @@ import {
 import { API_CONFIG, getAuthServiceUrl } from '../config/api';
 import PartnerSchoolApplicationStatus from './PartnerSchoolApplicationStatus';
 import PartnerSchoolFunds from './PartnerSchoolFunds';
+import AdvancedAnalyticsDashboard from '../components/analytics/AdvancedAnalyticsDashboard';
 import jsPDF from 'jspdf';
 // import * as XLSX from 'xlsx';
 

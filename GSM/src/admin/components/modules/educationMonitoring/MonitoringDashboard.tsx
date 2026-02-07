@@ -32,6 +32,7 @@ import {
   type Alert,
 } from '../../../../services/monitoringService';
 import { useRealtimeMetrics } from '../../../../hooks/useRealtimeMetrics';
+import AdvancedAnalyticsDashboard from '../../../../components/analytics/AdvancedAnalyticsDashboard';
 
 // ============================================================================
 // Utility Components
@@ -1162,101 +1163,7 @@ const MonitoringDashboard: React.FC = () => {
       {/* AI Insights Tab */}
       {/* ================================================================== */}
       {activeTab === 'insights' && (
-        <div className="space-y-6">
-          {aiLoading && !aiInsights ? (
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-12 shadow-sm border border-slate-200 dark:border-slate-700">
-              <div className="text-center">
-                <Sparkles className="w-12 h-12 animate-pulse text-blue-500 mx-auto mb-4" />
-                <p className="text-slate-600 dark:text-slate-400">Generating AI insights...</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">This may take a moment</p>
-              </div>
-            </div>
-          ) : !aiInsights ? (
-            <EmptyState
-              title="No AI Insights Available"
-              description="AI insights are being generated. Please refresh or wait a moment."
-              icon={<Sparkles className="w-8 h-8 text-slate-400" />}
-              action={{ label: 'Refresh Insights', onClick: handleRefreshInsights }}
-            />
-          ) : (
-            <>
-              {/* AI Highlights */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 shadow-sm border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">AI Strategic Highlights</h2>
-                  </div>
-                  <button
-                    onClick={handleRefreshInsights}
-                    disabled={aiLoading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${aiLoading ? 'animate-spin' : ''}`} />
-                    Regenerate
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {aiInsights.insights.highlights?.map((highlight, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
-                      <span className="text-blue-500 mt-1">•</span>
-                      <p>{highlight}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Executive Summary */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Executive Summary</h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  {aiInsights.insights.summary}
-                </p>
-              </div>
-
-              {/* Strategic Recommendations */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Strategic Recommendations</h2>
-                <div className="space-y-4">
-                  {aiInsights.insights.recommendations?.map((rec, idx) => {
-                    const priorityColors = {
-                      high: 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20',
-                      medium: 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/20',
-                      low: 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20',
-                    };
-                    const priorityBadgeColors = {
-                      high: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400',
-                      medium: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400',
-                      low: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400',
-                    };
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-4 rounded-lg border-2 ${priorityColors[rec.priority as keyof typeof priorityColors] || priorityColors.low}`}
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-white capitalize">
-                            {rec.area.replace(/_/g, ' ')}
-                          </h3>
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium uppercase ${priorityBadgeColors[rec.priority as keyof typeof priorityBadgeColors] || priorityBadgeColors.low}`}>
-                            {rec.priority}
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">{rec.action}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Metadata */}
-              <div className="text-center text-xs text-slate-400 dark:text-slate-500">
-                <p>Insights generated by AI • Last updated: {new Date(aiInsights.generated_at).toLocaleString()}</p>
-              </div>
-            </>
-          )}
-        </div>
+        <AdvancedAnalyticsDashboard token={localStorage.getItem('auth_token') || ''} />
       )}
 
     </div>

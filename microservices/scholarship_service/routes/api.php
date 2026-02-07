@@ -722,3 +722,9 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
     Route::get('/applications/{id}/documents', [PartnerSchoolApplicationController::class, 'getDocuments']);
     Route::post('/applications/{id}/documents/{docId}/verify', [PartnerSchoolApplicationController::class, 'verifyDocument']);
 });
+
+// Advanced Analytics Routes (admin only)
+Route::prefix('analytics')->middleware(['auth.auth_service'])->group(function () {
+    Route::get('/comprehensive', [\App\Http\Controllers\Api\AnalyticsController::class, 'getComprehensiveAnalytics']);
+    Route::post('/gemini-insights', [\App\Http\Controllers\Api\AnalyticsController::class, 'generateGeminiInsights']);
+});
