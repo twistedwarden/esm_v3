@@ -370,7 +370,10 @@ class AnalyticsController extends Controller
      */
     protected function analyzeProcessingTime($applications): array
     {
-        $processed = $applications->whereNotNull('approved_at')->orWhereNotNull('rejected_at');
+        // Use filter for Collections instead of query builder methods
+        $processed = $applications->filter(function ($app) {
+            return !is_null($app->approved_at) || !is_null($app->rejected_at);
+        });
 
         $timeBuckets = [
             '0-7 days' => 0,
@@ -381,6 +384,11 @@ class AnalyticsController extends Controller
         ];
 
         foreach ($processed as $app) {
+            // Skip if submitted_at is null
+            if (!$app->submitted_at) {
+                continue;
+            }
+
             $start = Carbon::parse($app->submitted_at);
             $end = Carbon::parse($app->approved_at ?? $app->rejected_at);
             $days = $start->diffInDays($end);
