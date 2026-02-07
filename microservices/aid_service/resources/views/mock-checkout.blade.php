@@ -1,20 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mock Payment Checkout</title>
+    <title>Secure Payment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -22,300 +19,399 @@
             padding: 20px;
         }
 
-        .checkout-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            max-width: 480px;
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
+            height: 100%;
+            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+            opacity: 0.05;
+            z-index: -1;
+            background-image: radial-gradient(#4f46e5 0.5px, transparent 0.5px), radial-gradient(#4f46e5 0.5px, #f8fafc 0.5px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
         }
 
-        .checkout-header {
+        .checkout-wrapper {
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header {
+            padding: 24px 32px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             background: #ffffff;
-            padding: 24px 24px 20px;
-            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .brand {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #0f172a;
         }
 
-        .checkout-header h1 {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: #111827;
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: #4f46e5;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
         }
 
         .secure-badge {
             display: flex;
             align-items: center;
-            gap: 4px;
-            color: #059669;
+            gap: 6px;
             font-size: 0.75rem;
             font-weight: 500;
+            color: #059669;
             background: #ecfdf5;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 6px 10px;
+            border-radius: 99px;
+            border: 1px solid #d1fae5;
         }
 
-        .checkout-body {
-            padding: 32px 24px;
+        .main-content {
+            padding: 32px;
         }
 
-        .amount-section {
+        .order-summary {
             margin-bottom: 32px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #eff6ff;
         }
 
-        .amount-label {
-            color: #6b7280;
-            font-size: 0.875rem;
-            margin-bottom: 4px;
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #64748b;
         }
 
-        .amount-value {
-            font-size: 2.25rem;
+        .summary-row.total {
+            margin-top: 16px;
+            margin-bottom: 0;
+            padding-top: 16px;
+            border-top: 1px dashed #cbd5e1;
             font-weight: 700;
-            color: #111827;
+            font-size: 1.25rem;
+            color: #0f172a;
         }
 
-        .payment-methods {
-            margin-bottom: 32px;
-        }
-
-        .section-title {
-            color: #374151;
-            font-size: 0.875rem;
+        .section-label {
+            font-size: 0.85rem;
             font-weight: 600;
-            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 16px;
         }
 
-        .method-option {
+        .payment-options {
+            display: grid;
+            gap: 12px;
+        }
+
+        .option-label {
             display: flex;
             align-items: center;
-            padding: 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            margin-bottom: 12px;
+            padding: 16px 20px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             position: relative;
         }
 
-        .method-option:hover {
-            border-color: #d1d5db;
-            background: #f9fafb;
+        .option-label:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
         }
 
-        .method-option.selected {
-            border-color: #2563eb;
-            background: #eff6ff;
-            box-shadow: 0 0 0 1px #2563eb;
+        .option-label.selected {
+            border-color: #4f46e5;
+            background: #eef2ff;
+            box-shadow: 0 0 0 1px #4f46e5;
         }
 
-        .method-option input {
+        .option-radio {
             position: absolute;
             opacity: 0;
         }
 
         .radio-custom {
-            width: 18px;
-            height: 18px;
-            border: 2px solid #d1d5db;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #cbd5e1;
             border-radius: 50%;
-            margin-right: 12px;
-            position: relative;
+            margin-right: 16px;
+            display: grid;
+            place-items: center;
+            transition: all 0.2s;
+        }
+
+        .option-label.selected .radio-custom {
+            border-color: #4f46e5;
+        }
+
+        .radio-custom::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: #4f46e5;
+            border-radius: 50%;
+            transform: scale(0);
+            transition: transform 0.2s;
+        }
+
+        .option-label.selected .radio-custom::after {
+            transform: scale(1);
+        }
+
+        .method-info {
             display: flex;
             align-items: center;
-            justify-content: center;
-        }
-
-        .method-option.selected .radio-custom {
-            border-color: #2563eb;
-        }
-
-        .method-option.selected .radio-custom::after {
-            content: '';
-            width: 8px;
-            height: 8px;
-            background: #2563eb;
-            border-radius: 50%;
+            gap: 12px;
+            flex: 1;
         }
 
         .method-icon {
-            margin-right: 12px;
             font-size: 1.25rem;
             width: 24px;
             text-align: center;
         }
 
         .method-name {
-            font-weight: 500;
-            color: #1f2937;
+            font-weight: 600;
             font-size: 0.95rem;
         }
 
-        .pay-button {
+        .submit-btn {
             width: 100%;
-            padding: 14px;
-            background: #2563eb;
+            padding: 18px;
+            background: #4f46e5;
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 1rem;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
+            margin-top: 32px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
         }
 
-        .pay-button:hover {
-            background: #1d4ed8;
+        .submit-btn:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
         }
 
-        .footer-note {
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .footer {
+            padding: 20px;
             text-align: center;
-            padding: 24px;
-            border-top: 1px solid #f3f4f6;
-            color: #9ca3af;
             font-size: 0.75rem;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
             display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
 
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 40px 20px;
-        }
-
-        .loading.show {
-            display: block;
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: all;
         }
 
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #2563eb;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #4f46e5;
             border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-            100% {
-                transform: rotate(360deg);
-            }
-        }
     </style>
 </head>
-
 <body>
-    <div class="checkout-container">
-        <div class="checkout-header">
-            <h1>Complete Payment</h1>
+    <div class="bg-pattern"></div>
+
+    <div class="checkout-wrapper">
+        <!-- Header -->
+        <div class="header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                EduAid
+            </div>
             <div class="secure-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Secure Checkout
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Secure
             </div>
         </div>
 
-        <div class="checkout-body" id="paymentForm">
-            <div class="amount-section">
-                <div class="amount-label">Amount Due</div>
-                <div class="amount-value">₱{{ number_format($amount, 2) }}</div>
+        <!-- Main Body -->
+        <div class="main-content">
+            
+            <!-- Order Summary -->
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span>Reference</span>
+                    <span style="font-family: monospace;">APP-{{ request('application_id') ?? '2026-00000' }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Description</span>
+                    <span>Scholarship Grant</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total Due</span>
+                    <span>₱{{ number_format($amount, 2) }}</span>
+                </div>
             </div>
 
-            <div class="payment-methods">
-                <div class="section-title">Payment Method</div>
-
-                @php
-                    $preferred = request('method', 'gcash'); // Default to GCash if not specified
-                @endphp
-
-                <label class="method-option {{ $preferred == 'gcash' ? 'selected' : '' }}">
-                    <input type="radio" name="method" value="gcash" {{ $preferred == 'gcash' ? 'checked' : '' }}>
-                    <div class="radio-custom"></div>
-                    <span class="method-icon">G</span>
-                    <span class="method-name">GCash</span>
-                </label>
-
-                <label class="method-option {{ $preferred == 'maya' || $preferred == 'paymaya' ? 'selected' : '' }}">
-                    <input type="radio" name="method" value="maya" {{ $preferred == 'maya' || $preferred == 'paymaya' ? 'checked' : '' }}>
-                    <div class="radio-custom"></div>
-                    <span class="method-icon">M</span>
-                    <span class="method-name">Maya</span>
-                </label>
-
-                <label class="method-option {{ $preferred == 'card' ? 'selected' : '' }}">
-                    <input type="radio" name="method" value="card" {{ $preferred == 'card' ? 'checked' : '' }}>
-                    <div class="radio-custom"></div>
-                    <span class="method-icon">💳</span>
-                    <span class="method-name">Credit/Debit Card</span>
-                </label>
-
-                <label class="method-option {{ $preferred == 'bank_transfer' ? 'selected' : '' }}">
-                    <input type="radio" name="method" value="bank_transfer" {{ $preferred == 'bank_transfer' ? 'checked' : '' }}>
-                    <div class="radio-custom"></div>
-                    <span class="method-icon">🏦</span>
-                    <span class="method-name">Bank Transfer</span>
-                </label>
-            </div>
-
-            <form action="{{ route('payment.mock-complete', ['id' => $paymentId]) }}" method="POST">
+            <!-- Payment Methods -->
+            <div class="section-label">Select Payment Method</div>
+            
+            <form action="{{ route('payment.mock-complete', ['id' => $paymentId]) }}" method="POST" id="paymentForm">
                 @csrf
                 <input type="hidden" name="application_id" value="{{ $applicationId }}">
-                <button type="submit" class="pay-button" id="payBtn">
+                
+                @php $preferred = request('method', 'gcash'); @endphp
+
+                <div class="payment-options">
+                    <!-- GCash -->
+                    <label class="option-label {{ $preferred == 'gcash' ? 'selected' : '' }}" onclick="selectMethod(this)">
+                        <input type="radio" name="method" value="gcash" class="option-radio" {{ $preferred == 'gcash' ? 'checked' : '' }}>
+                        <div class="radio-custom"></div>
+                        <div class="method-info">
+                            <span class="method-icon" style="color: #007DFE;">G</span>
+                            <span class="method-name">GCash</span>
+                        </div>
+                    </label>
+
+                    <!-- Maya -->
+                    <label class="option-label {{ $preferred == 'maya' || $preferred == 'paymaya' ? 'selected' : '' }}" onclick="selectMethod(this)">
+                        <input type="radio" name="method" value="maya" class="option-radio" {{ $preferred == 'maya' || $preferred == 'paymaya' ? 'checked' : '' }}>
+                        <div class="radio-custom"></div>
+                        <div class="method-info">
+                            <span class="method-icon" style="color: #6f21ef;">M</span>
+                            <span class="method-name">Maya</span>
+                        </div>
+                    </label>
+
+                    <!-- Card -->
+                    <label class="option-label {{ $preferred == 'card' ? 'selected' : '' }}" onclick="selectMethod(this)">
+                        <input type="radio" name="method" value="card" class="option-radio" {{ $preferred == 'card' ? 'checked' : '' }}>
+                        <div class="radio-custom"></div>
+                        <div class="method-info">
+                            <span class="method-icon">💳</span>
+                            <span class="method-name">Credit / Debit Card</span>
+                        </div>
+                    </label>
+
+                    <!-- Bank Transfer -->
+                    <label class="option-label {{ $preferred == 'bank_transfer' ? 'selected' : '' }}" onclick="selectMethod(this)">
+                        <input type="radio" name="method" value="bank_transfer" class="option-radio" {{ $preferred == 'bank_transfer' ? 'checked' : '' }}>
+                        <div class="radio-custom"></div>
+                        <div class="method-info">
+                            <span class="method-icon">🏦</span>
+                            <span class="method-name">Bank Transfer</span>
+                        </div>
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                     Pay ₱{{ number_format($amount, 2) }}
                 </button>
             </form>
         </div>
 
-        <div class="loading" id="loadingState">
-            <div class="spinner"></div>
-            <p style="color: #4b5563; font-weight: 500;">Processing secure payment...</p>
-            <p style="color: #9ca3af; font-size: 0.875rem; margin-top: 8px;">Please do not close this window</p>
+        <!-- Footer -->
+        <div class="footer">
+            <span>Powered by PayMongo</span>
+            <span>•</span>
+            <span>Terms & Privacy</span>
+            <span>•</span>
+            <span style="display: flex; align-items: center; gap: 4px;">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 256-bit SSL
+            </span>
         </div>
 
-        <div class="footer-note">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-            Encrypted and secured by PayMongo
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+            <h3 style="font-weight: 600; color: #1e293b;">Processing Payment...</h3>
+            <p style="color: #64748b; font-size: 0.9rem; margin-top: 8px;">Please do not close this window.</p>
         </div>
     </div>
 
     <script>
-        // Handle method selection styling
-        document.querySelectorAll('.method-option').forEach(option => {
-            option.addEventListener('click', function () {
-                document.querySelectorAll('.method-option').forEach(o => o.classList.remove('selected'));
-                this.classList.add('selected');
-            });
-        });
+        function selectMethod(element) {
+            // Remove selected class from all options
+            document.querySelectorAll('.option-label').forEach(el => el.classList.remove('selected'));
+            // Add selected class to clicked option
+            element.classList.add('selected');
+            // Check the radio input
+            element.querySelector('input').checked = true;
+        }
 
-        // Handle form submission
-        document.querySelector('form').addEventListener('submit', function () {
-            document.getElementById('paymentForm').style.display = 'none';
-            document.getElementById('loadingState').classList.add('show');
+        document.getElementById('paymentForm').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').classList.add('active');
+            
+            // Disable button to prevent double submission
+            const btn = document.getElementById('submitBtn');
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
         });
     </script>
 </body>
-
 </html>
