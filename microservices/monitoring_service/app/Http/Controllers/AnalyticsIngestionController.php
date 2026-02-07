@@ -13,6 +13,7 @@ use App\Models\AnalyticsInterviewDaily;
 use App\Models\AnalyticsDemographicsDaily;
 use App\Events\MetricsUpdated;
 use App\Events\AlertCreated;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -86,6 +87,10 @@ class AnalyticsIngestionController extends Controller
             );
 
             Log::info('Application snapshot ingested', ['snapshot_date' => $snapshotDate]);
+
+            // Clear dashboard cache for immediate updates
+            $cacheKey = 'dashboard_metrics_' . now()->format('Y-m-d-H');
+            Cache::forget($cacheKey);
 
             // Broadcast real-time update
             broadcast(new MetricsUpdated('application', [
