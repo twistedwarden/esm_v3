@@ -605,65 +605,16 @@ class PaymentService
      */
     private function getPaymentMethodTypes(ScholarshipApplication $application): array
     {
-        // 1. Determine the preferred method from application data
-        // Check 'digital_wallets' (legacy/array) or 'payment_method' (string from new form)
-        $preferredMethod = null;
+        // TEMPORARY: Testing with ONLY card to isolate issue
+        // If this works, the issue is with other payment methods not being enabled in PayMongo
+        $methods = ['card'];
 
-        // Try to get payment_method property if it exists (it might not be in the model definition but in the DB)
-        // Using dynamic property access or checking attributes
-        if (!empty($application->payment_method)) {
-            $preferredMethod = $application->payment_method;
-        } elseif (!empty($application->digital_wallets)) {
-            $digitalWallets = $application->digital_wallets;
-            if (is_array($digitalWallets) && count($digitalWallets) > 0) {
-                $preferredMethod = $digitalWallets[0];
-            } elseif (is_string($digitalWallets)) {
-                $decoded = json_decode($digitalWallets, true);
-                if (is_array($decoded) && count($decoded) > 0) {
-                    $preferredMethod = $decoded[0];
-                } else {
-                    $preferredMethod = $digitalWallets;
-                }
-            }
-        }
-
-        // 2. Build the list of allowed payment methods
-        // Always include 'card' and 'gcash' as the most basic options
-        $methods = ['card', 'gcash'];
-
-        if ($preferredMethod) {
-            $method = strtolower($preferredMethod);
-
-            // Map frontend values to PayMongo types
-            if ($method === 'paymaya' || $method === 'maya') {
-                $methods[] = 'paymaya';
-            } elseif ($method === 'grab_pay' || $method === 'grabpay') {
-                $methods[] = 'grab_pay';
-            } elseif ($method === 'bank transfer' || $method === 'dob') {
-                // If Bank Transfer, enable Direct Online Banking if available, plus standard options
-                // (Note: 'dob' might need specific configuration in PayMongo)
-                $methods[] = 'dob';
-                $methods[] = 'paymaya'; // PayMaya often supports bank transfer
-            } elseif ($method === 'cash') {
-                // If Cash, give them all over-the-counter compatible options
-                $methods[] = 'paymaya'; // 7-Eleven etc via PayMaya
-                $methods[] = 'grab_pay';
-            }
-        } else {
-            // Fallback: Add other common methods if no preference
-            $methods[] = 'paymaya';
-            $methods[] = 'grab_pay';
-        }
-
-        $result = array_values(array_unique($methods));
-
-        Log::info('Payment methods resolved for application', [
+        Log::info('Payment methods resolved for application (MINIMAL TEST)', [
             'application_id' => $application->id,
-            'preferred_method_raw' => $preferredMethod,
-            'resolved_methods' => $result,
+            'resolved_methods' => $methods,
         ]);
 
-        return $result;
+        return $methods;
     }
 }
 
