@@ -428,16 +428,17 @@ class DashboardService {
       return false;
     }
 
-    const doc = new jsPDF();
-
-    // Add encryption if password is provided
+    // Configure PDF options, including encryption if password is provided
+    const pdfOptions = {};
     if (password) {
-      doc.setEncryption(
-        password,
-        password,
-        ["print", "modify", "copy", "annot-forms"]
-      );
+      pdfOptions.encryption = {
+        userPassword: password,
+        ownerPassword: password,
+        userPermissions: ["print", "modify", "copy", "annot-forms"]
+      };
     }
+
+    const doc = new jsPDF(pdfOptions);
     const overview = data?.overview || {};
     const timestamp = new Date().toLocaleString();
 
