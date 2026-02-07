@@ -178,17 +178,17 @@ class SyncMonitoringData extends Command
     {
         $schoolYear = $this->getCurrentSchoolYear();
 
-        // Get total budget from aid_service database (cross-database query)
-        // Budget data is stored in aid service, not scholarship service
-        $aidDbName = config('database.connections.aid.database', 'aid_service');
-
-        $totalBudget = DB::table($aidDbName . '.budget_allocations')
+        // Get total budget from aid_service database using aid connection credentials
+        // This uses DB_AID_USERNAME and DB_AID_PASSWORD from .env
+        $totalBudget = DB::connection('aid')
+            ->table('budget_allocations')
             ->where('school_year', $schoolYear)
             ->sum('total_budget') ?? 0;
 
         // Fallback: If no budgets found for current year, sum all budgets
         if ($totalBudget == 0) {
-            $totalBudget = DB::table($aidDbName . '.budget_allocations')
+            $totalBudget = DB::connection('aid')
+                ->table('budget_allocations')
                 ->sum('total_budget') ?? 0;
         }
 
