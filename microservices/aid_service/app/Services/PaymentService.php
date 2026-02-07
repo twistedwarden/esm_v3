@@ -129,8 +129,8 @@ class PaymentService
                         'currency' => 'PHP',
                     ],
                 ],
-                // Determine payment method types based on user preference
-                'payment_method_types' => $this->getPaymentMethodTypes($application),
+                // Remove specific payment method types to allow all enabled methods in PayMongo dashboard
+                // 'payment_method_types' => $this->getPaymentMethodTypes($application),
                 'success_url' => $frontendUrl . '/admin/school-aid/payment/success?application_id=' . $application->id,
                 'cancel_url' => $frontendUrl . '/admin/school-aid/payment/cancel?application_id=' . $application->id,
                 'metadata' => [

@@ -9,11 +9,11 @@ import {
   PhilippinePeso,
   Calendar,
   User,
-  School,
   AlertCircle,
   FileText,
   Gift,
-  Loader2
+  Loader2,
+  RotateCcw
 } from 'lucide-react';
 import {
   ScholarshipApplication,
@@ -31,7 +31,6 @@ interface ApplicationsTabProps {
   setSelectedApplications: (ids: string[]) => void;
   modalState: ModalState;
   setModalState: (state: ModalState) => void;
-  onProcessPayment?: (application: ScholarshipApplication) => Promise<void>;
   onProcessGrant?: (application: ScholarshipApplication) => Promise<void>;
   onBatchProcessPayments?: (applicationIds: string[]) => Promise<void>;
   onApproveApplication?: (applicationId: string) => Promise<void>;
@@ -45,7 +44,6 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   selectedApplications,
   setSelectedApplications,
   setModalState,
-  onProcessPayment,
   onProcessGrant,
   onBatchProcessPayments,
   onApproveApplication,
@@ -71,6 +69,19 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   useEffect(() => {
     filterApplications();
   }, [applications, searchTerm, statusFilter, schoolYearFilter, dateFilter]);
+
+  // Fetch available school years
+  useEffect(() => {
+    const loadSchoolYears = async () => {
+      try {
+        const years = await schoolAidService.getAvailableSchoolYears();
+        setAvailableSchoolYears(years);
+      } catch (error) {
+        console.error('Failed to load school years:', error);
+      }
+    };
+    loadSchoolYears();
+  }, []);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -184,15 +195,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
     });
   };
 
-  const handleProcessPayment = (application: ScholarshipApplication) => {
-    // Note: onProcessPayment is available but we're using modal state instead
-    // This allows for future enhancement where the parent component handles payment processing
-    setModalState({
-      isOpen: true,
-      application,
-      mode: 'process'
-    });
-  };
+
 
   const handleProcessGrant = async (application: ScholarshipApplication) => {
     // Prevent multiple clicks
@@ -216,6 +219,18 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
         setTimeout(() => {
           setProcessingGrantId(null);
         }, 2000);
+      }
+    }
+  };
+
+  const handleCancelProcessing = async (application: ScholarshipApplication) => {
+    if (confirm('Are you sure you want to cancel the processing status? This will revert the application to Approved status and allow you to restart the process.')) {
+      try {
+        await schoolAidService.revertApplicationOnCancel({ application_id: application.id });
+        await fetchApplications();
+      } catch (error) {
+        console.error('Error cancelling processing:', error);
+        alert('Failed to cancel processing');
       }
     }
   };
@@ -400,6 +415,20 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
               Process Grant
             </>
           )}
+        </button>
+      );
+    }
+
+    if (application.status === 'grants_processing') {
+      buttons.push(
+        <button
+          key="cancel-processing"
+          onClick={() => handleCancelProcessing(application)}
+          className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 transition-colors shadow-sm"
+          title="Cancel processing and revert to Approved"
+        >
+          <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+          Cancel
         </button>
       );
     }
