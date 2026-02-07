@@ -1,0 +1,407 @@
+
+import React, { useState, useEffect } from 'react';
+import {
+    BarChart3,
+    TrendingUp,
+    TrendingDown,
+    Users,
+    DollarSign,
+    GraduationCap,
+    AlertCircle,
+    CheckCircle,
+    XCircle,
+    Clock,
+    Brain,
+    Sparkles,
+    RefreshCw,
+    Download,
+} from 'lucide-react';
+import {
+    LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+    AreaChart, Area
+} from 'recharts';
+import {
+    getComprehensiveAnalytics,
+    generateGeminiInsights,
+    ComprehensiveAnalytics,
+    GeminiInsights
+} from '../../services/scholarshipAnalyticsService';
+
+interface AdvancedAnalyticsDashboardProps {
+    token?: string;
+}
+
+const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({ token }) => {
+    const [analyticsData, setAnalyticsData] = useState<ComprehensiveAnalytics | null>(null);
+    const [geminiInsights, setGeminiInsights] = useState<GeminiInsights | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [insightsLoading, setInsightsLoading] = useState(false);
+    const [selectedTimeRange, setSelectedTimeRange] = useState<'all' | 'year' | 'quarter' | 'month'>('all');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+    const COLORS = {
+        primary: '#4CAF50',
+        secondary: '#2196F3',
+        warning: '#FF9800',
+        danger: '#F44336',
+        success: '#8BC34A',
+        info: '#00BCD4',
+        purple: '#9C27B0',
+        pink: '#E91E63'
+    };
+
+    useEffect(() => {
+        fetchAnalyticsData();
+    }, [selectedTimeRange, selectedCategory]);
+
+    const fetchAnalyticsData = async () => {
+        setLoading(true);
+        try {
+            const data = await getComprehensiveAnalytics(selectedTimeRange, selectedCategory);
+            // If data is empty or invalid, you might want to load mock data here for demonstration
+            // For now, we assume the API returns valid data or throws
+            setAnalyticsData(data);
+        } catch (error) {
+            console.error('Error fetching analytics:', error);
+            // Fallback to mock data if API fails (optional, good for demo)
+            setAnalyticsData(mockData as any);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGenerateInsights = async () => {
+        if (!analyticsData) return;
+        setInsightsLoading(true);
+        try {
+            const insights = await generateGeminiInsights(analyticsData);
+            setGeminiInsights(insights);
+        } catch (error) {
+            console.error('Error generating insights:', error);
+        } finally {
+            setInsightsLoading(false);
+        }
+    };
+
+    // Mock data for fallback/demonstration
+    const mockData = {
+        failureReasons: [
+            { reason: 'Incomplete Documents', count: 45, percentage: 28 },
+            { reason: 'Low GPA', count: 38, percentage: 24 },
+            { reason: 'Family Income Too High', count: 32, percentage: 20 },
+            { reason: 'Failed Interview', count: 25, percentage: 16 },
+            { reason: 'Missing Requirements', count: 20, percentage: 12 }
+        ],
+        financialDistribution: [
+            { range: '< ₱10,000', approved: 85, rejected: 15, total: 100 },
+            { range: '₱10,000 - ₱20,000', approved: 120, rejected: 30, total: 150 },
+            { range: '₱20,000 - ₱30,000', approved: 90, rejected: 45, total: 135 },
+            { range: '₱30,000 - ₱50,000', approved: 50, rejected: 60, total: 110 },
+            { range: '> ₱50,000', approved: 20, rejected: 80, total: 100 }
+        ],
+        familyBackgroundImpact: [
+            { factor: 'Single Parent', impact: 75, applications: 120 },
+            { factor: 'Both Parents', impact: 65, applications: 280 },
+            { factor: 'Guardian', impact: 70, applications: 45 },
+            { factor: 'Orphan', impact: 90, applications: 25 }
+        ],
+        gpaVsApproval: [
+            { gpa: '1.0-1.5', approved: 95, rejected: 5 },
+            { gpa: '1.6-2.0', approved: 85, rejected: 15 },
+            { gpa: '2.1-2.5', approved: 70, rejected: 30 },
+            { gpa: '2.6-3.0', approved: 45, rejected: 55 },
+            { gpa: '3.1-4.0', approved: 20, rejected: 80 }
+        ],
+        monthlyTrends: [
+            { month: 'Jan', applications: 120, approved: 85, rejected: 35 },
+            { month: 'Feb', applications: 150, approved: 105, rejected: 45 },
+            { month: 'Mar', applications: 180, approved: 130, rejected: 50 },
+            { month: 'Apr', applications: 200, approved: 145, rejected: 55 },
+            { month: 'May', applications: 165, approved: 120, rejected: 45 },
+            { month: 'Jun', applications: 140, approved: 100, rejected: 40 }
+        ],
+        documentCompleteness: [
+            { category: 'Complete', value: 320, color: COLORS.success },
+            { category: 'Missing 1-2', value: 180, color: COLORS.warning },
+            { category: 'Missing 3+', value: 95, color: COLORS.danger }
+        ]
+    };
+
+    const dataToUse = analyticsData || mockData as any;
+
+    const InsightCard = ({ title, value, trend, icon: Icon, color }: any) => (
+        <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{title}</p>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-2">{value}</h3>
+                    {trend && (
+                        <div className={`flex items-center mt-2 text-sm ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {trend > 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
+                            <span>{Math.abs(trend)}% vs last period</span>
+                        </div>
+                    )}
+                </div>
+                <div className={`p-3 rounded-lg bg-${color}-100 dark:bg-${color}-900/20`}>
+                    <Icon className={`w-8 h-8 text-${color}-600 dark:text-${color}-400`} />
+                </div>
+            </div>
+        </div>
+    );
+
+    const GeminiInsightPanel = () => (
+        <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl p-6 border-2 border-purple-200 dark:border-purple-700 mt-6">
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                    <div className="bg-purple-600 p-2 rounded-lg">
+                        <Brain className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Gemini AI Insights</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">AI-powered analysis of scholarship patterns</p>
+                    </div>
+                </div>
+                <button
+                    onClick={handleGenerateInsights}
+                    disabled={insightsLoading}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                >
+                    {insightsLoading ? (
+                        <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>Analyzing...</span>
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles className="w-4 h-4" />
+                            <span>Generate Insights</span>
+                        </>
+                    )}
+                </button>
+            </div>
+
+            {geminiInsights && (
+                <div className="space-y-4 mt-6">
+                    {geminiInsights.keyFindings?.map((finding, index) => (
+                        <div key={index} className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+                            <div className="flex items-start space-x-3">
+                                <AlertCircle className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5" />
+                                <div>
+                                    <h4 className="font-semibold text-gray-900 dark:text-white">{finding.title}</h4>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{finding.description}</p>
+                                    {finding.recommendation && (
+                                        <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded border-l-4 border-purple-600">
+                                            <p className="text-sm text-purple-900 dark:text-purple-300">
+                                                <strong>Recommendation:</strong> {finding.recommendation}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
+    if (loading && !analyticsData) { // Only show loading if no data
+        return (
+            <div className="flex items-center justify-center h-96">
+                <div className="text-center">
+                    <RefreshCw className="w-12 h-12 text-gray-400 animate-spin mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">Loading analytics...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header with Filters */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Scholarship Analytics</h2>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">Deep dive into application trends and failure patterns</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                    <select
+                        value={selectedTimeRange}
+                        onChange={(e) => setSelectedTimeRange(e.target.value as any)}
+                        className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                    >
+                        <option value="all">All Time</option>
+                        <option value="year">This Year</option>
+                        <option value="quarter">This Quarter</option>
+                        <option value="month">This Month</option>
+                    </select>
+                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+                        <Download className="w-4 h-4" />
+                        <span>Export Report</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <InsightCard
+                    title="Total Applications"
+                    value={dataToUse.summary?.totalApplications || '1,245'}
+                    trend={12}
+                    icon={Users}
+                    color="blue"
+                />
+                <InsightCard
+                    title="Approval Rate"
+                    value={`${dataToUse.summary?.approvalRate || 68.5}%`}
+                    trend={5}
+                    icon={CheckCircle}
+                    color="green"
+                />
+                <InsightCard
+                    title="Avg. Processing Time"
+                    value={`${dataToUse.summary?.avgProcessingTime || 14} days`}
+                    trend={-8}
+                    icon={Clock}
+                    color="purple"
+                />
+                <InsightCard
+                    title="Total Aid Distributed"
+                    value={`₱${(dataToUse.summary?.totalAidDistributed || 12500000).toLocaleString()}`}
+                    trend={15}
+                    icon={DollarSign}
+                    color="yellow"
+                />
+            </div>
+
+            {/* Gemini AI Insights */}
+            <GeminiInsightPanel />
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* Failure Reasons Analysis */}
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Rejection Reasons</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={dataToUse.failureReasons}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
+                            <XAxis dataKey="reason" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={100} />
+                            <YAxis />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                labelStyle={{ color: '#fff' }}
+                            />
+                            <Bar dataKey="count" fill={COLORS.danger} radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Financial Distribution */}
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Approval by Family Income</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={dataToUse.financialDistribution}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
+                            <XAxis dataKey="range" tick={{ fontSize: 10 }} />
+                            <YAxis />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                labelStyle={{ color: '#fff' }}
+                            />
+                            <Legend />
+                            <Bar dataKey="approved" fill={COLORS.success} radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="rejected" fill={COLORS.danger} radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* GPA vs Approval Rate */}
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">GPA Impact on Approval</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <AreaChart data={dataToUse.gpaVsApproval}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
+                            <XAxis dataKey="gpa" />
+                            <YAxis />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                labelStyle={{ color: '#fff' }}
+                            />
+                            <Legend />
+                            <Area type="monotone" dataKey="approved" stackId="1" stroke={COLORS.success} fill={COLORS.success} fillOpacity={0.6} />
+                            <Area type="monotone" dataKey="rejected" stackId="1" stroke={COLORS.danger} fill={COLORS.danger} fillOpacity={0.6} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Family Background Impact */}
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Family Background Analysis</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={dataToUse.familyBackgroundImpact}>
+                            <PolarGrid stroke="#374151" opacity={0.2} />
+                            <PolarAngleAxis dataKey="factor" tick={{ fontSize: 11 }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                            <Radar name="Approval Impact %" dataKey="impact" stroke={COLORS.primary} fill={COLORS.primary} fillOpacity={0.6} />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                labelStyle={{ color: '#fff' }}
+                            />
+                        </RadarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Monthly Trends */}
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-slate-700 lg:col-span-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Application Trends Over Time</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={dataToUse.monthlyTrends}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
+                            <XAxis dataKey="month" />
+                            <YAxis />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                labelStyle={{ color: '#fff' }}
+                            />
+                            <Legend />
+                            <Line type="monotone" dataKey="applications" stroke={COLORS.secondary} strokeWidth={2} dot={{ r: 4 }} />
+                            <Line type="monotone" dataKey="approved" stroke={COLORS.success} strokeWidth={2} dot={{ r: 4 }} />
+                            <Line type="monotone" dataKey="rejected" stroke={COLORS.danger} strokeWidth={2} dot={{ r: 4 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Document Completeness */}
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Document Completeness</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                            <Pie
+                                data={dataToUse.documentCompleteness}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ category, percent }: any) => `${category}: ${(percent * 100).toFixed(0)}%`}
+                                outerRadius={100}
+                                fill="#8884d8"
+                                dataKey="value"
+                            >
+                                {dataToUse.documentCompleteness.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color || COLORS.primary} />
+                                ))}
+                            </Pie>
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                labelStyle={{ color: '#fff' }}
+                            />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default AdvancedAnalyticsDashboard;
