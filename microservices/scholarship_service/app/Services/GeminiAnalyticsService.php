@@ -16,7 +16,7 @@ class GeminiAnalyticsService
         // ALWAYS use config() in production. standard practice for Laravel.
         // Direct env() calls return null if config is cached.
         $this->apiKey = config('services.gemini.api_key');
-        $this->model = config('services.gemini.model', 'gemini-pro');
+        $this->model = config('services.gemini.model', 'gemini-1.5-flash');
 
         if (empty($this->apiKey)) {
             Log::error('Gemini Service: API Key is MISSING in configuration. Please check .env and run "php artisan config:clear"');
