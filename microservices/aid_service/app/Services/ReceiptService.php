@@ -25,15 +25,11 @@ class ReceiptService
             $html = $this->generateReceiptHtml($disbursement, $application, $transaction, $student, $school);
 
             // Generate filename
-            $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '_' . time() . '.pdf';
+            $filename = 'receipt_' . $disbursement->disbursement_reference_number ?? $disbursement->application_number . '_' . time() . '.html';
             $path = 'receipts/' . $filename;
 
-            // Generate PDF using dompdf
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
-            $pdf->setPaper('a4', 'portrait');
-
-            // Store PDF
-            Storage::disk('public')->put($path, $pdf->output());
+            // Store receipt
+            Storage::disk('public')->put($path, $html);
 
             // Return the public path
             return '/storage/' . $path;
@@ -63,10 +59,10 @@ class ReceiptService
         $receiptNumber = $disbursement->disbursement_reference_number ?: $disbursement->application_number;
         $date = $disbursement->disbursed_at ? $disbursement->disbursed_at->format('F d, Y') : now()->format('F d, Y');
         $time = $disbursement->disbursed_at ? $disbursement->disbursed_at->format('h:i A') : now()->format('h:i A');
-
+        
         $studentName = $student ? ($student->full_name ?? trim(($student->first_name ?? '') . ' ' . ($student->middle_name ?? '') . ' ' . ($student->last_name ?? ''))) : 'N/A';
         $schoolName = $school ? ($school->name ?? 'N/A') : 'N/A';
-        $amount = number_format((float) $disbursement->amount, 2);
+        $amount = number_format($disbursement->amount, 2);
         $provider = $disbursement->payment_provider_name ?? 'PayMongo';
         $transactionId = $disbursement->provider_transaction_id ?? $transaction->provider_transaction_id ?? 'N/A';
         $accountNumber = $disbursement->account_number ?? $application->wallet_account_number ?? 'N/A';
@@ -249,6 +245,70 @@ class ReceiptService
             <p>Generated on {$date} at {$time}</p>
             <p style="margin-top: 20px;">For inquiries, please contact the Scholarship Office.</p>
         </div>
+
+        <!-- Download Button -->
+        <div style="text-align: center; margin-top: 30px; padding: 20px;">
+            <button onclick="downloadReceipt()" style="
+                background: #2563eb;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                font-size: 16px;
+                font-weight: bold;
+                border-radius: 8px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transition: background 0.3s;
+            " onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                📥 Download Receipt
+            </button>
+            <button onclick="window.print()" style="
+                background: #10b981;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                font-size: 16px;
+                font-weight: bold;
+                border-radius: 8px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                margin-left: 10px;
+                transition: background 0.3s;
+            " onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                🖨️ Print Receipt
+            </button>
+        </div>
+
+        <script>
+            function downloadReceipt() {
+                // Get the receipt HTML content
+                const receiptContent = document.documentElement.outerHTML;
+                
+                // Create a blob with the HTML content
+                const blob = new Blob([receiptContent], { type: 'text/html' });
+                
+                // Create a download link
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'receipt_{$receiptNumber}_' + new Date().getTime() + '.html';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+
+            // Hide buttons when printing
+            window.addEventListener('beforeprint', function() {
+                document.querySelector('button[onclick="downloadReceipt()"]').style.display = 'none';
+                document.querySelector('button[onclick="window.print()"]').style.display = 'none';
+            });
+            
+            window.addEventListener('afterprint', function() {
+                document.querySelector('button[onclick="downloadReceipt()"]').style.display = 'inline-block';
+                document.querySelector('button[onclick="window.print()"]').style.display = 'inline-block';
+            });
+        </script>
     </div>
 </body>
 </html>
