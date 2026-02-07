@@ -66,7 +66,7 @@ trait TriggersMonitoringSync
             ];
 
             // Send to monitoring service
-            Http::timeout(10)->post("{$monitoringUrl}/api/internal/application-snapshot", $data);
+            Http::timeout(10)->post("{$monitoringUrl}/api/internal/analytics/application-snapshot", $data);
 
             Log::info('Monitoring sync triggered via HTTP', [
                 'controller' => static::class,
