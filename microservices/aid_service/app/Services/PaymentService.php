@@ -605,42 +605,65 @@ class PaymentService
      */
     private function getPaymentMethodTypes(ScholarshipApplication $application): array
     {
-        // Extract payment method from digital_wallets
-        $digitalWallets = $application->digital_wallets ?? [];
+        // 1. Determine the preferred method from application data
+        // Check 'digital_wallets' (legacy/array) or 'payment_method' (string from new form)
         $preferredMethod = null;
 
-        if (is_array($digitalWallets) && count($digitalWallets) > 0) {
-            $preferredMethod = $digitalWallets[0];
-        } elseif (is_string($digitalWallets)) {
-            // In case it's stored as JSON string
-            $decoded = json_decode($digitalWallets, true);
-            if (is_array($decoded) && count($decoded) > 0) {
-                $preferredMethod = $decoded[0];
-            } else {
-                $preferredMethod = $digitalWallets;
+        // Try to get payment_method property if it exists (it might not be in the model definition but in the DB)
+        // Using dynamic property access or checking attributes
+        if (!empty($application->payment_method)) {
+            $preferredMethod = $application->payment_method;
+        } elseif (!empty($application->digital_wallets)) {
+            $digitalWallets = $application->digital_wallets;
+            if (is_array($digitalWallets) && count($digitalWallets) > 0) {
+                $preferredMethod = $digitalWallets[0];
+            } elseif (is_string($digitalWallets)) {
+                $decoded = json_decode($digitalWallets, true);
+                if (is_array($decoded) && count($decoded) > 0) {
+                    $preferredMethod = $decoded[0];
+                } else {
+                    $preferredMethod = $digitalWallets;
+                }
             }
         }
 
-        // Always include 'card'
-        $methods = ['card'];
+        // 2. Build the list of allowed payment methods
+        // Always include 'card' and 'gcash' as the most basic options
+        $methods = ['card', 'gcash'];
 
-        // Add the preferred method if it's a valid PayMongo type
         if ($preferredMethod) {
             $method = strtolower($preferredMethod);
-            if ($method === 'gcash') {
-                $methods[] = 'gcash';
-            } elseif ($method === 'paymaya' || $method === 'maya') {
+
+            // Map frontend values to PayMongo types
+            if ($method === 'paymaya' || $method === 'maya') {
                 $methods[] = 'paymaya';
             } elseif ($method === 'grab_pay' || $method === 'grabpay') {
                 $methods[] = 'grab_pay';
+            } elseif ($method === 'bank transfer' || $method === 'dob') {
+                // If Bank Transfer, enable Direct Online Banking if available, plus standard options
+                // (Note: 'dob' might need specific configuration in PayMongo)
+                $methods[] = 'dob';
+                $methods[] = 'paymaya'; // PayMaya often supports bank transfer
+            } elseif ($method === 'cash') {
+                // If Cash, give them all over-the-counter compatible options
+                $methods[] = 'paymaya'; // 7-Eleven etc via PayMaya
+                $methods[] = 'grab_pay';
             }
         } else {
-            // Fallback if no preference found: include generally available ones
-            // Only adding gcash as safe default for now to avoid "Not Configured" error
-            $methods[] = 'gcash';
+            // Fallback: Add other common methods if no preference
+            $methods[] = 'paymaya';
+            $methods[] = 'grab_pay';
         }
 
-        return array_unique($methods);
+        $result = array_values(array_unique($methods));
+
+        Log::info('Payment methods resolved for application', [
+            'application_id' => $application->id,
+            'preferred_method_raw' => $preferredMethod,
+            'resolved_methods' => $result,
+        ]);
+
+        return $result;
     }
 }
 
