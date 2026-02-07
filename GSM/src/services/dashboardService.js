@@ -452,7 +452,17 @@ class DashboardService {
       const autoTableModule = await import('jspdf-autotable');
       const autoTable = autoTableModule.default || autoTableModule.applyPlugin || autoTableModule;
 
-      const doc = new JsPDFConstructor();
+      // Configure PDF options, including encryption if password is provided
+      const pdfOptions = {};
+      if (password) {
+        pdfOptions.encryption = {
+          userPassword: password,
+          ownerPassword: password,
+          userPermissions: ["print", "modify", "copy", "annot-forms"]
+        };
+      }
+
+      const doc = new JsPDFConstructor(pdfOptions);
 
       // Apply plugin if it's a function that needs to be applied
       if (typeof autoTable === 'function' && !doc.autoTable) {
