@@ -23,6 +23,8 @@ php artisan queue:restart
 
 In Laravel production environments, we often run `php artisan config:cache` to speed up the application. This combines all config files (`config/*.php`) into one file.
 
+**Note:** We have updated the code to also look for `AI_API_KEY` and `AI_MODEL` in your `.env` file if `GEMINI_API_KEY` is missing.
+
 If you add a NEW variable to `.env` (like `GEMINI_API_KEY`) **AFTER** the config has been cached:
 1. The application **will not see** the new `.env` value.
 2. Calls to `env('GEMINI_API_KEY')` will return `null`.
