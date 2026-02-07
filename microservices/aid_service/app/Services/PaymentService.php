@@ -521,6 +521,14 @@ class PaymentService
 
         // Determine preferred method for auto-selection in demo
         $method = 'gcash'; // Default
+
+        // Debug logging
+        \Illuminate\Support\Facades\Log::info('Mock Payment Auto-Select Config', [
+            'app_id' => $application->id,
+            'payment_method' => $application->payment_method,
+            'digital_wallets' => $application->digital_wallets,
+        ]);
+
         if (!empty($application->payment_method)) {
             $val = strtolower($application->payment_method);
             if (str_contains($val, 'maya'))
@@ -530,12 +538,25 @@ class PaymentService
             elseif (str_contains($val, 'bank'))
                 $method = 'bank_transfer';
             elseif (str_contains($val, 'cash'))
-                $method = 'gcash'; // Cash -> GCash as fallback/proxy
+                $method = 'gcash';
         } elseif (!empty($application->digital_wallets)) {
-            $val = is_array($application->digital_wallets) ? ($application->digital_wallets[0] ?? '') : $application->digital_wallets;
-            if (str_contains(strtolower($val), 'maya'))
+            // Handle JSON string or Array
+            $wallets = $application->digital_wallets;
+            if (is_string($wallets)) {
+                $decoded = json_decode($wallets, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $wallets = $decoded;
+                }
+            }
+
+            $val = is_array($wallets) ? ($wallets[0] ?? '') : $wallets;
+            $val = strtolower((string) $val);
+
+            if (str_contains($val, 'maya') || str_contains($val, 'paymaya'))
                 $method = 'maya';
         }
+
+        \Illuminate\Support\Facades\Log::info('Mock Payment Selected Method', ['method' => $method]);
 
         // Build URL with query params for mock checkout
         $checkoutUrl = route('payment.mock-checkout', ['id' => $paymentId]) .
