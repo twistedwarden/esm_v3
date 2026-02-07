@@ -22,8 +22,8 @@ trait TriggersMonitoringSync
     protected function triggerMonitoringSync(): void
     {
         try {
-            // Run sync command asynchronously (non-blocking)
-            Artisan::queue('monitoring:sync');
+            // Run sync command immediately (blocking but ensures dashboard updates)
+            Artisan::call('monitoring:sync');
 
             Log::info('Monitoring sync triggered by event', [
                 'controller' => static::class,
