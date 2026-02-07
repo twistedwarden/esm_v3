@@ -13,7 +13,8 @@ import {
     AlertCircle,
     FileBarChart,
     X,
-    Download
+    Download,
+    Lock
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -44,6 +45,7 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     const [showReportModal, setShowReportModal] = useState(false);
     const [generatingReport, setGeneratingReport] = useState(false);
     const [reportFormat, setReportFormat] = useState('pdf');
+    const [password, setPassword] = useState('');
     const [reportFilters, setReportFilters] = useState({
         startDate: '',
         endDate: ''
@@ -283,9 +285,136 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
             if (reportFormat === 'csv') {
                 await dashboardService.generateCSVReport('disbursements', reportData);
             } else {
-                await dashboardService.generatePDFReport('disbursements', reportData);
+                // Client-side PDF generation with encryption support
+
+                // Dynamically import jsPDF to avoid bundling issues
+                const jspdfModule = await import('jspdf');
+
+                // Robust constructor detection
+                let JsPDFConstructor;
+                if (typeof jspdfModule.jsPDF === 'function') {
+                    JsPDFConstructor = jspdfModule.jsPDF;
+                } else if (typeof jspdfModule.default === 'function') {
+                    JsPDFConstructor = jspdfModule.default;
+                } else if (jspdfModule.default && typeof jspdfModule.default.jsPDF === 'function') {
+                    JsPDFConstructor = jspdfModule.default.jsPDF;
+                } else if (jspdfModule.default && typeof jspdfModule.default.default === 'function') {
+                    JsPDFConstructor = jspdfModule.default.default;
+                } else {
+                    throw new Error('Failed to locate jsPDF constructor');
+                }
+
+                // Import autotable plugin
+                const autoTableModule = await import('jspdf-autotable');
+                const autoTable = autoTableModule.default || autoTableModule.applyPlugin || autoTableModule;
+
+                // Configure PDF options
+                const pdfOptions = { orientation: 'portrait' };
+                if (password) {
+                    pdfOptions.encryption = {
+                        userPassword: password,
+                        ownerPassword: password,
+                        userPermissions: ["print", "modify", "copy", "annot-forms"]
+                    };
+                }
+
+                const doc = new JsPDFConstructor(pdfOptions);
+
+                // Apply plugin
+                if (typeof autoTable === 'function' && !doc.autoTable) {
+                    try {
+                        autoTable.default?.(doc) || autoTable(doc);
+                    } catch (e) {
+                        console.log('autoTable plugin application attempt:', e.message);
+                    }
+                }
+
+                // Add content to PDF
+                const timestamp = new Date().toLocaleString();
+
+                // Header
+                doc.setFontSize(22);
+                doc.setTextColor(40);
+                doc.text("Aid Distribution Report", 105, 20, { align: 'center' });
+
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text(`School Year: ${reportData.schoolYear}`, 105, 30, { align: 'center' });
+                if (reportData.dateRange) {
+                    doc.text(`Period: ${reportData.dateRange.start} to ${reportData.dateRange.end}`, 105, 36, { align: 'center' });
+                }
+                doc.text(`Generated on: ${timestamp}`, 105, 42, { align: 'center' });
+
+                // Divider
+                doc.setLineWidth(0.5);
+                doc.setDrawColor(200);
+                doc.line(20, 48, 190, 48);
+
+                // Summary Stats
+                doc.setFontSize(14);
+                doc.setTextColor(60);
+                doc.text("Disbursement Summary", 20, 60);
+
+                const summaryData = [
+                    ['Total Disbursed Amount', `P ${reportData.overview.disbursedAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`],
+                    ['Total Disbursed Count', reportData.overview.disbursedCount.toString()],
+                    ['Total Applications', reportData.overview.totalApplications?.toString() || 'N/A']
+                ];
+
+                autoTable(doc, {
+                    startY: 65,
+                    head: [],
+                    body: summaryData,
+                    theme: 'plain',
+                    styles: { fontSize: 11, cellPadding: 3 },
+                    columnStyles: {
+                        0: { fontStyle: 'bold', cellWidth: 80 },
+                        1: { cellWidth: 'auto' }
+                    }
+                });
+
+                // Budget Utilization (if available details)
+                if (metrics?.budgets) {
+                    const budgetRows = Object.entries(metrics.budgets).map(([key, data]) => {
+                        const name = key === 'scholarship_benefits' ? 'Scholarship Benefits' : 'Financial Support';
+                        return [
+                            name,
+                            `P ${data.total_budget?.toLocaleString() || '0'}`,
+                            `P ${data.disbursed?.toLocaleString() || '0'}`,
+                            `P ${data.remaining?.toLocaleString() || '0'}`,
+                            `${data.utilization_rate?.toFixed(1) || '0'}%`
+                        ];
+                    });
+
+                    if (budgetRows.length > 0) {
+                        const finalY = doc.lastAutoTable.finalY || 100;
+                        doc.text("Budget Utilization", 20, finalY + 15);
+
+                        autoTable(doc, {
+                            startY: finalY + 20,
+                            head: [['Budget Type', 'Total Allocation', 'Disbursed', 'Remaining', 'Utilization']],
+                            body: budgetRows,
+                            theme: 'striped',
+                            headStyles: { fillColor: [59, 130, 246] },
+                            styles: { fontSize: 9 }
+                        });
+                    }
+                }
+
+                // Footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text(`Page ${i} of ${pageCount}`, 20, 280);
+                    doc.text("Confidential - School Aid Module", 190, 280, { align: 'right' });
+                }
+
+                doc.save(`aid_distribution_report_${new Date().toISOString().split('T')[0]}.pdf`);
             }
             setShowReportModal(false);
+            setPassword(''); // Reset password
         } catch (err) {
             console.error('Report generation failed', err);
         } finally {
@@ -690,6 +819,27 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                                                 Leave empty to generate report for current school year ({selectedSchoolYear}).
                                             </p>
                                         </div>
+
+                                        {reportFormat === 'pdf' && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                    Password Protection (Optional)
+                                                </label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="password"
+                                                        value={password}
+                                                        onChange={(e) => setPassword(e.target.value)}
+                                                        placeholder="Enter password to encrypt PDF"
+                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-10"
+                                                    />
+                                                    <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    Leave blank for an unprotected PDF.
+                                                </p>
+                                            </div>
+                                        )}
 
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
