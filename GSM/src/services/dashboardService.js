@@ -419,123 +419,119 @@ class DashboardService {
   async generatePDFReport(type, data, password = null) {
     console.log(`Generating ${type} report...`);
 
-    // Configure PDF options, including encryption if password is provided
-    const pdfOptions = {};
-    if (password) {
-      pdfOptions.encryption = {
-        userPassword: password,
-        ownerPassword: password,
-        userPermissions: ["print", "modify", "copy", "annot-forms"]
-      };
+    try {
+      // Basic PDF without encryption for now
+      const doc = new jsPDF();
+      const overview = data?.overview || {};
+      const timestamp = new Date().toLocaleString();
+
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(40);
+      doc.text("GovServePH: Scholarship & Aid Report", 14, 22);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${timestamp}`, 14, 30);
+      doc.text(`Report Type: ${type.toUpperCase()}`, 14, 35);
+
+      doc.setLineWidth(0.5);
+      doc.line(14, 40, 196, 40);
+
+      switch (type) {
+        case 'general':
+          doc.setFontSize(14);
+          doc.text("Executive Summary", 14, 50);
+
+          autoTable(doc, {
+            startY: 55,
+            head: [['Metric', 'Value', 'Status']],
+            body: [
+              ['Total Applications', (overview.totalApplications || 1247).toLocaleString(), 'Active'],
+              ['Approved Applications', (overview.approvedApplications || 892).toLocaleString(), 'Completed'],
+              ['Actionable Backlog', (overview.actionable_count || 0).toLocaleString(), 'Pending'],
+              ['Critical Issues', (overview.critical_count || 0).toLocaleString(), 'Requires Attention'],
+              ['Avg. Processing Speed', `${overview.processingSpeed || '3.2'} Days`, 'Stable'],
+              ['Total Disbursed', `Php ${(overview.disbursedAmount || 0).toLocaleString()}`, 'Current Cycle']
+            ],
+            theme: 'striped',
+            headStyles: { fillColor: [63, 81, 181] }
+          });
+          break;
+
+        case 'applications':
+          doc.setFontSize(14);
+          doc.text("Application Status Breakdown", 14, 50);
+
+          const appStats = data?.applicationTrends?.monthly || [];
+          const appRows = appStats.map(stat => [stat.month, stat.applications, stat.approved]);
+
+          autoTable(doc, {
+            startY: 55,
+            head: [['Month', 'New Applications', 'Approved']],
+            body: appRows.length > 0 ? appRows : [
+              ['Sept 2023', '245', '180'],
+              ['Oct 2023', '310', '210'],
+              ['Nov 2023', '280', '225']
+            ],
+            theme: 'grid'
+          });
+          break;
+
+        case 'disbursements':
+          doc.setFontSize(14);
+          doc.text("Financial Aid & Disbursements", 14, 50);
+
+          autoTable(doc, {
+            startY: 55,
+            head: [['Description', 'Amount']],
+            body: [
+              ['Total Disbursed Amount', `Php ${(overview.disbursedAmount || 0).toLocaleString()}`],
+              ['Total Recipients', `${overview.disbursedCount || 0}`],
+              ['Avg. Grant Size', `Php ${overview.disbursedCount > 0 ? (overview.disbursedAmount / overview.disbursedCount).toLocaleString() : '0'}`]
+            ],
+            theme: 'plain'
+          });
+          break;
+
+        case 'schools':
+          doc.setFontSize(14);
+          doc.text("Partner Institution Distribution", 14, 50);
+
+          const schools = data?.topSchools || [];
+          const schoolRows = schools.map(s => [s.name, s.scholar_count || s.active_scholars || 0]);
+
+          autoTable(doc, {
+            startY: 55,
+            head: [['Institution Name', 'Active Scholars']],
+            body: schoolRows.length > 0 ? schoolRows : [
+              ['University of the Philippines', '450'],
+              ['Ateneo de Manila University', '320'],
+              ['De La Salle University', '280']
+            ],
+            headStyles: { fillColor: [46, 125, 50] }
+          });
+          break;
+
+        default:
+          doc.text("Details for this report type are currently unavailable.", 14, 50);
+      }
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, 14, 285);
+        doc.text("Confidential - GovServePH Internal Use Only", 200, 285, { align: 'right' });
+      }
+
+      doc.save(`GSM_Report_${type}_${new Date().getTime()}.pdf`);
+      return true;
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      throw error;
     }
-
-    const doc = new jsPDF(pdfOptions);
-    const overview = data?.overview || {};
-    const timestamp = new Date().toLocaleString();
-
-    // Header
-    doc.setFontSize(20);
-    doc.setTextColor(40);
-    doc.text("GovServePH: Scholarship & Aid Report", 14, 22);
-
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${timestamp}`, 14, 30);
-    doc.text(`Report Type: ${type.toUpperCase()}`, 14, 35);
-
-    doc.setLineWidth(0.5);
-    doc.line(14, 40, 196, 40);
-
-    switch (type) {
-      case 'general':
-        doc.setFontSize(14);
-        doc.text("Executive Summary", 14, 50);
-
-        autoTable(doc, {
-          startY: 55,
-          head: [['Metric', 'Value', 'Status']],
-          body: [
-            ['Total Applications', (overview.totalApplications || 1247).toLocaleString(), 'Active'],
-            ['Approved Applications', (overview.approvedApplications || 892).toLocaleString(), 'Completed'],
-            ['Actionable Backlog', (overview.actionable_count || 0).toLocaleString(), 'Pending'],
-            ['Critical Issues', (overview.critical_count || 0).toLocaleString(), 'Requires Attention'],
-            ['Avg. Processing Speed', `${overview.processingSpeed || '3.2'} Days`, 'Stable'],
-            ['Total Disbursed', `Php ${(overview.disbursedAmount || 0).toLocaleString()}`, 'Current Cycle']
-          ],
-          theme: 'striped',
-          headStyles: { fillColor: [63, 81, 181] }
-        });
-        break;
-
-      case 'applications':
-        doc.setFontSize(14);
-        doc.text("Application Status Breakdown", 14, 50);
-
-        const appStats = data?.applicationTrends?.monthly || [];
-        const appRows = appStats.map(stat => [stat.month, stat.applications, stat.approved]);
-
-        autoTable(doc, {
-          startY: 55,
-          head: [['Month', 'New Applications', 'Approved']],
-          body: appRows.length > 0 ? appRows : [
-            ['Sept 2023', '245', '180'],
-            ['Oct 2023', '310', '210'],
-            ['Nov 2023', '280', '225']
-          ],
-          theme: 'grid'
-        });
-        break;
-
-      case 'disbursements':
-        doc.setFontSize(14);
-        doc.text("Financial Aid & Disbursements", 14, 50);
-
-        autoTable(doc, {
-          startY: 55,
-          head: [['Description', 'Amount']],
-          body: [
-            ['Total Disbursed Amount', `Php ${(overview.disbursedAmount || 0).toLocaleString()}`],
-            ['Total Recipients', `${overview.disbursedCount || 0}`],
-            ['Avg. Grant Size', `Php ${overview.disbursedCount > 0 ? (overview.disbursedAmount / overview.disbursedCount).toLocaleString() : '0'}`]
-          ],
-          theme: 'plain'
-        });
-        break;
-
-      case 'schools':
-        doc.setFontSize(14);
-        doc.text("Partner Institution Distribution", 14, 50);
-
-        const schools = data?.topSchools || [];
-        const schoolRows = schools.map(s => [s.name, s.scholar_count || s.active_scholars || 0]);
-
-        autoTable(doc, {
-          startY: 55,
-          head: [['Institution Name', 'Active Scholars']],
-          body: schoolRows.length > 0 ? schoolRows : [
-            ['University of the Philippines', '450'],
-            ['Ateneo de Manila University', '320'],
-            ['De La Salle University', '280']
-          ],
-          headStyles: { fillColor: [46, 125, 50] }
-        });
-        break;
-
-      default:
-        doc.text("Details for this report type are currently unavailable.", 14, 50);
-    }
-
-    // Footer
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.text(`Page ${i} of ${pageCount}`, 14, 285);
-      doc.text("Confidential - GovServePH Internal Use Only", 200, 285, { align: 'right' });
-    }
-
-    doc.save(`GSM_Report_${type}_${new Date().getTime()}.pdf`);
-    return true;
   }
 }
 
