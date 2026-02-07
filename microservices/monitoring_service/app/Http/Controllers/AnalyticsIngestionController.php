@@ -11,6 +11,8 @@ use App\Models\AnalyticsFinancialDaily;
 use App\Models\AnalyticsSscDaily;
 use App\Models\AnalyticsInterviewDaily;
 use App\Models\AnalyticsDemographicsDaily;
+use App\Events\MetricsUpdated;
+use App\Events\AlertCreated;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -85,6 +87,20 @@ class AnalyticsIngestionController extends Controller
 
             Log::info('Application snapshot ingested', ['snapshot_date' => $snapshotDate]);
 
+            // Broadcast real-time update
+            broadcast(new MetricsUpdated('application', [
+                'total_applications' => $data['total_applications'],
+                'pending_review' => $data['submitted_count'] + $data['reviewed_count'],
+                'approved_count' => $data['approved_count'],
+                'rejected_count' => $data['rejected_count'],
+                'approval_rate' => $data['total_applications'] > 0
+                    ? round(($data['approved_count'] / $data['total_applications']) * 100, 2)
+                    : 0,
+                'by_status' => $byStatus,
+                'by_type' => $byType,
+                'snapshot_date' => $snapshotDate,
+            ]));
+
             return response()->json([
                 'success' => true,
                 'message' => 'Application snapshot ingested successfully',
@@ -137,8 +153,8 @@ class AnalyticsIngestionController extends Controller
                 'remaining_budget' => ($budget['total'] ?? 0) - ($budget['disbursed'] ?? 0),
                 'disbursements_count' => $disbursements['count'] ?? 0,
                 'disbursements_amount' => $disbursements['total_amount'] ?? 0,
-                'avg_disbursement_amount' => ($disbursements['count'] ?? 0) > 0 
-                    ? ($disbursements['total_amount'] ?? 0) / $disbursements['count'] 
+                'avg_disbursement_amount' => ($disbursements['count'] ?? 0) > 0
+                    ? ($disbursements['total_amount'] ?? 0) / $disbursements['count']
                     : 0,
                 'gcash_amount' => $byMethod['gcash'] ?? 0,
                 'paymaya_amount' => $byMethod['paymaya'] ?? 0,
@@ -153,6 +169,40 @@ class AnalyticsIngestionController extends Controller
             );
 
             Log::info('Financial snapshot ingested', ['snapshot_date' => $snapshotDate]);
+
+            // Broadcast real-time update
+            broadcast(new MetricsUpdated('financial', [
+                'total_budget' => $data['total_budget'],
+                'disbursed_budget' => $data['disbursed_budget'],
+                'remaining_budget' => $data['remaining_budget'],
+                'utilization_rate' => $data['total_budget'] > 0
+                    ? round(($data['disbursed_budget'] / $data['total_budget']) * 100, 2)
+                    : 0,
+                'disbursements_count' => $data['disbursements_count'],
+                'snapshot_date' => $snapshotDate,
+            ]));
+
+            // Check for budget alerts
+            if ($data['total_budget'] > 0) {
+                $remainingPercent = ($data['remaining_budget'] / $data['total_budget']) * 100;
+                if ($remainingPercent < 10) {
+                    broadcast(new AlertCreated(
+                        'budget_critical',
+                        'high',
+                        'Critical Budget Alert',
+                        'Remaining budget is below 10%',
+                        ['remaining_percent' => round($remainingPercent, 2)]
+                    ));
+                } elseif ($remainingPercent < 25) {
+                    broadcast(new AlertCreated(
+                        'budget_low',
+                        'medium',
+                        'Low Budget Warning',
+                        'Remaining budget is below 25%',
+                        ['remaining_percent' => round($remainingPercent, 2)]
+                    ));
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -217,6 +267,45 @@ class AnalyticsIngestionController extends Controller
 
             Log::info('SSC snapshot ingested', ['snapshot_date' => $snapshotDate]);
 
+            // Broadcast real-time update
+            $totalPending = $data['doc_verification_pending'] + $data['financial_review_pending']
+                + $data['academic_review_pending'] + $data['final_approval_pending'];
+
+            broadcast(new MetricsUpdated('ssc_reviews', [
+                'total_pending' => $totalPending,
+                'by_stage' => [
+                    'document_verification' => [
+                        'pending' => $data['doc_verification_pending'],
+                        'completed' => $data['doc_verification_completed'],
+                    ],
+                    'financial_review' => [
+                        'pending' => $data['financial_review_pending'],
+                        'completed' => $data['financial_review_completed'],
+                    ],
+                    'academic_review' => [
+                        'pending' => $data['academic_review_pending'],
+                        'completed' => $data['academic_review_completed'],
+                    ],
+                    'final_approval' => [
+                        'pending' => $data['final_approval_pending'],
+                        'completed' => $data['final_approval_completed'],
+                    ],
+                ],
+                'avg_review_hours' => $data['avg_review_time_hours'],
+                'snapshot_date' => $snapshotDate,
+            ]));
+
+            // Check for review backlog alert
+            if ($totalPending > 50) {
+                broadcast(new AlertCreated(
+                    'review_backlog',
+                    'high',
+                    'Review Backlog Alert',
+                    "Total pending reviews ({$totalPending}) exceeds threshold",
+                    ['total_pending' => $totalPending]
+                ));
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'SSC snapshot ingested successfully',
@@ -278,6 +367,34 @@ class AnalyticsIngestionController extends Controller
             );
 
             Log::info('Interview snapshot ingested', ['snapshot_date' => $snapshotDate]);
+
+            // Broadcast real-time update
+            $passRate = $data['completed_count'] > 0
+                ? round(($data['passed_count'] / $data['completed_count']) * 100, 2)
+                : 0;
+            $noShowRate = $data['scheduled_count'] > 0
+                ? round(($data['no_show_count'] / $data['scheduled_count']) * 100, 2)
+                : 0;
+
+            broadcast(new MetricsUpdated('interviews', [
+                'scheduled' => $data['scheduled_count'],
+                'completed' => $data['completed_count'],
+                'pass_rate' => $passRate,
+                'no_show_rate' => $noShowRate,
+                'by_type' => $byType,
+                'snapshot_date' => $snapshotDate,
+            ]));
+
+            // Check for high no-show rate
+            if ($noShowRate > 15) {
+                broadcast(new AlertCreated(
+                    'high_no_show',
+                    'medium',
+                    'High Interview No-Show Rate',
+                    "No-show rate ({$noShowRate}%) exceeds 15%",
+                    ['no_show_rate' => $noShowRate]
+                ));
+            }
 
             return response()->json([
                 'success' => true,
@@ -342,6 +459,22 @@ class AnalyticsIngestionController extends Controller
             );
 
             Log::info('Demographics snapshot ingested', ['snapshot_date' => $snapshotDate]);
+
+            // Broadcast real-time update
+            broadcast(new MetricsUpdated('demographics', [
+                'total_students' => $data['total_students'],
+                'currently_enrolled' => $data['currently_enrolled'],
+                'graduating_students' => $data['graduating_students'],
+                'gender_distribution' => [
+                    'male' => $data['male_count'],
+                    'female' => $data['female_count'],
+                ],
+                'special_categories' => [
+                    'pwd' => $data['pwd_count'],
+                    'fourps' => $data['fourps_beneficiary_count'],
+                ],
+                'snapshot_date' => $snapshotDate,
+            ]));
 
             return response()->json([
                 'success' => true,
@@ -580,9 +713,12 @@ class AnalyticsIngestionController extends Controller
 
     private function calculateRiskLevel(?float $gpa, ?float $attendance): string
     {
-        if ($gpa === null && $attendance === null) return 'low';
-        if (($gpa !== null && $gpa < 2.0) || ($attendance !== null && $attendance < 75)) return 'high';
-        if (($gpa !== null && $gpa < 2.5) || ($attendance !== null && $attendance < 80)) return 'medium';
+        if ($gpa === null && $attendance === null)
+            return 'low';
+        if (($gpa !== null && $gpa < 2.0) || ($attendance !== null && $attendance < 75))
+            return 'high';
+        if (($gpa !== null && $gpa < 2.5) || ($attendance !== null && $attendance < 80))
+            return 'medium';
         return 'low';
     }
 }
