@@ -728,10 +728,16 @@ class SchoolAidController extends Controller
         }
 
         $absolutePath = Storage::disk('public')->path($relativePath);
-        $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '.html';
+
+        // Get the original file extension
+        $extension = pathinfo($absolutePath, PATHINFO_EXTENSION);
+        $mimeType = mime_content_type($absolutePath) ?: 'application/octet-stream';
+
+        // Construct filename with correct extension
+        $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '.' . $extension;
 
         return response()->download($absolutePath, $filename, [
-            'Content-Type' => 'text/html',
+            'Content-Type' => $mimeType,
         ]);
     }
 

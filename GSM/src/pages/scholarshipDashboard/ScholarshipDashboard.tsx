@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/v1authStore';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '../../config/api';
-import { GraduationCap, Calendar, PhilippinePeso, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, Download, Eye } from 'lucide-react';
+import { GraduationCap, Calendar, PhilippinePeso, CheckCircle, Clock, AlertCircle, Clipboard, UserCheck, FileCheck, Hourglass, HandCoins, RefreshCw, Upload, Send, Edit, ChevronUp, Users, Home, Phone, Heart, Wallet, School, ChevronDown, Bell, X, Info, CheckCircle2, AlertTriangle, MessageSquare, Download, Eye, FileText } from 'lucide-react';
 import { SecureDocumentUpload } from '../../components/ui/SecureDocumentUpload';
 import { SkeletonDashboard } from '../../components/ui/Skeleton';
 // EnrollmentVerificationCard removed - automatic verification disabled
@@ -1785,7 +1785,7 @@ export const ScholarshipDashboard: React.FC = () => {
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
                 <h2 className="text-lg font-semibold text-white flex items-center space-x-2">
-
+                  <FileText className="h-5 w-5" />
                   <span>Summary</span>
                 </h2>
               </div>
