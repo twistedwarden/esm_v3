@@ -166,6 +166,18 @@ class PaymentService
                 'billing_fields' => !empty($attributes['billing']) ? array_keys($attributes['billing']) : [],
             ]);
 
+            // DIAGNOSTIC: Log the full request payload and API key prefix
+            Log::info('PayMongo API Request (DIAGNOSTIC)', [
+                'api_key_prefix' => substr($this->secretKey, 0, 12) . '...',
+                'base_url' => $this->baseUrl,
+                'payment_method_types' => $attributes['payment_method_types'],
+                'full_payload' => [
+                    'data' => [
+                        'attributes' => $attributes,
+                    ],
+                ],
+            ]);
+
             // Create checkout session via PayMongo API
             $response = Http::withHeaders([
                 'Authorization' => 'Basic ' . base64_encode($this->secretKey . ':'),
@@ -175,6 +187,13 @@ class PaymentService
                             'attributes' => $attributes,
                         ],
                     ]);
+
+            // DIAGNOSTIC: Log the raw response
+            Log::info('PayMongo API Response (DIAGNOSTIC)', [
+                'status_code' => $response->status(),
+                'successful' => $response->successful(),
+                'raw_body' => $response->body(),
+            ]);
 
             if (!$response->successful()) {
                 $error = $response->json();
