@@ -1478,7 +1478,7 @@ export const ScholarshipDashboard: React.FC = () => {
             <CollapsibleSection title="Financial Information" icon={PhilippinePeso} sectionKey="financial">
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  <InfoRow label="Requested Amount" value={scholarshipData.requestedAmount} highlight />
+
                   <InfoRow label="Approved Amount" value={scholarshipData.approvedAmount} highlight />
                   <InfoRow label="Student Employed" value={scholarshipData.isEmployed} />
                   <InfoRow label="Student Occupation" value={scholarshipData.studentOccupation} />
@@ -1785,15 +1785,12 @@ export const ScholarshipDashboard: React.FC = () => {
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
                 <h2 className="text-lg font-semibold text-white flex items-center space-x-2">
-                  <PhilippinePeso className="h-5 w-5" />
+
                   <span>Summary</span>
                 </h2>
               </div>
               <div className="p-4 space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
-                  <span className="text-sm font-medium text-gray-700">Total Amount</span>
-                  <span className="text-xl font-bold text-green-600">{scholarshipData.amount}</span>
-                </div>
+
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Application Date</span>
