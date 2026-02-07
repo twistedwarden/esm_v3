@@ -15,7 +15,17 @@ class GeminiAnalyticsService
     {
         $this->apiKey = env('GEMINI_API_KEY');
         $this->model = env('GEMINI_MODEL', 'gemini-pro');
-        $this->apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent";
+
+        // Format model name for API (remove 'gemma-' prefix if present, use 'gemini-' instead)
+        $apiModel = $this->model;
+        if (strpos($this->model, 'gemma-') === 0) {
+            // For Gemma models, use the full model name
+            $apiModel = $this->model;
+        }
+
+        $this->apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$apiModel}:generateContent";
+
+        Log::info("Gemini Service initialized with model: {$apiModel}");
     }
 
     /**
