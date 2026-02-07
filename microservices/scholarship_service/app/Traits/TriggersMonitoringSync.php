@@ -22,8 +22,12 @@ trait TriggersMonitoringSync
     protected function triggerMonitoringSync(): void
     {
         try {
-            // Run sync command immediately (blocking but ensures dashboard updates)
-            Artisan::call('monitoring:sync');
+            // Execute sync command via shell with correct PHP version
+            $phpPath = '/usr/local/lsws/lsphp82/bin/php';
+            $artisanPath = base_path('artisan');
+            $command = "$phpPath $artisanPath monitoring:sync > /dev/null 2>&1 &";
+
+            exec($command);
 
             Log::info('Monitoring sync triggered by event', [
                 'controller' => static::class,
