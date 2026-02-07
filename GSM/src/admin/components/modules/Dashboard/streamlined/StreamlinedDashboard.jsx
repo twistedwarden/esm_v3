@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { RefreshCw, AlertTriangle, CheckCircle, Clock, FileText, PhilippinePeso, Activity, Users, Send, X, Download } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Clock, FileText, PhilippinePeso, Activity, Users, Send, X, Download, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MetricCard from './MetricCard';
 import ActionCenter from './ActionCenter';
