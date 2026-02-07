@@ -55,11 +55,6 @@ class AnalyticsIngestionController extends Controller
         $byCategory = $apps['by_category'] ?? [];
 
         try {
-            // Calculate approval rate (approved count now includes grants_processing + grants_disbursed)
-            $approvalRate = ($apps['total'] ?? 0) > 0
-                ? round((($byStatus['approved'] ?? 0) / $apps['total']) * 100, 2)
-                : 0;
-
             $data = [
                 'snapshot_date' => $snapshotDate,
                 'total_applications' => $apps['total'] ?? 0,
@@ -83,7 +78,6 @@ class AnalyticsIngestionController extends Controller
                 'applications_rejected_today' => $apps['rejected_today'] ?? 0,
                 'total_requested_amount' => $apps['total_requested_amount'] ?? 0,
                 'total_approved_amount' => $apps['total_approved_amount'] ?? 0,
-                'approval_rate' => $approvalRate,
             ];
 
             AnalyticsApplicationDaily::updateOrCreate(
@@ -99,7 +93,9 @@ class AnalyticsIngestionController extends Controller
                 'pending_review' => $data['submitted_count'] + $data['reviewed_count'],
                 'approved_count' => $data['approved_count'],
                 'rejected_count' => $data['rejected_count'],
-                'approval_rate' => $data['approval_rate'],
+                'approval_rate' => ($data['approved_count'] + $data['rejected_count']) > 0
+                    ? round(($data['approved_count'] / ($data['approved_count'] + $data['rejected_count'])) * 100, 1)
+                    : 0,
                 'by_status' => $byStatus,
                 'by_type' => $byType,
                 'snapshot_date' => $snapshotDate,
