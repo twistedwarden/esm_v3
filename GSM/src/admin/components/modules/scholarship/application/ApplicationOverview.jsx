@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
   CheckCircle,
@@ -11,7 +13,9 @@ import {
   BarChart3,
   AlertTriangle,
   RefreshCw,
-  Download
+  Download,
+  Lock,
+  X
 } from 'lucide-react';
 import { LoadingApplications } from '../../../ui/LoadingSpinner';
 import StandardLoading from '../../../ui/StandardLoading';
@@ -38,6 +42,8 @@ function ApplicationOverview() {
   const [loading, setLoading] = useState(true);
   const [recentActivities, setRecentActivities] = useState([]);
   const [exporting, setExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     fetchOverviewData();
@@ -73,6 +79,7 @@ function ApplicationOverview() {
   const handleExport = async () => {
     try {
       setExporting(true);
+      setShowExportModal(false);
 
       // Fetch report data
       const data = await scholarshipApiService.getApplicationsReportData();
@@ -82,11 +89,48 @@ function ApplicationOverview() {
         return;
       }
 
-      // Import jspdf dynamically
-      const { jsPDF } = await import('jspdf');
-      const autoTable = (await import('jspdf-autotable')).default;
+      // Dynamically import jsPDF to avoid bundling issues
+      const jspdfModule = await import('jspdf');
 
-      const doc = new jsPDF('landscape');
+      // Try multiple ways to get the constructor based on how Vite bundles it
+      let JsPDFConstructor;
+      if (typeof jspdfModule.jsPDF === 'function') {
+        JsPDFConstructor = jspdfModule.jsPDF;
+      } else if (typeof jspdfModule.default === 'function') {
+        JsPDFConstructor = jspdfModule.default;
+      } else if (jspdfModule.default && typeof jspdfModule.default.jsPDF === 'function') {
+        JsPDFConstructor = jspdfModule.default.jsPDF;
+      } else if (jspdfModule.default && typeof jspdfModule.default.default === 'function') {
+        JsPDFConstructor = jspdfModule.default.default;
+      } else {
+        throw new Error('Failed to locate jsPDF constructor');
+      }
+
+      // Import autotable plugin and get the function
+      const autoTableModule = await import('jspdf-autotable');
+      const autoTable = autoTableModule.default || autoTableModule.applyPlugin || autoTableModule;
+
+      // Configure PDF options, including encryption if password is provided
+      const pdfOptions = { orientation: 'landscape' };
+      if (password) {
+        pdfOptions.encryption = {
+          userPassword: password,
+          ownerPassword: password,
+          userPermissions: ["print", "modify", "copy", "annot-forms"]
+        };
+      }
+
+      const doc = new JsPDFConstructor(pdfOptions);
+
+      // Apply plugin if it's a function that needs to be applied
+      if (typeof autoTable === 'function' && !doc.autoTable) {
+        try {
+          autoTable.default?.(doc) || autoTable(doc);
+        } catch (e) {
+          console.log('autoTable plugin application attempt:', e.message);
+        }
+      }
+
       const timestamp = new Date().toLocaleString();
 
       // Header
@@ -112,6 +156,7 @@ function ApplicationOverview() {
         new Date(app.created_at).toLocaleDateString()
       ]);
 
+      // Use the imported autoTable function
       autoTable(doc, {
         startY: 45,
         head: [['App #', 'Student Name', 'School', 'Category', 'Subcategory', 'Status', 'Date Applied']],
@@ -136,6 +181,7 @@ function ApplicationOverview() {
 
       doc.save(`scholarship_report_${new Date().toISOString().split('T')[0]}.pdf`);
       showSuccess('PDF report generated successfully');
+      setPassword(''); // Reset password after generation
     } catch (error) {
       console.error('Failed to export report:', error);
       showError('Failed to generate PDF report');
@@ -214,7 +260,7 @@ function ApplicationOverview() {
             Refresh
           </button>
           <button
-            onClick={handleExport}
+            onClick={() => setShowExportModal(true)}
             disabled={exporting}
             className="bg-blue-600 text-white border border-transparent px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -369,6 +415,88 @@ function ApplicationOverview() {
           </button>
         </div>
       </div>
+
+      {/* Export Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {showExportModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md overflow-hidden"
+              >
+                <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    Export Report
+                  </h3>
+                  <button
+                    onClick={() => setShowExportModal(false)}
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    Generate a PDF report of all current scholarship applications.
+                  </p>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Password Protection (Optional)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter password to encrypt PDF"
+                        className="w-full px-4 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pr-10 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                      />
+                      <Lock className="w-4 h-4 text-gray-400 absolute right-3 top-3" />
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Leave blank for an unprotected PDF.
+                    </p>
+                  </div>
+
+                  <div className="pt-4 flex justify-end gap-3">
+                    <button
+                      onClick={() => setShowExportModal(false)}
+                      className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleExport}
+                      disabled={exporting}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {exporting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Exporting...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Generate PDF
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
     </AnimatedContainer>
   );
 }
