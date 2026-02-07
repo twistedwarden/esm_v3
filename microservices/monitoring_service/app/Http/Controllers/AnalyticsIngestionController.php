@@ -150,13 +150,19 @@ class AnalyticsIngestionController extends Controller
         $byMethod = $disbursements['by_method'] ?? [];
 
         try {
+            $totalBudget = $budget['total'] ?? 0;
+            $disbursedBudget = $budget['disbursed'] ?? 0;
+
             $data = [
                 'snapshot_date' => $snapshotDate,
                 'school_year' => $schoolYear,
-                'total_budget' => $budget['total'] ?? 0,
+                'total_budget' => $totalBudget,
                 'allocated_budget' => $budget['allocated'] ?? 0,
-                'disbursed_budget' => $budget['disbursed'] ?? 0,
-                'remaining_budget' => ($budget['total'] ?? 0) - ($budget['disbursed'] ?? 0),
+                'disbursed_budget' => $disbursedBudget,
+                'remaining_budget' => $totalBudget - $disbursedBudget,
+                'utilization_rate' => $totalBudget > 0
+                    ? round(($disbursedBudget / $totalBudget) * 100, 2)
+                    : 0,
                 'disbursements_count' => $disbursements['count'] ?? 0,
                 'disbursements_amount' => $disbursements['total_amount'] ?? 0,
                 'avg_disbursement_amount' => ($disbursements['count'] ?? 0) > 0
@@ -181,9 +187,7 @@ class AnalyticsIngestionController extends Controller
                 'total_budget' => $data['total_budget'],
                 'disbursed_budget' => $data['disbursed_budget'],
                 'remaining_budget' => $data['remaining_budget'],
-                'utilization_rate' => $data['total_budget'] > 0
-                    ? round(($data['disbursed_budget'] / $data['total_budget']) * 100, 2)
-                    : 0,
+                'utilization_rate' => $data['utilization_rate'],
                 'disbursements_count' => $data['disbursements_count'],
                 'snapshot_date' => $snapshotDate,
             ]));
