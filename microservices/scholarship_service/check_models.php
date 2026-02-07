@@ -16,4 +16,15 @@ $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 echo "HTTP Code: $httpCode\n";
-echo "Response:\n$response\n";
+$data = json_decode($response, true);
+
+if (isset($data['models'])) {
+    echo "Available Models:\n";
+    foreach ($data['models'] as $model) {
+        // Remove 'models/' prefix for cleaner output
+        $name = str_replace('models/', '', $model['name']);
+        echo "- $name\n";
+    }
+} else {
+    echo "Could not list models. Raw response:\n$response\n";
+}
