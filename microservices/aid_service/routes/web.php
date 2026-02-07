@@ -35,23 +35,54 @@ Route::post('/payment/mock-cancel', function () {
     $applicationId = request('application_id');
 
     if ($applicationId) {
-        // Call the internal API to revert the application status
         try {
-            $response = \Illuminate\Support\Facades\Http::post(
-                config('app.url') . '/api/school-aid/applications/revert-on-cancel',
-                ['application_id' => $applicationId]
-            );
+            // Directly update the application status
+            $application = \App\Models\ScholarshipApplication::find($applicationId);
 
-            if ($response->successful()) {
-                \Illuminate\Support\Facades\Log::info('Payment cancelled and status reverted', [
-                    'application_id' => $applicationId,
-                    'response' => $response->json()
+            if ($application) {
+                $oldStatus = $application->status;
+
+                // Only revert if status is grants_processing
+                if ($application->status === 'grants_processing') {
+                    $application->status = 'approved';
+                    $application->save();
+
+                    // Log the cancellation
+                    \App\Services\AuditLogService::logAction(
+                        'payment_cancelled',
+                        "Payment cancelled for application #{$application->application_number}. Status reverted from {$oldStatus} to approved.",
+                        'scholarship_application',
+                        (string) $application->id,
+                        null,
+                        [
+                            'previous_status' => $oldStatus,
+                            'new_status' => 'approved',
+                            'reason' => 'Payment cancelled by user from mock checkout'
+                        ]
+                    );
+
+                    \Illuminate\Support\Facades\Log::info('Payment cancelled and status reverted', [
+                        'application_id' => $applicationId,
+                        'old_status' => $oldStatus,
+                        'new_status' => 'approved'
+                    ]);
+                } else {
+                    \Illuminate\Support\Facades\Log::info('Payment cancelled but status not reverted', [
+                        'application_id' => $applicationId,
+                        'current_status' => $application->status,
+                        'reason' => 'Status is not grants_processing'
+                    ]);
+                }
+            } else {
+                \Illuminate\Support\Facades\Log::warning('Payment cancelled but application not found', [
+                    'application_id' => $applicationId
                 ]);
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to revert status on payment cancel', [
                 'application_id' => $applicationId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }

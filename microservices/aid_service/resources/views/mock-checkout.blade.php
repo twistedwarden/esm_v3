@@ -291,7 +291,8 @@
                 </svg>
                 <span>EduAid</span>
             </div>
-            <div style="font-size: 0.75rem; color: #94a3b8; font-family: monospace; background: #f1f5f9; padding: 4px 8px; border-radius: 6px;">
+            <div
+                style="font-size: 0.75rem; color: #94a3b8; font-family: monospace; background: #f1f5f9; padding: 4px 8px; border-radius: 6px;">
                 TEST MODE
             </div>
         </div>
@@ -324,14 +325,16 @@
                     </div>
 
                     <div class="dropdown-options" id="dropdownOptions">
-                        <div class="dropdown-option" data-value="gcash" onclick="selectOption('gcash', 'GCash', '#007DFE')">
+                        <div class="dropdown-option" data-value="gcash"
+                            onclick="selectOption('gcash', 'GCash', '#007DFE')">
                             <div class="method-icon-container">
                                 <span style="font-weight: 700; color: #007DFE; font-size: 0.8rem;">G</span>
                             </div>
                             <span>GCash</span>
                         </div>
 
-                        <div class="dropdown-option" data-value="maya" onclick="selectOption('maya', 'Maya', '#6f21ef')">
+                        <div class="dropdown-option" data-value="maya"
+                            onclick="selectOption('maya', 'Maya', '#6f21ef')">
                             <div class="method-icon-container">
                                 <span style="font-weight: 700; color: #6f21ef; font-size: 0.8rem;">M</span>
                             </div>
@@ -355,7 +358,8 @@
                             <div class="method-icon-container">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b"
                                     stroke-width="2">
-                                    <path d="M3 21h18M5 21v-7M19 21v-7M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v3H4v-3zM12 3v3" />
+                                    <path
+                                        d="M3 21h18M5 21v-7M19 21v-7M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v3H4v-3zM12 3v3" />
                                 </svg>
                             </div>
                             <span>Bank Transfer</span>
@@ -376,10 +380,10 @@
             </form>
 
             <!-- Separate cancel form -->
-            <form action="{{ route('payment.mock-cancel') }}" method="POST" style="margin-top: 12px;">
+            <form action="{{ route('payment.mock-cancel') }}" method="POST" style="margin-top: 12px;" id="cancelForm">
                 @csrf
                 <input type="hidden" name="application_id" value="{{ $applicationId }}">
-                <button type="submit" class="cancel-btn">
+                <button type="submit" class="cancel-btn" id="cancelBtn">
                     Cancel Payment
                 </button>
             </form>
@@ -398,7 +402,7 @@
         <div class="loading-overlay" id="loadingOverlay">
             <div class="spinner"></div>
             <h4 style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">Processing</h4>
-            <p style="color: #64748b; font-size: 0.8rem;">Confirming payment...</p>
+            <p style="color: #64748b; font-size: 0.8rem;" id="loadingText">Confirming payment...</p>
         </div>
     </div>
 
@@ -465,7 +469,17 @@
 
         document.getElementById('paymentForm').addEventListener('submit', function () {
             document.getElementById('loadingOverlay').classList.add('active');
+            document.getElementById('loadingText').innerText = 'Confirming payment...';
             const btn = document.getElementById('submitBtn');
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+        });
+
+        // Add loading state for cancel button
+        document.getElementById('cancelForm').addEventListener('submit', function () {
+            document.getElementById('loadingOverlay').classList.add('active');
+            document.getElementById('loadingText').innerText = 'Cancelling payment...';
+            const btn = document.getElementById('cancelBtn');
             btn.style.opacity = '0.7';
             btn.style.pointerEvents = 'none';
         });
