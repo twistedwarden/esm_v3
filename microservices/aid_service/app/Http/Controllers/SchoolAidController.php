@@ -733,6 +733,14 @@ class SchoolAidController extends Controller
         $extension = pathinfo($absolutePath, PATHINFO_EXTENSION);
         $mimeType = mime_content_type($absolutePath) ?: 'application/octet-stream';
 
+        // If MIME type is PDF, force .pdf extension
+        if ($mimeType === 'application/pdf') {
+            $extension = 'pdf';
+        } elseif (!$extension) {
+            // Fallback for missing extension
+            $extension = 'bin';
+        }
+
         // Construct filename with correct extension
         $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '.' . $extension;
 
