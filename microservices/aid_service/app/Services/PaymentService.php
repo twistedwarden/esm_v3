@@ -611,9 +611,7 @@ class PaymentService
             'card',
             'gcash',
             'paymaya',
-            'grab_pay',
-            'billease',
-            'dob', // Direct Online Banking if enabled
+            'grab_pay'
         ];
     }
 }
