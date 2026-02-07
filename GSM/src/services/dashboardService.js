@@ -418,8 +418,15 @@ class DashboardService {
     console.log(`Generating ${type} report...`);
 
     // Dynamically import jspdf
-    const { jsPDF } = await import('jspdf');
-    const autoTable = (await import('jspdf-autotable')).default;
+    const jspdfModule = await import('jspdf');
+    const jsPDF = jspdfModule.default || jspdfModule.jsPDF;
+    const autoTableModule = await import('jspdf-autotable');
+    const autoTable = autoTableModule.default || autoTableModule;
+
+    if (!jsPDF) {
+      console.error('Failed to load jsPDF module');
+      return false;
+    }
 
     const doc = new jsPDF();
 
