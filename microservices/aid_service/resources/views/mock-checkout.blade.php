@@ -40,7 +40,7 @@
             background: white;
             border-radius: 20px;
             box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
-            overflow: visible; /* Allow dropdown to overflow */
+            overflow: visible;
             position: relative;
         }
 
@@ -86,7 +86,6 @@
             letter-spacing: -0.02em;
         }
 
-        /* Custom Dropdown Styling */
         .custom-dropdown-container {
             position: relative;
             margin-bottom: 24px;
@@ -114,7 +113,7 @@
             align-items: center;
             justify-content: space-between;
             transition: all 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
         }
 
         .dropdown-selected:hover {
@@ -239,7 +238,6 @@
             border-bottom-right-radius: 20px;
         }
 
-        /* Loading State */
         .loading-overlay {
             position: absolute;
             top: 0;
@@ -273,18 +271,24 @@
             margin-bottom: 16px;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
-
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="bg-pattern"></div>
 
     <div class="checkout-wrapper">
-        <!-- Header -->
         <div class="header">
             <div class="brand">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #4f46e5;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="color: #4f46e5;">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
                 <span>EduAid</span>
             </div>
             <div style="font-size: 0.75rem; color: #94a3b8; font-family: monospace; background: #f1f5f9; padding: 4px 8px; border-radius: 6px;">
@@ -292,9 +296,7 @@
             </div>
         </div>
 
-        <!-- Main Body -->
         <div class="main-content">
-            
             <div class="amount-display">
                 <div class="amount-label">Amount Due</div>
                 <div class="amount-value">₱{{ number_format($amount, 2) }}</div>
@@ -303,34 +305,32 @@
             <form action="{{ route('payment.mock-complete', ['id' => $paymentId]) }}" method="POST" id="paymentForm">
                 @csrf
                 <input type="hidden" name="application_id" value="{{ $applicationId }}">
-                <!-- Hidden input to store selected value -->
                 <input type="hidden" name="method" id="methodInput" value="{{ request('method', 'gcash') }}">
-                
+
                 @php $preferred = request('method', 'gcash'); @endphp
 
                 <div class="custom-dropdown-container">
                     <label class="dropdown-label">Payment Method</label>
-                    
+
                     <div class="dropdown-selected" id="dropdownTrigger">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <div class="method-icon-container" id="selectedIcon">
-                                <!-- Icon injected via JS -->
-                            </div>
+                            <div class="method-icon-container" id="selectedIcon"></div>
                             <span id="selectedText">Select Method</span>
                         </div>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #94a3b8;"><path d="M6 9l6 6 6-6"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" style="color: #94a3b8;">
+                            <path d="M6 9l6 6 6-6" />
+                        </svg>
                     </div>
 
                     <div class="dropdown-options" id="dropdownOptions">
-                        <!-- GCash -->
                         <div class="dropdown-option" data-value="gcash" onclick="selectOption('gcash', 'GCash', '#007DFE')">
                             <div class="method-icon-container">
                                 <span style="font-weight: 700; color: #007DFE; font-size: 0.8rem;">G</span>
                             </div>
                             <span>GCash</span>
                         </div>
-                        
-                        <!-- Maya -->
+
                         <div class="dropdown-option" data-value="maya" onclick="selectOption('maya', 'Maya', '#6f21ef')">
                             <div class="method-icon-container">
                                 <span style="font-weight: 700; color: #6f21ef; font-size: 0.8rem;">M</span>
@@ -338,18 +338,25 @@
                             <span>Maya</span>
                         </div>
 
-                        <!-- Card -->
-                        <div class="dropdown-option" data-value="card" onclick="selectOption('card', 'Credit / Debit Card', '#0f172a')">
+                        <div class="dropdown-option" data-value="card"
+                            onclick="selectOption('card', 'Credit / Debit Card', '#0f172a')">
                             <div class="method-icon-container">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a"
+                                    stroke-width="2">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                </svg>
                             </div>
                             <span>Credit / Debit Card</span>
                         </div>
 
-                        <!-- Bank -->
-                        <div class="dropdown-option" data-value="bank_transfer" onclick="selectOption('bank_transfer', 'Bank Transfer', '#64748b')">
+                        <div class="dropdown-option" data-value="bank_transfer"
+                            onclick="selectOption('bank_transfer', 'Bank Transfer', '#64748b')">
                             <div class="method-icon-container">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M3 21h18M5 21v-7M19 21v-7M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v3H4v-3zM12 3v3"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b"
+                                    stroke-width="2">
+                                    <path d="M3 21h18M5 21v-7M19 21v-7M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v3H4v-3zM12 3v3" />
+                                </svg>
                             </div>
                             <span>Bank Transfer</span>
                         </div>
@@ -358,26 +365,36 @@
 
                 <div class="btn-group">
                     <button type="submit" class="submit-btn" id="submitBtn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
                         Pay ₱{{ number_format($amount, 2) }}
                     </button>
-                    
-                    <a href="{{ $frontendUrl }}/admin/school-aid/applications" class="cancel-btn">
-                        Cancel Payment
-                    </a>
                 </div>
+            </form>
+
+            <!-- Separate cancel form -->
+            <form action="{{ route('payment.mock-cancel') }}" method="POST" style="margin-top: 12px;">
+                @csrf
+                <input type="hidden" name="application_id" value="{{ $applicationId }}">
+                <button type="submit" class="cancel-btn">
+                    Cancel Payment
+                </button>
             </form>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             <div style="display: flex; justify-content: center; align-items: center; gap: 6px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
                 Secured by PayMongo
             </div>
         </div>
 
-        <!-- Loading Overlay -->
         <div class="loading-overlay" id="loadingOverlay">
             <div class="spinner"></div>
             <h4 style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">Processing</h4>
@@ -386,7 +403,6 @@
     </div>
 
     <script>
-        // Icons config
         const icons = {
             gcash: '<span style="font-weight: 700; color: #007DFE; font-size: 0.8rem;">G</span>',
             maya: '<span style="font-weight: 700; color: #6f21ef; font-size: 0.8rem;">M</span>',
@@ -401,28 +417,24 @@
             bank_transfer: 'Bank Transfer'
         };
 
-        // Initialize state
         let isOpen = false;
         const trigger = document.getElementById('dropdownTrigger');
         const options = document.getElementById('dropdownOptions');
         const input = document.getElementById('methodInput');
         const selectedText = document.getElementById('selectedText');
         const selectedIcon = document.getElementById('selectedIcon');
-        
-        // Initial selection from server preferred value
+
         const initialMethod = "{{ $preferred }}";
-        if(icons[initialMethod]) {
+        if (icons[initialMethod]) {
             selectedIcon.innerHTML = icons[initialMethod];
             selectedText.innerText = names[initialMethod];
             input.value = initialMethod;
-            
-            // Mark option as selected
+
             document.querySelectorAll('.dropdown-option').forEach(el => {
-                if(el.dataset.value === initialMethod) el.classList.add('selected');
+                if (el.dataset.value === initialMethod) el.classList.add('selected');
             });
         }
 
-        // Toggle dropdown
         trigger.addEventListener('click', (e) => {
             e.stopPropagation();
             isOpen = !isOpen;
@@ -430,33 +442,28 @@
             options.classList.toggle('show', isOpen);
         });
 
-        // Close on click outside
         document.addEventListener('click', () => {
-            if(isOpen) {
+            if (isOpen) {
                 isOpen = false;
                 trigger.classList.remove('active');
                 options.classList.remove('show');
             }
         });
 
-        // Select option function
-        window.selectOption = function(value, name, color) {
+        window.selectOption = function (value, name, color) {
             input.value = value;
             selectedText.innerText = name;
             selectedIcon.innerHTML = icons[value];
-            
-            // Update UI classes
+
             document.querySelectorAll('.dropdown-option').forEach(el => el.classList.remove('selected'));
             document.querySelector(`.dropdown-option[data-value="${value}"]`).classList.add('selected');
-            
-            // Close dropdown
+
             isOpen = false;
             trigger.classList.remove('active');
             options.classList.remove('show');
         };
 
-        // Form submit
-        document.getElementById('paymentForm').addEventListener('submit', function() {
+        document.getElementById('paymentForm').addEventListener('submit', function () {
             document.getElementById('loadingOverlay').classList.add('active');
             const btn = document.getElementById('submitBtn');
             btn.style.opacity = '0.7';
@@ -464,4 +471,5 @@
         });
     </script>
 </body>
+
 </html>
