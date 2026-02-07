@@ -1,4 +1,6 @@
 import { API_CONFIG } from '../config/api';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 const SCHOLARSHIP_API_BASE_URL = API_CONFIG.SCHOLARSHIP_SERVICE.BASE_URL;
 const AID_API_BASE_URL = API_CONFIG.AID_SERVICE.BASE_URL;
@@ -416,17 +418,6 @@ class DashboardService {
 
   async generatePDFReport(type, data, password = null) {
     console.log(`Generating ${type} report...`);
-
-    // Dynamically import jspdf
-    const jspdfModule = await import('jspdf');
-    const jsPDF = jspdfModule.default || jspdfModule.jsPDF;
-    const autoTableModule = await import('jspdf-autotable');
-    const autoTable = autoTableModule.default || autoTableModule;
-
-    if (!jsPDF) {
-      console.error('Failed to load jsPDF module');
-      return false;
-    }
 
     // Configure PDF options, including encryption if password is provided
     const pdfOptions = {};
