@@ -417,7 +417,7 @@ class DashboardService {
   async generatePDFReport(type, data, password = null) {
     console.log(`Generating ${type} report...`);
 
-    // Dynamically import jspdf to keep bundle size small if not used
+    // Dynamically import jspdf
     const { jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
 
@@ -426,8 +426,8 @@ class DashboardService {
     // Add encryption if password is provided
     if (password) {
       doc.setEncryption(
-        new RegExp(password, "g").source,
-        new RegExp(password, "g").source,
+        password,
+        password,
         ["print", "modify", "copy", "annot-forms"]
       );
     }
