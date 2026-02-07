@@ -1945,7 +1945,6 @@ export const ScholarshipDashboard: React.FC = () => {
                           </a>
                           <a
                             href={`${API_CONFIG.AID_SERVICE.BASE_URL}/api/school-aid/disbursements/${disbursement.id}/receipt/download`}
-                            download
                             className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-200 dark:hover:bg-green-900/60 transition-colors"
                           >
                             <Download className="w-3.5 h-3.5" />

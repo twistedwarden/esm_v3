@@ -730,14 +730,30 @@ class SchoolAidController extends Controller
         $absolutePath = Storage::disk('public')->path($relativePath);
 
         // Get the original file extension
-        $extension = pathinfo($absolutePath, PATHINFO_EXTENSION);
+        $extension = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
         $mimeType = mime_content_type($absolutePath) ?: 'application/octet-stream';
 
-        // If MIME type is PDF, force .pdf extension
-        if ($mimeType === 'application/pdf') {
+        // Map common extensions to mime types if mime detection fails or is generic
+        $mimeTypes = [
+            'pdf' => 'application/pdf',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+        ];
+
+        // Use extension to determine content type if possible
+        if (array_key_exists($extension, $mimeTypes)) {
+            $contentType = $mimeTypes[$extension];
+        } else {
+            $contentType = $mimeType;
+        }
+
+        // If mime type is PDF (either detected or forced), ensure extension is pdf
+        if ($contentType === 'application/pdf' || $extension === 'pdf') {
             $extension = 'pdf';
+            $contentType = 'application/pdf';
         } elseif (!$extension) {
-            // Fallback for missing extension
+            // Fallback for completely missing extension
             $extension = 'bin';
         }
 
@@ -745,7 +761,7 @@ class SchoolAidController extends Controller
         $filename = 'receipt_' . ($disbursement->disbursement_reference_number ?? $disbursement->application_number) . '.' . $extension;
 
         return response()->download($absolutePath, $filename, [
-            'Content-Type' => $mimeType,
+            'Content-Type' => $contentType,
         ]);
     }
 
