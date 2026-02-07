@@ -473,7 +473,7 @@ class DashboardService {
           doc.setFontSize(14);
           doc.text("Executive Summary", 14, 50);
 
-          autoTable(doc, {
+          doc.autoTable({
             startY: 55,
             head: [['Metric', 'Value', 'Status']],
             body: [
@@ -496,7 +496,7 @@ class DashboardService {
           const appStats = data?.applicationTrends?.monthly || [];
           const appRows = appStats.map(stat => [stat.month, stat.applications, stat.approved]);
 
-          autoTable(doc, {
+          doc.autoTable({
             startY: 55,
             head: [['Month', 'New Applications', 'Approved']],
             body: appRows.length > 0 ? appRows : [
@@ -512,7 +512,7 @@ class DashboardService {
           doc.setFontSize(14);
           doc.text("Financial Aid & Disbursements", 14, 50);
 
-          autoTable(doc, {
+          doc.autoTable({
             startY: 55,
             head: [['Description', 'Amount']],
             body: [
@@ -531,7 +531,7 @@ class DashboardService {
           const schools = data?.topSchools || [];
           const schoolRows = schools.map(s => [s.name, s.scholar_count || s.active_scholars || 0]);
 
-          autoTable(doc, {
+          doc.autoTable({
             startY: 55,
             head: [['Institution Name', 'Active Scholars']],
             body: schoolRows.length > 0 ? schoolRows : [
