@@ -145,7 +145,7 @@ class SyncMonitoringData extends Command
                     'draft' => $byStatus['draft'] ?? 0,
                     'submitted' => $byStatus['submitted'] ?? 0,
                     'reviewed' => ($byStatus['documents_reviewed'] ?? 0) + ($byStatus['reviewed'] ?? 0) + ($byStatus['endorsed_to_ssc'] ?? 0),
-                    'approved' => ($byStatus['approved'] ?? 0) + ($byStatus['endorsed_to_ssc'] ?? 0) + ($byStatus['grants_processing'] ?? 0) + ($byStatus['grants_disbursed'] ?? 0),
+                    'approved' => ($byStatus['approved'] ?? 0) + ($byStatus['grants_processing'] ?? 0) + ($byStatus['grants_disbursed'] ?? 0),
                     'rejected' => $byStatus['rejected'] ?? 0,
                     'processing' => $byStatus['grants_processing'] ?? ($byStatus['processing'] ?? 0),
                     'released' => $byStatus['grants_disbursed'] ?? ($byStatus['released'] ?? 0),
