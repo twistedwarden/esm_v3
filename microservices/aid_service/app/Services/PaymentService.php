@@ -605,14 +605,42 @@ class PaymentService
      */
     private function getPaymentMethodTypes(ScholarshipApplication $application): array
     {
-        // Return all supported payment methods to let the user choose on PayMongo's checkout page
-        // PayMongo will only show methods that are actually enabled in the dashboard settings
-        return [
-            'card',
-            'gcash',
-            'paymaya',
-            'grab_pay'
-        ];
+        // Extract payment method from digital_wallets
+        $digitalWallets = $application->digital_wallets ?? [];
+        $preferredMethod = null;
+
+        if (is_array($digitalWallets) && count($digitalWallets) > 0) {
+            $preferredMethod = $digitalWallets[0];
+        } elseif (is_string($digitalWallets)) {
+            // In case it's stored as JSON string
+            $decoded = json_decode($digitalWallets, true);
+            if (is_array($decoded) && count($decoded) > 0) {
+                $preferredMethod = $decoded[0];
+            } else {
+                $preferredMethod = $digitalWallets;
+            }
+        }
+
+        // Always include 'card'
+        $methods = ['card'];
+
+        // Add the preferred method if it's a valid PayMongo type
+        if ($preferredMethod) {
+            $method = strtolower($preferredMethod);
+            if ($method === 'gcash') {
+                $methods[] = 'gcash';
+            } elseif ($method === 'paymaya' || $method === 'maya') {
+                $methods[] = 'paymaya';
+            } elseif ($method === 'grab_pay' || $method === 'grabpay') {
+                $methods[] = 'grab_pay';
+            }
+        } else {
+            // Fallback if no preference found: include generally available ones
+            // Only adding gcash as safe default for now to avoid "Not Configured" error
+            $methods[] = 'gcash';
+        }
+
+        return array_unique($methods);
     }
 }
 
