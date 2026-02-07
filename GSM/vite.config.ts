@@ -19,9 +19,15 @@ export default defineConfig(() => {
         '/api': 'http://localhost:5000',
       },
     },
+    optimizeDeps: {
+      include: ['jspdf', 'jspdf-autotable'],
+    },
     build: {
       outDir: '../',
       assetsDir: 'assets',
+      commonjsOptions: {
+        include: [/jspdf/, /jspdf-autotable/, /node_modules/],
+      },
       rollupOptions: {
         output: {
           manualChunks: undefined,

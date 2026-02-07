@@ -420,18 +420,38 @@ class DashboardService {
     try {
       // Dynamically import jsPDF to avoid bundling issues
       const jspdfModule = await import('jspdf');
-      // Try to get jsPDF constructor - check both default and named export
-      const jsPDF = jspdfModule.jsPDF || jspdfModule.default?.jsPDF || jspdfModule.default;
 
-      if (typeof jsPDF !== 'function') {
-        console.error('jsPDF is not a constructor:', jsPDF);
-        throw new Error('Failed to load jsPDF constructor');
+      // Log what we received to debug production issues
+      console.log('jspdf module type:', typeof jspdfModule);
+      console.log('jspdf module keys:', Object.keys(jspdfModule));
+
+      // Try multiple ways to get the constructor based on how Vite bundles it
+      let JsPDFConstructor;
+
+      if (typeof jspdfModule.jsPDF === 'function') {
+        JsPDFConstructor = jspdfModule.jsPDF;
+        console.log('Using jspdfModule.jsPDF');
+      } else if (typeof jspdfModule.default === 'function') {
+        JsPDFConstructor = jspdfModule.default;
+        console.log('Using jspdfModule.default');
+      } else if (jspdfModule.default && typeof jspdfModule.default.jsPDF === 'function') {
+        JsPDFConstructor = jspdfModule.default.jsPDF;
+        console.log('Using jspdfModule.default.jsPDF');
+      } else if (jspdfModule.default && typeof jspdfModule.default.default === 'function') {
+        JsPDFConstructor = jspdfModule.default.default;
+        console.log('Using jspdfModule.default.default');
+      } else {
+        console.error('Could not find jsPDF constructor. Module structure:', JSON.stringify(Object.keys(jspdfModule)));
+        if (jspdfModule.default) {
+          console.error('Default export keys:', JSON.stringify(Object.keys(jspdfModule.default)));
+        }
+        throw new Error('Failed to locate jsPDF constructor');
       }
 
       // Import autotable plugin
       await import('jspdf-autotable');
 
-      const doc = new jsPDF();
+      const doc = new JsPDFConstructor();
       const overview = data?.overview || {};
       const timestamp = new Date().toLocaleString();
 
