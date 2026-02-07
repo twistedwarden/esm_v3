@@ -414,7 +414,7 @@ class DashboardService {
     }
   }
 
-  async generatePDFReport(type, data) {
+  async generatePDFReport(type, data, password = null) {
     console.log(`Generating ${type} report...`);
 
     // Dynamically import jspdf to keep bundle size small if not used
@@ -422,6 +422,15 @@ class DashboardService {
     const autoTable = (await import('jspdf-autotable')).default;
 
     const doc = new jsPDF();
+
+    // Add encryption if password is provided
+    if (password) {
+      doc.setEncryption(
+        new RegExp(password, "g").source,
+        new RegExp(password, "g").source,
+        ["print", "modify", "copy", "annot-forms"]
+      );
+    }
     const overview = data?.overview || {};
     const timestamp = new Date().toLocaleString();
 

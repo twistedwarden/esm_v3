@@ -67,7 +67,7 @@ const StreamlinedDashboard = ({ onPageChange }) => {
             if (reportFormat === 'csv') {
                 await dashboardService.generateCSVReport(type, reportData);
             } else {
-                await dashboardService.generatePDFReport(type, reportData);
+                await dashboardService.generatePDFReport(type, reportData, reportFilters.password);
             }
             setShowReportModal(false);
         } catch (err) {
@@ -319,6 +319,26 @@ const StreamlinedDashboard = ({ onPageChange }) => {
                                                 </label>
                                             </div>
                                         </div>
+                                        {reportFormat === 'pdf' && (
+                                            <div className="col-span-2 pt-2 border-t border-slate-200 mt-2">
+                                                <label className="block text-xs font-semibold text-slate-500 mb-1">
+                                                    Password Protection (Optional)
+                                                </label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="password"
+                                                        value={reportFilters.password || ''}
+                                                        onChange={(e) => setReportFilters(prev => ({ ...prev, password: e.target.value }))}
+                                                        placeholder="Enter password to encrypt PDF"
+                                                        className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pr-8"
+                                                    />
+                                                    <Lock className="w-4 h-4 text-slate-400 absolute right-2 top-1.5" />
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 mt-1">
+                                                    Leave blank for an unprotected PDF.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-3">
