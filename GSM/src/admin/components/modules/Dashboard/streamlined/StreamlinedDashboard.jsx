@@ -254,7 +254,7 @@ const StreamlinedDashboard = ({ onPageChange }) => {
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden"
+                                className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
                             >
                                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                                     <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -269,11 +269,11 @@ const StreamlinedDashboard = ({ onPageChange }) => {
                                     </button>
                                 </div>
 
-                                <div className="p-6 space-y-4">
-                                    <p className="text-slate-500 text-sm">Select the type of report and format you'd like to generate.</p>
+                                <div className="p-4 space-y-3 overflow-y-auto flex-1">
+                                    <p className="text-slate-500 text-xs">Select the type of report and format you'd like to generate.</p>
 
                                     {/* Date Filters */}
-                                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-500 mb-1">Start Date</label>
                                             <input
@@ -341,7 +341,7 @@ const StreamlinedDashboard = ({ onPageChange }) => {
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-3">
+                                    <div className="grid grid-cols-1 gap-2">
                                         {[
                                             { id: 'general', title: 'General Overview', desc: 'Summary of all key metrics and performance.', icon: Activity, color: 'blue' },
                                             { id: 'applications', title: 'Applications Report', desc: 'Detailed breakdown of application statuses.', icon: FileText, color: 'purple' },
@@ -352,7 +352,7 @@ const StreamlinedDashboard = ({ onPageChange }) => {
                                                 key={type.id}
                                                 onClick={() => handleGenerateReport(type.id)}
                                                 disabled={generatingReport}
-                                                className="flex items-center gap-4 p-4 text-left rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all group disabled:opacity-50"
+                                                className="flex items-center gap-3 p-3 text-left rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all group disabled:opacity-50"
                                             >
                                                 <div className={`p-3 bg-${type.color}-100 text-${type.color}-600 rounded-lg group-hover:scale-110 transition-transform`}>
                                                     <type.icon className="w-5 h-5" />
