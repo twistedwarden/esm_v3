@@ -178,17 +178,15 @@ class SyncMonitoringData extends Command
     {
         $schoolYear = $this->getCurrentSchoolYear();
 
-        // Get total budget from partner_school_budgets for current school year
-        $totalBudget = DB::table('partner_school_budgets')
-            ->where('academic_year', $schoolYear)
-            ->where('status', 'active')
-            ->sum('allocated_amount') ?? 0;
+        // Get total budget from budget_allocations for current school year
+        $totalBudget = DB::table('budget_allocations')
+            ->where('school_year', $schoolYear)
+            ->sum('total_budget') ?? 0;
 
-        // Fallback: If no budgets found, sum from all active budgets
+        // Fallback: If no budgets found for current year, sum all active budgets
         if ($totalBudget == 0) {
-            $totalBudget = DB::table('partner_school_budgets')
-                ->where('status', 'active')
-                ->sum('allocated_amount') ?? 0;
+            $totalBudget = DB::table('budget_allocations')
+                ->sum('total_budget') ?? 0;
         }
 
         $allocatedBudget = DB::table('scholarship_applications')
