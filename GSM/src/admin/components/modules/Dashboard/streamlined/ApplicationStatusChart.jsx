@@ -1,22 +1,14 @@
 import React from 'react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const ApplicationStatusChart = ({ data }) => {
-    // Default data if none provided
-    const chartData = [
-        { name: 'Approved', value: data?.approved || 0, color: '#22c55e' }, // Green
-        { name: 'Pending Review', value: data?.pending || 0, color: '#eab308' }, // Yellow
-        { name: 'Under Review', value: data?.underReview || 0, color: '#3b82f6' }, // Blue
-        { name: 'Rejected', value: data?.rejected || 0, color: '#ef4444' }  // Red
-    ].filter(item => item.value > 0);
+    const trends = data?.monthly || [];
 
-    const total = chartData.reduce((acc, curr) => acc + curr.value, 0);
-
-    if (total === 0) {
+    if (!trends || trends.length === 0) {
         return (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm h-full flex flex-col items-center justify-center p-6">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Application Data</h3>
-                <p className="text-gray-500 text-sm">No application data available.</p>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">Application Trends</h3>
+                <p className="text-gray-500 text-sm">No trend data available.</p>
             </div>
         );
     }
@@ -24,36 +16,57 @@ const ApplicationStatusChart = ({ data }) => {
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm h-full flex flex-col">
             <div className="p-5 border-b border-gray-100">
-                <h3 className="font-bold text-lg text-gray-900">Application Data</h3>
-                <p className="text-sm text-gray-500">Overview of application statuses</p>
+                <h3 className="font-bold text-lg text-gray-900">Application Trends</h3>
+                <p className="text-sm text-gray-500">Monthly application and approval volume</p>
             </div>
 
             <div className="flex-1 min-h-[300px] p-4">
                 <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Pie
-                            data={chartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                        >
-                            {chartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                        </Pie>
+                    <LineChart
+                        data={trends}
+                        margin={{
+                            top: 5,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
+                        }}
+                    >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <XAxis
+                            dataKey="month"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#6b7280', fontSize: 12 }}
+                            dy={10}
+                        />
+                        <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#6b7280', fontSize: 12 }}
+                        />
                         <Tooltip
-                            formatter={(value) => [value, 'Applications']}
                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                         />
-                        <Legend
-                            verticalAlign="bottom"
-                            height={36}
-                            iconType="circle"
+                        <Legend verticalAlign="top" height={36} />
+                        <Line
+                            type="monotone"
+                            dataKey="applications"
+                            name="New Applications"
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
+                            activeDot={{ r: 6 }}
                         />
-                    </PieChart>
+                        <Line
+                            type="monotone"
+                            dataKey="approved"
+                            name="Approved"
+                            stroke="#22c55e"
+                            strokeWidth={3}
+                            dot={{ r: 4, fill: '#22c55e', strokeWidth: 2, stroke: '#fff' }}
+                            activeDot={{ r: 6 }}
+                        />
+                    </LineChart>
                 </ResponsiveContainer>
             </div>
         </div>
