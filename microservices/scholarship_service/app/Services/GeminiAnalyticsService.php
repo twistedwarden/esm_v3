@@ -18,7 +18,7 @@ class GeminiAnalyticsService
 
         // Try standard config first
         $this->apiKey = config('services.gemini.api_key');
-        $this->model = config('services.gemini.model', 'gemini-1.5-flash');
+        $this->model = config('services.gemini.model', 'gemini-2.0-flash');
 
         // Fallback to direct ENV if config is missing (for legacy or alternative setups like the one the user has)
         if (empty($this->apiKey)) {
