@@ -726,5 +726,6 @@ Route::prefix('partner-school')->middleware(['auth.auth_service'])->group(functi
 // Advanced Analytics Routes (admin only)
 Route::prefix('analytics')->middleware(['auth.auth_service'])->group(function () {
     Route::get('/comprehensive', [\App\Http\Controllers\Api\AnalyticsController::class, 'getComprehensiveAnalytics']);
+    Route::get('/export', [\App\Http\Controllers\Api\AnalyticsController::class, 'exportComprehensiveAnalytics']);
     Route::post('/gemini-insights', [\App\Http\Controllers\Api\AnalyticsController::class, 'generateGeminiInsights']);
 });

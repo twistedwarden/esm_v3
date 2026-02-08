@@ -78,6 +78,65 @@ class AnalyticsController extends Controller
     }
 
     /**
+     * Export comprehensive analytics report as PDF
+     */
+    public function exportComprehensiveAnalytics(Request $request)
+    {
+        try {
+            $timeRange = $request->input('timeRange', 'all');
+            $category = $request->input('category', 'all');
+
+            // Reuse the logic to get data
+            // In a real refactor, this data fetching should be moved to a service
+            $query = ScholarshipApplication::query();
+            $query = $this->applyTimeFilter($query, $timeRange);
+
+            $applications = $query->with([
+                'student.financialInformation',
+                'student.currentAcademicRecord',
+                'student.familyMembers',
+                'documents'
+            ])->get();
+
+            $analytics = [
+                'failureReasons' => $this->analyzeFailureReasons($applications),
+                'financialDistribution' => $this->analyzeFinancialDistribution($applications),
+                'familyBackgroundImpact' => $this->analyzeFamilyBackground($applications),
+                'gpaVsApproval' => $this->analyzeGPAImpact($applications),
+                'monthlyTrends' => $this->analyzeMonthlyTrends($timeRange),
+                'documentCompleteness' => $this->analyzeDocumentCompleteness($applications),
+                'programDistribution' => $this->analyzeProgramDistribution($applications),
+                'geographicDistribution' => $this->analyzeGeographicDistribution($applications),
+                'processingTimeAnalysis' => $this->analyzeProcessingTime($applications),
+                'renewalVsNew' => $this->analyzeRenewalPatterns($applications),
+                'summary' => [
+                    'totalApplications' => $applications->count(),
+                    'approvalRate' => $this->calculateApprovalRate($applications),
+                    'avgProcessingTime' => $this->calculateAvgProcessingTime($applications),
+                    'totalAidDistributed' => $this->calculateTotalAid($applications)
+                ]
+            ];
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('analytics.report', [
+                'analytics' => $analytics,
+                'timeRange' => $timeRange
+            ]);
+
+            $pdf->setPaper('a4', 'portrait');
+
+            return $pdf->download('scholarship_analytics_report.pdf');
+
+        } catch (\Exception $e) {
+            \Log::error('Analytics export error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to export analytics: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Generate Gemini AI insights
      */
     public function generateGeminiInsights(Request $request): JsonResponse

@@ -25,6 +25,7 @@ import {
 import {
     getComprehensiveAnalytics,
     generateGeminiInsights,
+    exportAnalyticsReport,
     ComprehensiveAnalytics,
     GeminiInsights
 } from '../../services/scholarshipAnalyticsService';
@@ -39,6 +40,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     const [geminiInsights, setGeminiInsights] = useState<GeminiInsights | null>(null);
     const [loading, setLoading] = useState(true);
     const [insightsLoading, setInsightsLoading] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const [selectedTimeRange, setSelectedTimeRange] = useState<'all' | 'year' | 'quarter' | 'month'>('all');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [categories, setCategories] = useState<ScholarshipCategory[]>([]);
@@ -94,6 +96,30 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             console.error('Error generating insights:', error);
         } finally {
             setInsightsLoading(false);
+        }
+    };
+
+
+    const handleExportReport = async () => {
+        setExporting(true);
+        try {
+            const blob = await exportAnalyticsReport(selectedTimeRange, selectedCategory);
+
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `scholarship_analytics_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Error exporting report:', error);
+        } finally {
+            setExporting(false);
         }
     };
 
@@ -232,9 +258,18 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                             </option>
                         ))}
                     </select>
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                        <Download className="w-4 h-4" />
-                        <span>Export Report</span>
+
+                    <button
+                        onClick={handleExportReport}
+                        disabled={exporting}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        {exporting ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Download className="w-4 h-4" />
+                        )}
+                        <span>{exporting ? 'Exporting...' : 'Export Report'}</span>
                     </button>
                 </div>
             </div>
@@ -395,6 +430,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     </ResponsiveContainer>
                 </div>
             </div>
+
         </div>
     );
 };

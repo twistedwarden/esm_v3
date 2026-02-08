@@ -132,7 +132,32 @@ export const generateGeminiInsights = async (
     return response.data;
 };
 
+/**
+ * Export analytics report as PDF
+ */
+export const exportAnalyticsReport = async (
+    timeRange: string = 'all',
+    category: string = 'all'
+): Promise<Blob> => {
+    const token = getAuthToken();
+    const params = new URLSearchParams({ timeRange, category });
+
+    const response = await fetch(`${SCHOLARSHIP_API_URL}/api/analytics/export?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to export analytics report');
+    }
+
+    return await response.blob();
+};
+
 export default {
     getComprehensiveAnalytics,
-    generateGeminiInsights
+    generateGeminiInsights,
+    exportAnalyticsReport
 };
