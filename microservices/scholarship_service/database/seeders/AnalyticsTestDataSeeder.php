@@ -107,7 +107,7 @@ class AnalyticsTestDataSeeder extends Seeder
             AcademicRecord::create([
                 'student_id' => $student->id,
                 'school_id' => $school->id,
-                'educational_level' => 'College',
+                'educational_level' => 'TERTIARY/COLLEGE',
                 'program' => $i % 3 === 0 ? 'BS Computer Science' : ($i % 3 === 1 ? 'BS Education' : 'BS Engineering'),
                 'year_level' => rand(1, 4),
                 'school_year' => '2025-2026',
