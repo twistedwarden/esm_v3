@@ -454,6 +454,48 @@ class SchoolAidService {
     return await response.json();
   }
 
+  // Fund Request Management (Simulation)
+  async createFundRequest(data: {
+    school_year: string;
+    budget_type: string;
+    requested_amount: number;
+    purpose: string;
+    notes?: string;
+    requested_by_name?: string;
+  }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/school-aid/fund-requests`, {
+      method: 'POST',
+      headers: this.buildAuthHeaders({
+        'Content-Type': 'application/json',
+      }),
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `Failed to create fund request: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  async getFundRequests(search?: string): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+
+    const response = await fetch(`${API_BASE_URL}/school-aid/fund-requests?${params.toString()}`, {
+      headers: this.buildAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch fund requests: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result.data || [];
+  }
+
 }
 
 export const schoolAidService = new SchoolAidService();
+

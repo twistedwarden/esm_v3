@@ -1163,7 +1163,7 @@ const MonitoringDashboard: React.FC = () => {
       {/* AI Insights Tab */}
       {/* ================================================================== */}
       {activeTab === 'insights' && (
-        <AdvancedAnalyticsDashboard token={localStorage.getItem('auth_token') || ''} />
+        <AdvancedAnalyticsDashboard />
       )}
 
     </div>

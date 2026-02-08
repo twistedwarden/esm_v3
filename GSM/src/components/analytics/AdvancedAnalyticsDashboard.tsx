@@ -32,10 +32,9 @@ import {
 import { scholarshipApiService, ScholarshipCategory } from '../../services/scholarshipApiService';
 
 interface AdvancedAnalyticsDashboardProps {
-    token?: string;
 }
 
-const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({ token }) => {
+const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = () => {
     const [analyticsData, setAnalyticsData] = useState<ComprehensiveAnalytics | null>(null);
     const [geminiInsights, setGeminiInsights] = useState<GeminiInsights | null>(null);
     const [loading, setLoading] = useState(true);
