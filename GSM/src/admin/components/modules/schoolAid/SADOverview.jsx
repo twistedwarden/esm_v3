@@ -13,7 +13,8 @@ import {
     AlertCircle,
     FileBarChart,
     X,
-    Download
+    Download,
+    Lock
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -44,6 +45,7 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     const [showReportModal, setShowReportModal] = useState(false);
     const [generatingReport, setGeneratingReport] = useState(false);
     const [reportFormat, setReportFormat] = useState('pdf');
+    const [reportPassword, setReportPassword] = useState('');
     const [reportFilters, setReportFilters] = useState({
         startDate: '',
         endDate: ''
@@ -307,7 +309,14 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                 const autoTable = autoTableModule.default || autoTableModule.applyPlugin || autoTableModule;
 
                 // Configure PDF options
-                const pdfOptions = { orientation: 'portrait' };
+                const pdfOptions = {
+                    orientation: 'portrait',
+                    encryption: reportPassword ? {
+                        userPassword: reportPassword,
+                        ownerPassword: reportPassword,
+                        userPermissions: ['print', 'modify', 'copy', 'annot-forms']
+                    } : undefined
+                };
 
                 const doc = new JsPDFConstructor(pdfOptions);
 
@@ -807,6 +816,27 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                                             </div>
                                             <p className="text-xs text-slate-500 mt-2">
                                                 Leave empty to generate report for current school year ({selectedSchoolYear}).
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Password Protection (Optional)
+                                            </label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <Lock className="h-4 w-4 text-slate-400" />
+                                                </div>
+                                                <input
+                                                    type="password"
+                                                    value={reportPassword}
+                                                    onChange={(e) => setReportPassword(e.target.value)}
+                                                    placeholder="Enter password to encrypt PDF"
+                                                    className="w-full pl-10 pr-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-2">
+                                                Leave empty for no password. Password will be required to open the file.
                                             </p>
                                         </div>
 
