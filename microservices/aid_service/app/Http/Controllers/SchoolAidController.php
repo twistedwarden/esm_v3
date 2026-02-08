@@ -1735,7 +1735,7 @@ class SchoolAidController extends Controller
                 "Fund request created for {$validated['school_year']} - {$validated['budget_type']}",
                 'fund_request',
                 (string) $fundRequest->id,
-                $userId,
+                null,
                 [
                     'amount' => $validated['requested_amount'],
                     'purpose' => $validated['purpose'],
