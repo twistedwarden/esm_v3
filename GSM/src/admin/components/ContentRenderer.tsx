@@ -10,7 +10,7 @@ import StudentList from './modules/studentRegistry/components/StudentList'
 import DataTools from './modules/studentRegistry/components/DataTools'
 import PSDSchoolManagement from './modules/partnerSchool/PSDSchoolManagement'
 import PSDStudentPopulation from './modules/partnerSchool/PSDStudentPopulation'
-import PSDAnalytics from './modules/partnerSchool/PSDAnalytics'
+
 import PSDGuidelinesTabbed from './modules/partnerSchool/PSDGuidelinesTabbed'
 import PSDApplicationsTabbed from './modules/partnerSchool/PSDApplicationsTabbed'
 import UserManagement from './modules/UserManagement/UserManagement'
@@ -82,8 +82,7 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 			return <div><PSDSchoolManagement /></div>
 		case 'psd-student-population':
 			return <div><PSDStudentPopulation /></div>
-		case 'psd-analytics':
-			return <div><PSDAnalytics /></div>
+
 		case 'psd-guidelines':
 			return <div><PSDGuidelinesTabbed /></div>
 		case 'psd-applications':

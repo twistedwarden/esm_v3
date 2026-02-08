@@ -34,8 +34,7 @@ const allSidebarItems = [
             { id: 'psd-school-management', label: 'School Management' },
             { id: 'psd-student-population', label: 'Student Population' },
             { id: 'psd-guidelines', label: 'Guidelines' },
-            { id: 'psd-applications', label: 'Applications' },
-            { id: 'psd-analytics', label: 'Analytics & Reports' }
+            { id: 'psd-applications', label: 'Applications' }
         ]
     },
     {
