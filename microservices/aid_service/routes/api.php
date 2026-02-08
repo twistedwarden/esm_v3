@@ -161,6 +161,10 @@ Route::prefix('school-aid')->group(function () {
             'message' => $success ? 'Test successful' : 'Test failed - check configuration'
         ]);
     });
+
+    // Fund Requests (Simulation)
+    Route::post('/fund-requests', [SchoolAidController::class, 'createFundRequest']);
+    Route::get('/fund-requests', [SchoolAidController::class, 'getFundRequests']);
 });
 
 // Partner School Budget Management (Foundation Admin)

@@ -7,7 +7,7 @@ const AnalyticsReport = () => {
 
     return (
         <div className="w-full">
-            <AdvancedAnalyticsDashboard token={token} />
+            <AdvancedAnalyticsDashboard />
         </div>
     );
 };

@@ -1697,4 +1697,108 @@ class SchoolAidController extends Controller
 
         return $categoryDistribution;
     }
+
+    /**
+     * Create a new fund request (simulation only)
+     */
+    public function createFundRequest(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'school_year' => 'required|string',
+                'budget_type' => 'required|string',
+                'requested_amount' => 'required|numeric|min:0.01',
+                'purpose' => 'required|string',
+                'notes' => 'nullable|string',
+            ]);
+
+            // Get user information
+            $userId = $request->header('X-User-ID') ?? $this->getCurrentUserId();
+            $userName = $request->input('requested_by_name') ??
+                $request->header('X-User-First-Name') . ' ' . $request->header('X-User-Last-Name');
+
+            // Create fund request record
+            $fundRequest = \App\Models\FundRequest::create([
+                'school_year' => $validated['school_year'],
+                'budget_type' => $validated['budget_type'],
+                'requested_amount' => $validated['requested_amount'],
+                'purpose' => $validated['purpose'],
+                'notes' => $validated['notes'] ?? null,
+                'status' => 'pending',
+                'requested_by_user_id' => $userId,
+                'requested_by_name' => trim($userName) ?: 'Admin User',
+            ]);
+
+            // Log the action
+            AuditLogService::logAction(
+                'fund_request_created',
+                "Fund request created for {$validated['school_year']} - {$validated['budget_type']}",
+                'fund_request',
+                (string) $fundRequest->id,
+                $userId,
+                [
+                    'amount' => $validated['requested_amount'],
+                    'purpose' => $validated['purpose'],
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successful request, and are waiting for approval of budget',
+                'data' => $fundRequest,
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'details' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to create fund request', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to create fund request',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all fund requests (request history)
+     */
+    public function getFundRequests(Request $request): JsonResponse
+    {
+        try {
+            $query = \App\Models\FundRequest::query();
+
+            // Search
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('purpose', 'like', "%{$search}%")
+                        ->orWhere('notes', 'like', "%{$search}%")
+                        ->orWhere('requested_by_name', 'like', "%{$search}%")
+                        ->orWhere('school_year', 'like', "%{$search}%");
+                });
+            }
+
+            // Order by created_at descending (newest first)
+            $fundRequests = $query->orderBy('created_at', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $fundRequests,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch fund requests',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
+

@@ -3,13 +3,15 @@ import {
   FileText,
   LayoutDashboard,
   PhilippinePeso,
-  Wallet
+  Wallet,
+  Send
 } from 'lucide-react';
 import { TabConfig, ScholarshipApplication } from './types';
 import SADOverview from './SADOverview';
 import ApplicationsTab from './tabs/ApplicationsTab';
 import BudgetTab from './tabs/BudgetTab';
 import PartnerSchoolBudgets from './PartnerSchoolBudgets';
+import FundRequestTab from './tabs/FundRequestTab';
 import ManualDisbursementModal from './components/disbursement/ManualDisbursementModal';
 import ApplicationViewModal from './components/ApplicationViewModal';
 import { schoolAidService } from './services/schoolAidService';
@@ -57,6 +59,13 @@ const SchoolAidDistribution = ({ onPageChange }: SchoolAidDistributionProps = {}
       label: 'Partner Budgets',
       icon: Wallet,
       component: PartnerSchoolBudgets,
+      submodules: []
+    },
+    {
+      id: 'fund-requests',
+      label: 'Request Funds',
+      icon: Send,
+      component: FundRequestTab,
       submodules: []
     }
   ];

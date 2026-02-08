@@ -177,3 +177,32 @@ export interface PartnerSchoolBudgetWithdrawal {
   created_at: string;
   updated_at: string;
 }
+
+export interface BudgetAllocation {
+  id: number;
+  budget_type: string;
+  school_year: string;
+  total_budget: number;
+  allocated_budget: number;
+  disbursed_budget: number;
+  remaining_budget: number;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FundRequest {
+  id: string;
+  school_year: string;
+  budget_type: string;
+  requested_amount: number;
+  purpose: string;
+  notes?: string;
+  status: 'pending';
+  requested_by_user_id: string;
+  requested_by_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
