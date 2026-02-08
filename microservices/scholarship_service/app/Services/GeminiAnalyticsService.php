@@ -58,6 +58,53 @@ class GeminiAnalyticsService
             ];
         }
 
+        // Validate that we have sufficient data
+        $totalApplications = $analyticsData['summary']['totalApplications'] ?? 0;
+        if ($totalApplications === 0) {
+            Log::warning('Gemini: No application data available for analysis');
+            return [
+                'keyFindings' => [
+                    [
+                        'title' => 'Insufficient Data',
+                        'description' => 'There are no scholarship applications in the database to analyze. The system needs actual application data to generate meaningful insights.',
+                        'recommendation' => 'Wait for applications to be submitted and processed before generating AI insights.'
+                    ]
+                ],
+                'failureAnalysis' => [
+                    'primaryReasons' => [],
+                    'correlations' => []
+                ],
+                'recommendations' => ['Collect application data first'],
+                'riskFactors' => [],
+                'successPatterns' => []
+            ];
+        }
+
+        // Check if we have meaningful data in key analytics arrays
+        $hasFinancialData = !empty($analyticsData['financialDistribution']);
+        $hasGpaData = !empty($analyticsData['gpaVsApproval']);
+        $hasFailureData = !empty($analyticsData['failureReasons']);
+
+        if (!$hasFinancialData && !$hasGpaData && !$hasFailureData) {
+            Log::warning('Gemini: Analytics data arrays are empty - applications may be missing related data');
+            return [
+                'keyFindings' => [
+                    [
+                        'title' => 'Incomplete Application Data',
+                        'description' => "Found {$totalApplications} application(s), but they are missing critical information (financial data, academic records, etc.). The AI cannot generate accurate insights without complete student profiles.",
+                        'recommendation' => 'Ensure applications have complete student information including financial data, academic records, and family background before generating insights.'
+                    ]
+                ],
+                'failureAnalysis' => [
+                    'primaryReasons' => [],
+                    'correlations' => []
+                ],
+                'recommendations' => ['Complete student profile data for existing applications'],
+                'riskFactors' => [],
+                'successPatterns' => []
+            ];
+        }
+
         try {
             $prompt = $this->buildAnalyticsPrompt($analyticsData, $focusAreas);
 
