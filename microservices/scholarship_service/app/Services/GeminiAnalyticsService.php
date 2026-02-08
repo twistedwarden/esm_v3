@@ -80,10 +80,31 @@ class GeminiAnalyticsService
             ];
         }
 
-        // Check if we have meaningful data in key analytics arrays
-        $hasFinancialData = !empty($analyticsData['financialDistribution']);
-        $hasGpaData = !empty($analyticsData['gpaVsApproval']);
-        $hasFailureData = !empty($analyticsData['failureReasons']);
+        // Require minimum sample size for reliable insights
+        if ($totalApplications < 10) {
+            Log::warning("Gemini: Insufficient sample size ({$totalApplications} applications)");
+            return [
+                'keyFindings' => [
+                    [
+                        'title' => 'Insufficient Sample Size',
+                        'description' => "Found only {$totalApplications} application(s). AI-powered insights require at least 10 applications to generate statistically meaningful patterns.",
+                        'recommendation' => 'Continue collecting applications. More accurate insights will be available once you have at least 10 applications with complete data.'
+                    ]
+                ],
+                'failureAnalysis' => ['primaryReasons' => [], 'correlations' => []],
+                'recommendations' => ['Collect more applications (minimum 10 recommended)'],
+                'riskFactors' => [],
+                'successPatterns' => []
+            ];
+        }
+
+        // Check if we have meaningful data (not just empty arrays)
+        $hasFinancialData = !empty($analyticsData['financialDistribution']) &&
+            array_sum(array_column($analyticsData['financialDistribution'], 'total')) > 0;
+        $hasGpaData = !empty($analyticsData['gpaVsApproval']) &&
+            array_sum(array_map(fn($item) => ($item['approved'] ?? 0) + ($item['rejected'] ?? 0), $analyticsData['gpaVsApproval'])) > 0;
+        $hasFailureData = !empty($analyticsData['failureReasons']) &&
+            array_sum(array_column($analyticsData['failureReasons'], 'count')) > 0;
 
         if (!$hasFinancialData && !$hasGpaData && !$hasFailureData) {
             Log::warning('Gemini: Analytics data arrays are empty - applications may be missing related data');
