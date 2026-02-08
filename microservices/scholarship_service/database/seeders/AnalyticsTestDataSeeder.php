@@ -130,7 +130,7 @@ class AnalyticsTestDataSeeder extends Seeder
             $isApproved = $i <= 9;
 
             $application = ScholarshipApplication::create([
-                'application_number' => 'APP-2026-' . str_pad($i, 5, '0', STR_PAD_LEFT),
+                'application_number' => 'APP-2026-' . str_pad($i + 90000, 5, '0', STR_PAD_LEFT),
                 'student_id' => $student->id,
                 'category_id' => $category->id,
                 'subcategory_id' => $subcategory->id,
