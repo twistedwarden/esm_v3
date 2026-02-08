@@ -55,6 +55,7 @@ class AnalyticsTestDataSeeder extends Seeder
         for ($i = 1; $i <= 15; $i++) {
             // Create student
             $student = Student::create([
+                'citizen_id' => 'CIT-TEST-' . str_pad($i, 5, '0', STR_PAD_LEFT),
                 'student_id_number' => 'TEST-' . str_pad($i, 5, '0', STR_PAD_LEFT),
                 'first_name' => 'Test',
                 'last_name' => 'Student' . $i,
