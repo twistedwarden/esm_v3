@@ -35,8 +35,13 @@ class AnalyticsController extends Controller
             // Apply time filter
             $query = $this->applyTimeFilter($query, $timeRange);
 
-            // Get all applications for analysis
-            $applications = $query->with(['student', 'documents'])->get();
+            // Get all applications for analysis with nested relationships
+            $applications = $query->with([
+                'student.financialInformation',
+                'student.currentAcademicRecord',
+                'student.familyMembers',
+                'documents'
+            ])->get();
 
             $analytics = [
                 'failureReasons' => $this->analyzeFailureReasons($applications),
@@ -176,7 +181,7 @@ class AnalyticsController extends Controller
 
         foreach ($ranges as $label => $range) {
             $inRange = $applications->filter(function ($app) use ($range) {
-                $income = $app->family_monthly_income ?? 0;
+                $income = $app->student?->financialInformation?->monthly_income ?? 0;
                 return $income >= $range['min'] && $income < $range['max'];
             });
 
@@ -214,7 +219,12 @@ class AnalyticsController extends Controller
         ];
 
         foreach ($applications as $app) {
-            $status = $app->family_status ?? 'Both Parents';
+            // Derive family status from student data
+            $status = 'Both Parents'; // default
+            if ($app->student?->is_solo_parent) {
+                $status = 'Single Parent';
+            }
+            // Note: Guardian and Orphan status would need additional fields in the database
 
             if (isset($backgrounds[$status])) {
                 $backgrounds[$status]++;
@@ -255,7 +265,7 @@ class AnalyticsController extends Controller
 
         foreach ($ranges as $label => $range) {
             $inRange = $applications->filter(function ($app) use ($range) {
-                $gpa = $app->gpa ?? 0;
+                $gpa = $app->student?->currentAcademicRecord?->gpa ?? 0;
                 return $gpa >= $range['min'] && $gpa <= $range['max'];
             });
 
