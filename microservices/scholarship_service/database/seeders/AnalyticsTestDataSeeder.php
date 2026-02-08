@@ -86,18 +86,23 @@ class AnalyticsTestDataSeeder extends Seeder
             'Missing certificate of indigency'
         ];
 
+        $faker = \Faker\Factory::create('en_PH');
+
         for ($i = 1; $i <= 15; $i++) {
+            $firstName = $faker->firstName;
+            $lastName = $faker->lastName;
+
             // Create student
             $student = Student::create([
                 'citizen_id' => 'CIT-TEST-' . str_pad($i, 5, '0', STR_PAD_LEFT),
                 'student_id_number' => 'TEST-' . str_pad($i, 5, '0', STR_PAD_LEFT),
-                'first_name' => 'Test',
-                'last_name' => 'Student' . $i,
-                'middle_name' => 'Middle',
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'middle_name' => $faker->lastName, // Use lastName as middle name
                 'sex' => $i % 2 === 0 ? 'Male' : 'Female',
                 'birth_date' => Carbon::now()->subYears(20)->subDays($i),
                 'contact_number' => '09' . str_pad($i, 9, '0', STR_PAD_LEFT),
-                'email_address' => "test.student{$i}@email.com",
+                'email_address' => strtolower($firstName . '.' . $lastName . $i . '@email.com'),
                 'is_solo_parent' => $i % 5 === 0, // 20% solo parents
                 'is_currently_enrolled' => true
             ]);
