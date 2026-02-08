@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { RefreshCw, AlertTriangle, CheckCircle, Clock, FileText, PhilippinePeso, Activity, Users, Send, X, Download, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MetricCard from './MetricCard';
-import ActionCenter from './ActionCenter';
+import MetricCard from './MetricCard';
+import ApplicationStatusChart from './ApplicationStatusChart';
 import ContextPanel from './ContextPanel';
 import { dashboardService } from '../../../../../services/dashboardService';
 
@@ -190,7 +191,7 @@ const StreamlinedDashboard = ({ onPageChange }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Action Center (2/3 width) */}
                 <div className="lg:col-span-2">
-                    <ActionCenter items={actionItems} />
+                    <ApplicationStatusChart data={data?.statusDistribution} />
                 </div>
 
                 {/* Operational Context (1/3 width) */}
