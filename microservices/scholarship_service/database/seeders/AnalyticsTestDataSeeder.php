@@ -86,6 +86,7 @@ class AnalyticsTestDataSeeder extends Seeder
                 'program' => $i % 3 === 0 ? 'BS Computer Science' : ($i % 3 === 1 ? 'BS Education' : 'BS Engineering'),
                 'year_level' => rand(1, 4),
                 'school_year' => '2025-2026',
+                'school_term' => '1st Semester',
                 'gpa' => $gpaRanges[$i % count($gpaRanges)],
                 'is_current' => true
             ]);
