@@ -10,6 +10,7 @@ use App\Models\AcademicRecord;
 use App\Models\School;
 use App\Models\ScholarshipCategory;
 use App\Models\AcademicPeriod;
+use App\Models\ScholarshipSubcategory;
 use Carbon\Carbon;
 
 class AnalyticsTestDataSeeder extends Seeder
@@ -57,6 +58,14 @@ class AnalyticsTestDataSeeder extends Seeder
         $category = ScholarshipCategory::first() ?? ScholarshipCategory::create([
             'name' => 'Academic Scholarship',
             'description' => 'For academically excellent students'
+        ]);
+
+        $subcategory = ScholarshipSubcategory::first() ?? ScholarshipSubcategory::create([
+            'category_id' => $category->id,
+            'name' => 'Academic Distinction',
+            'description' => 'For students with high grades',
+            'is_active' => true,
+            'amount' => 10000
         ]);
 
         $academicPeriod = AcademicPeriod::first() ?? AcademicPeriod::create([
@@ -124,6 +133,7 @@ class AnalyticsTestDataSeeder extends Seeder
                 'application_number' => 'APP-2026-' . str_pad($i, 5, '0', STR_PAD_LEFT),
                 'student_id' => $student->id,
                 'category_id' => $category->id,
+                'subcategory_id' => $subcategory->id,
                 'school_id' => $school->id,
                 'academic_period_id' => $academicPeriod->id,
                 'type' => 'new',
