@@ -138,6 +138,7 @@ class AnalyticsTestDataSeeder extends Seeder
                 'academic_period_id' => $academicPeriod->id,
                 'type' => 'new',
                 'status' => $isApproved ? 'approved' : 'rejected',
+                'financial_need_description' => 'I need this scholarship to support my studies as my family income is insufficient.',
                 'requested_amount' => rand(5000, 15000),
                 'approved_amount' => $isApproved ? rand(5000, 15000) : null,
                 'rejection_reason' => !$isApproved ? $rejectionReasons[($i - 10) % count($rejectionReasons)] : null,
