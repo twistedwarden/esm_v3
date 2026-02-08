@@ -21,6 +21,31 @@ class AnalyticsTestDataSeeder extends Seeder
     {
         $this->command->info('Creating 15 test applications for analytics...');
 
+        // Clean up any existing test data first
+        $this->command->info('Cleaning up existing test data...');
+
+        // Get all test student IDs efficiently
+        $testStudentIds = Student::where('student_id_number', 'LIKE', 'TEST-%')
+            ->withTrashed() // Include soft-deleted records
+            ->pluck('id')
+            ->toArray();
+
+        if (!empty($testStudentIds)) {
+            // Delete related records in bulk (more efficient)
+            ScholarshipApplication::whereIn('student_id', $testStudentIds)->forceDelete();
+            FinancialInformation::whereIn('student_id', $testStudentIds)->delete();
+            AcademicRecord::whereIn('student_id', $testStudentIds)->delete();
+
+            // Force delete students (permanent deletion, bypasses soft deletes)
+            Student::where('student_id_number', 'LIKE', 'TEST-%')
+                ->withTrashed()
+                ->forceDelete();
+
+            $this->command->info('Cleanup complete. Removed ' . count($testStudentIds) . ' test students and related data.');
+        } else {
+            $this->command->info('No existing test data found.');
+        }
+
         // Get or create required references
         $school = School::first() ?? School::create([
             'name' => 'Test University',
