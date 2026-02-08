@@ -77,7 +77,7 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
                         Manage and view student records
                     </p>
                 </div>
-                <button
+                {/* <button
                     onClick={() => {
                         setEditStudentData(null);
                         setShowFormModal(true);
@@ -85,7 +85,7 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
                 >
                     Add Student
-                </button>
+                </button> */}
             </div>
 
             <StudentStats />
@@ -212,8 +212,8 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
                                         <td className="p-4">
                                             <div className="flex flex-col gap-1 items-start">
                                                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${(student.status || (student.is_currently_enrolled ? 'active' : 'inactive')) === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                        (student.status || (student.deleted_at ? 'archived' : 'inactive')) === 'archived' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                            'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                                    (student.status || (student.deleted_at ? 'archived' : 'inactive')) === 'archived' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                                                     }`}>
                                                     {student.status || (student.is_currently_enrolled ? 'Active' : 'Inactive')}
                                                 </span>
