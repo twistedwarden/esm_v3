@@ -609,6 +609,51 @@ class StudentController extends Controller
     }
 
     /**
+     * Permanently delete the specified student (including soft-deleted ones)
+     */
+    public function forceDestroy($id): JsonResponse
+    {
+        try {
+            // Find the student including soft-deleted ones
+            $student = Student::withTrashed()->findOrFail($id);
+
+            $authUser = request()->get('auth_user');
+            $userId = $authUser['id'] ?? null;
+            $studentName = "{$student->first_name} {$student->last_name}";
+            $studentId = $student->id;
+
+            // Audit log before permanent deletion
+            AuditLogService::logAction(
+                'force_deleted',
+                "Student '{$studentName}' permanently deleted",
+                'student',
+                (string) $studentId,
+                [
+                    'citizen_id' => $student->citizen_id,
+                    'student_id_number' => $student->student_id_number,
+                    'was_soft_deleted' => $student->trashed()
+                ],
+                null
+            );
+
+            // Permanently delete the student
+            $student->forceDelete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Student permanently deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to permanently delete student',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Register student from approved scholarship application
      */
     public function registerFromScholarship(Request $request): JsonResponse

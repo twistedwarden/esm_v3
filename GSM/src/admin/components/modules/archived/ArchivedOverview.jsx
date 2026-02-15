@@ -264,22 +264,8 @@ const ArchivedOverview = () => {
 
       // Check if this is a student record
       if (item.role === 'student' || category === 'users') {
-        // For archived students, they're already soft-deleted in the backend
-        // Since the backend doesn't support force delete (405) or deleting already-deleted items (404),
-        // we'll just remove them from the UI
-        success(`${item.name || item.applicantName || item.action} has been removed from archived data`);
-
-        // Remove from archived data UI
-        if (category && archivedData[category]) {
-          setArchivedData(prev => ({
-            ...prev,
-            [category]: prev[category].filter(i => i.id !== item.id)
-          }));
-        }
-
-        setShowDeleteModal(false);
-        setItemToRestore(null);
-        return;
+        // For archived students, use the force delete endpoint to permanently remove from database
+        response = await studentApiService.forceDeleteStudent(item.id);
       } else {
         // Use archivedDataService for other types
         response = await archivedDataService.permanentDeleteItem(category, item.id);

@@ -145,6 +145,7 @@ Route::prefix('students')->middleware(['auth.auth_service'])->group(function () 
     Route::post('/notifications', [StudentController::class, 'sendNotification']);
     Route::post('/{student}/archive', [StudentController::class, 'archive']);
     Route::post('/{student}/restore', [StudentController::class, 'restore']);
+    Route::delete('/{student}/force', [StudentController::class, 'forceDestroy']);
     Route::post('/{student}/notes', [StudentController::class, 'addNote']);
     Route::post('/{student}/documents', [StudentController::class, 'uploadDocument']);
 
