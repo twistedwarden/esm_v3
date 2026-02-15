@@ -221,9 +221,18 @@ const ArchivedOverview = () => {
         Object.keys(archivedData).find(key => archivedData[key].includes(item)) :
         selectedCategory;
 
-      const response = await archivedDataService.restoreItem(category, item.id);
+      let response;
 
-      if (response.success) {
+      // Check if this is a student record
+      if (item.role === 'student' || category === 'users') {
+        // Use studentApiService for students
+        response = await studentApiService.restoreStudent(item.id);
+      } else {
+        // Use archivedDataService for other types
+        response = await archivedDataService.restoreItem(category, item.id);
+      }
+
+      if (response && (response.success || response.data)) {
         showSuccess(`${item.name || item.applicantName || item.action} has been restored successfully`);
 
         // Remove from archived data
@@ -234,14 +243,14 @@ const ArchivedOverview = () => {
           }));
         }
       } else {
-        throw new Error(response.message || 'Failed to restore item');
+        throw new Error(response?.message || 'Failed to restore item');
       }
 
       setShowRestoreModal(false);
       setItemToRestore(null);
     } catch (error) {
       console.error('Error restoring item:', error);
-      showError('Failed to restore item');
+      showError(error?.response?.data?.message || 'Failed to restore item');
     }
   };
 
@@ -251,9 +260,18 @@ const ArchivedOverview = () => {
         Object.keys(archivedData).find(key => archivedData[key].includes(item)) :
         selectedCategory;
 
-      const response = await archivedDataService.permanentDeleteItem(category, item.id);
+      let response;
 
-      if (response.success) {
+      // Check if this is a student record
+      if (item.role === 'student' || category === 'users') {
+        // Use studentApiService for students
+        response = await studentApiService.forceDeleteStudent(item.id);
+      } else {
+        // Use archivedDataService for other types
+        response = await archivedDataService.permanentDeleteItem(category, item.id);
+      }
+
+      if (response && (response.success || response.data)) {
         showSuccess(`${item.name || item.applicantName || item.action} has been permanently deleted`);
 
         // Remove from archived data
@@ -264,14 +282,14 @@ const ArchivedOverview = () => {
           }));
         }
       } else {
-        throw new Error(response.message || 'Failed to permanently delete item');
+        throw new Error(response?.message || 'Failed to permanently delete item');
       }
 
       setShowDeleteModal(false);
       setItemToRestore(null);
     } catch (error) {
       console.error('Error permanently deleting item:', error);
-      showError('Failed to permanently delete item');
+      showError(error?.response?.data?.message || 'Failed to permanently delete item');
     }
   };
 
