@@ -21,6 +21,8 @@ import { LoadingData } from '../../ui/LoadingSpinner';
 import AnimatedCard, { InfoCard } from '../../ui/AnimatedCard';
 import AnimatedContainer, { AnimatedGrid, AnimatedList } from '../../ui/AnimatedContainer';
 import { transitions } from '../../../../utils/transitions';
+import studentApiService from '../../../../services/studentApiService';
+
 import archivedDataService from '../../../../services/archivedDataService';
 
 const ArchivedOverview = () => {
@@ -59,27 +61,66 @@ const ArchivedOverview = () => {
   const fetchArchivedData = async () => {
     setLoading(true);
     try {
-      const response = await archivedDataService.getArchivedData();
+      // Fetch data from multiple sources in parallel
+      const [archivedResponseData, studentResponseData] = await Promise.allSettled([
+        archivedDataService.getArchivedData(),
+        studentApiService.getStudents({ status: 'archived', per_page: 100 }) // Fetch up to 100 archived students
+      ]);
 
-      if (response.success) {
-        setArchivedData(response.data);
+      let newArchivedData = {
+        users: [],
+        applications: [],
+        documents: [],
+        logs: []
+      };
 
-        // Update category counts
-        setCategories(prevCategories =>
-          prevCategories.map(category => ({
-            ...category,
-            count: category.id === 'all'
-              ? Object.values(response.data).flat().length
-              : response.data[category.id]?.length || 0
-          }))
-        );
-      } else {
-        throw new Error(response.message || 'Failed to fetch archived data');
+      // Handle generic archived data response
+      if (archivedResponseData.status === 'fulfilled' && archivedResponseData.value.success) {
+        newArchivedData = { ...newArchivedData, ...archivedResponseData.value.data };
       }
+
+      // Handle archived students response
+      if (studentResponseData.status === 'fulfilled') {
+        const response = studentResponseData.value;
+        const students = response?.data?.data || response?.data || [];
+
+        if (Array.isArray(students)) {
+          const formattedStudents = students.map(student => ({
+            id: student.uuid || student.id,
+            name: `${student.first_name} ${student.last_name}`,
+            email: student.email,
+            role: 'student', // or student.type
+            deletedAt: student.deleted_at || student.updated_at || new Date().toISOString(), // Fallback if deleted_at is missing
+            deletedBy: student.deleted_by || 'System', // Fallback
+            reason: student.archive_reason || student.reason || 'Archived record'
+          }));
+
+          // Merge with existing users/students
+          newArchivedData.users = [...(newArchivedData.users || []), ...formattedStudents];
+        }
+      }
+
+      // If both failed, throw error to trigger fallback (or handle partial)
+      if (archivedResponseData.status === 'rejected' && studentResponseData.status === 'rejected') {
+        throw new Error('All data fetch failed');
+      }
+
+      setArchivedData(newArchivedData);
+
+      // Update category counts
+      setCategories(prevCategories =>
+        prevCategories.map(category => ({
+          ...category,
+          count: category.id === 'all'
+            ? Object.values(newArchivedData).flat().length
+            : newArchivedData[category.id]?.length || 0
+        }))
+      );
+
     } catch (error) {
       console.error('Error fetching archived data:', error);
 
-      // Fallback to mock data if API fails
+      // Fallback to mock data if ALL API calls fail
       const mockData = {
         users: [
           {
