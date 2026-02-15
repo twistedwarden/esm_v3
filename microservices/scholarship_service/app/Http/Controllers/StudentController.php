@@ -906,7 +906,13 @@ class StudentController extends Controller
     {
         try {
             $totalStudents = Student::count();
-
+            
+            // Calculate specific stats based on scholarship_status
+            $activeScholars = Student::where('scholarship_status', 'scholar')->count();
+            $applicants = Student::where('scholarship_status', 'applicant')->count();
+            // Assuming 'probation' or similar status indicating at risk
+            $atRisk = Student::whereIn('scholarship_status', ['probation', 'warning', 'at_risk'])->count();
+            
             // Use only basic fields that definitely exist
             $studentsByStatus = [
                 'enrolled' => Student::where('is_currently_enrolled', true)->count(),
@@ -920,22 +926,55 @@ class StudentController extends Controller
             // Try to get GPA if the field exists
             $averageGpa = 0;
             try {
-                $averageGpa = Student::whereNotNull('gpa')->avg('gpa') ?? 0;
+                // Check if we can get GPA from academic records
+                $averageGpa = \App\Models\AcademicRecord::where('is_current', true)
+                    ->whereNotNull('gpa')
+                    ->avg('gpa') ?? 0;
             } catch (\Exception $e) {
-                // GPA field might not exist
+                // GPA calculation failed
                 $averageGpa = 0;
             }
+
+            // Get Registration Trends (Last 7 months)
+            $registrationData = collect(range(6, 0))->map(function($i) {
+                $date = now()->subMonths($i);
+                return [
+                    'name' => $date->format('M'),
+                    'students' => Student::whereYear('created_at', $date->year)
+                                         ->whereMonth('created_at', $date->month)
+                                         ->count()
+                ];
+            });
+
+            // Get Student Distribution by Program
+            $programData = \App\Models\AcademicRecord::where('is_current', true)
+                ->select('program', DB::raw('count(*) as value'))
+                ->whereNotNull('program')
+                ->where('program', '!=', '')
+                ->groupBy('program')
+                ->orderByDesc('value')
+                ->limit(5) // Limit to top 5 programs
+                ->get()
+                ->map(function($record) {
+                    return [
+                        'name' => $record->program, 
+                        'value' => $record->value
+                    ];
+                });
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'total_students' => $totalStudents,
-                    'active_scholars' => 0, // Will be updated when scholarship_status field is available
-                    'applicants' => 0, // Will be updated when scholarship_status field is available
-                    'alumni' => 0, // Will be updated when scholarship_status field is available
+                    'active_scholars' => $activeScholars,
+                    'applicants' => $applicants,
+                    'at_risk' => $atRisk,
+                    'alumni' => Student::where('scholarship_status', 'alumni')->count(),
                     'students_by_status' => $studentsByStatus,
                     'recent_registrations' => $recentRegistrations,
-                    'average_gpa' => round($averageGpa, 2)
+                    'average_gpa' => round($averageGpa, 2),
+                    'registration_trends' => $registrationData,
+                    'program_distribution' => $programData
                 ]
             ]);
         } catch (\Exception $e) {
