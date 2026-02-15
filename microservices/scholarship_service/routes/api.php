@@ -140,6 +140,8 @@ Route::prefix('students')->middleware(['auth.auth_service'])->group(function () 
 
     // Bulk operations & Additional actions
     Route::post('/bulk-update', [StudentController::class, 'bulkUpdate']);
+    Route::post('/bulk-archive', [StudentController::class, 'bulkArchiveStudents']);
+    Route::post('/bulk-restore', [StudentController::class, 'bulkRestoreStudents']);
     Route::post('/notifications', [StudentController::class, 'sendNotification']);
     Route::post('/{student}/archive', [StudentController::class, 'archive']);
     Route::post('/{student}/restore', [StudentController::class, 'restore']);

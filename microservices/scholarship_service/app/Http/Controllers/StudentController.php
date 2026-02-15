@@ -1142,6 +1142,97 @@ class StudentController extends Controller
     }
 
     /**
+     * Bulk archive students
+     */
+    public function bulkArchiveStudents(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'uuids' => 'required|array',
+            'uuids.*' => 'required|exists:students,id',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $ids = $request->uuids;
+            $archived = Student::whereIn('id', $ids)->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully archived {$archived} student(s)",
+                'archived_count' => $archived
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to bulk archive students', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to archive students',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk restore students
+     */
+    public function bulkRestoreStudents(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'uuids' => 'required|array',
+            'uuids.*' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $ids = $request->uuids;
+            $restored = Student::withTrashed()->whereIn('id', $ids)->restore();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully restored {$restored} student(s)",
+                'restored_count' => $restored
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to bulk restore students', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore students',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Send notification
      */
     public function sendNotification(Request $request): JsonResponse
