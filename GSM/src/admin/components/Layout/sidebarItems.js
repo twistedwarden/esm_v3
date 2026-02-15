@@ -24,8 +24,7 @@ const allSidebarItems = [
         id: 'studentRegistry', icon: ClipboardList, label: 'Student Registry',
         subItems: [
             { id: 'studentRegistry-overview', label: 'Overview' },
-            { id: 'studentRegistry-directory', label: 'Student Directory' },
-            { id: 'studentRegistry-tools', label: 'Import/Export' }
+            { id: 'studentRegistry-directory', label: 'Student Directory' }
         ]
     },
     {

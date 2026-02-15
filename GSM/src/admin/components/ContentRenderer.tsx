@@ -7,7 +7,7 @@ import SchoolAidDistribution from './modules/schoolAid/SchoolAidDistribution'
 import DisbursementHistory from './modules/schoolAid/DisbursementHistory'
 import StudentRegistryOverview from './modules/studentRegistry'
 import StudentList from './modules/studentRegistry/components/StudentList'
-import DataTools from './modules/studentRegistry/components/DataTools'
+
 import PSDSchoolManagement from './modules/partnerSchool/PSDSchoolManagement'
 import PSDStudentPopulation from './modules/partnerSchool/PSDStudentPopulation'
 
@@ -76,8 +76,7 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 			return <div><StudentRegistryOverview onPageChange={onPageChange} /></div>
 		case 'studentRegistry-directory':
 			return <div><StudentList viewMode="all" /></div>
-		case 'studentRegistry-tools':
-			return <div><DataTools /></div>
+
 		case 'psd-school-management':
 			return <div><PSDSchoolManagement /></div>
 		case 'psd-student-population':

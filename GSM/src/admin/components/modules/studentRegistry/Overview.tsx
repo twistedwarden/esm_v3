@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-    UserPlus, Clock, FileText, Download, Upload
+    Clock, Loader2
 } from 'lucide-react';
 import StudentStats from './components/StudentStats';
 import StudentFormModal from './components/StudentFormModal';
 import studentApiService from '../../../../services/studentApiService';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
-import { Loader2 } from 'lucide-react';
+
 
 interface OverviewProps {
     onPageChange?: (id: string, tabId?: string) => void;
@@ -125,50 +125,8 @@ const Overview: React.FC<OverviewProps> = ({ onPageChange }) => {
                     )}
                 </div>
 
-                {/* Quick Actions & Links */}
-                <div className="space-y-6">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => onPageChange?.('studentRegistry-tools')}
-                                className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors"
-                            >
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                    <Upload className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="font-medium text-gray-900 dark:text-white">Import Students</p>
-                                    <p className="text-xs text-gray-500">Bulk upload via CSV/Excel</p>
-                                </div>
-                            </button>
-                            <button
-                                onClick={() => onPageChange?.('studentRegistry-tools')}
-                                className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors"
-                            >
-                                <div className="p-2 bg-green-50 text-green-600 rounded-lg">
-                                    <Download className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="font-medium text-gray-900 dark:text-white">Export Data</p>
-                                    <p className="text-xs text-gray-500">Download registry reports</p>
-                                </div>
-                            </button>
-                            <button
-                                onClick={() => onPageChange?.('studentRegistry-tools')}
-                                className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors"
-                            >
-                                <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                                    <FileText className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="font-medium text-gray-900 dark:text-white">Generate Reports</p>
-                                    <p className="text-xs text-gray-500">View analytics & stats</p>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                {/* Quick Actions & Links - REMOVED */}
+
             </div>
 
             <StudentFormModal
