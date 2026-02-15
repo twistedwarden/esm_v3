@@ -1,12 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-    Clock, Loader2
-} from 'lucide-react';
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+} from "recharts";
 import StudentStats from './components/StudentStats';
 import StudentFormModal from './components/StudentFormModal';
-import studentApiService from '../../../../services/studentApiService';
 import { useToastContext } from '../../../../components/providers/ToastProvider';
 
+// Mock data for Line Chart
+const registrationData = [
+    { name: 'Jan', students: 65 },
+    { name: 'Feb', students: 59 },
+    { name: 'Mar', students: 80 },
+    { name: 'Apr', students: 81 },
+    { name: 'May', students: 56 },
+    { name: 'Jun', students: 55 },
+    { name: 'Jul', students: 40 },
+];
+
+// Mock data for Pie Chart
+const programData = [
+    { name: 'BS IT', value: 400 },
+    { name: 'BS CS', value: 300 },
+    { name: 'BS IS', value: 300 },
+    { name: 'BS ECE', value: 200 },
+];
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 interface OverviewProps {
     onPageChange?: (id: string, tabId?: string) => void;
@@ -14,39 +43,7 @@ interface OverviewProps {
 
 const Overview: React.FC<OverviewProps> = ({ onPageChange }) => {
     const { showSuccess } = useToastContext();
-    const [recentStudents, setRecentStudents] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
-
-    useEffect(() => {
-        fetchRecentStudents();
-    }, []);
-
-    const fetchRecentStudents = async () => {
-        try {
-            const response = await studentApiService.getStudents({
-                per_page: 5,
-                sort: 'created_at',
-                order: 'desc'
-            });
-            const res = response as any;
-            const data = res.data?.data || res.data || [];
-            setRecentStudents(Array.isArray(data) ? data : []);
-        } catch (error) {
-            console.error('Failed to fetch recent students:', error);
-            // Don't show error toast on initial load to avoid annoyance, just log
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
-    };
 
     return (
         <div className="space-y-6">
@@ -54,86 +51,93 @@ const Overview: React.FC<OverviewProps> = ({ onPageChange }) => {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Registry Overview</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">
-                        System snapshot and quick actions
+                        System snapshot and analytics
                     </p>
                 </div>
-                {/* <button
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
-                >
-                    <UserPlus className="w-4 h-4" />
-                    <span>Add Student</span>
-                </button> */}
             </div>
 
             {/* Statistics Cards */}
             <StudentStats />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Recent Registrations */}
-                <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-gray-400" />
-                            Recent Registrations
-                        </h2>
-                        <button
-                            onClick={() => onPageChange?.('studentRegistry-directory')}
-                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                            View All
-                        </button>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Line Chart - Registration Trends */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Registration Trends</h3>
+                    <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={registrationData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                <XAxis
+                                    dataKey="name"
+                                    tick={{ fill: '#64748B' }}
+                                    axisLine={{ stroke: '#E2E8F0' }}
+                                    tickLine={false}
+                                />
+                                <YAxis
+                                    tick={{ fill: '#64748B' }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#fff',
+                                        borderRadius: '8px',
+                                        border: '1px solid #e2e8f0',
+                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                                    }}
+                                />
+                                <Legend />
+                                <Line
+                                    type="monotone"
+                                    dataKey="students"
+                                    stroke="#3B82F6"
+                                    strokeWidth={3}
+                                    dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4, stroke: '#fff' }}
+                                    activeDot={{ r: 8 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
-
-                    {loading ? (
-                        <div className="p-12 flex justify-center">
-                            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                        </div>
-                    ) : recentStudents.length > 0 ? (
-                        <div className="divide-y divide-gray-100 dark:divide-slate-700">
-                            {recentStudents.map((student, index) => (
-                                <div key={student.student_uuid || index} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-500 font-bold">
-                                            {student.first_name?.[0]}{student.last_name?.[0]}
-                                        </div>
-                                        <div>
-                                            <p className="font-medium text-gray-900 dark:text-white">
-                                                {student.first_name} {student.last_name}
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                {student.program} • {student.year_level}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${student.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                                            }`}>
-                                            {student.status}
-                                        </span>
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            {formatDate(student.created_at)}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="p-12 text-center text-gray-500">
-                            No recent registrations found
-                        </div>
-                    )}
                 </div>
 
-                {/* Quick Actions & Links - REMOVED */}
-
+                {/* Pie Chart - Student Distribution */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Student Distribution</h3>
+                    <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={programData}
+                                    cx="50%"
+                                    cy="50%"
+                                    labelLine={false}
+                                    outerRadius={100}
+                                    fill="#8884d8"
+                                    dataKey="value"
+                                >
+                                    {programData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#fff',
+                                        borderRadius: '8px',
+                                        border: '1px solid #e2e8f0',
+                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                                    }}
+                                />
+                                <Legend layout="vertical" verticalAlign="middle" align="right" />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
 
             <StudentFormModal
                 isOpen={showAddModal}
                 onClose={() => setShowAddModal(false)}
                 onSuccess={() => {
-                    fetchRecentStudents();
                     showSuccess('Student added successfully');
                 }}
             />
