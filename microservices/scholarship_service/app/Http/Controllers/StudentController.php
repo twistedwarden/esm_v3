@@ -906,13 +906,33 @@ class StudentController extends Controller
     {
         try {
             $totalStudents = Student::count();
-            
+
             // Calculate specific stats based on scholarship_status
             $activeScholars = Student::where('scholarship_status', 'scholar')->count();
-            $applicants = Student::where('scholarship_status', 'applicant')->count();
+
+            // Count applicants based on pending applications in scholarship_applications table
+            // This ensures we capture all students with ongoing applications regardless of their profile status
+            $pendingStatuses = [
+                'submitted',
+                'documents_reviewed',
+                'interview_scheduled',
+                'interview_completed',
+                'endorsed_to_ssc',
+                'ssc_document_verification',
+                'ssc_financial_review',
+                'ssc_academic_review',
+                'ssc_final_approval',
+                'for_compliance',
+                'compliance_documents_submitted'
+            ];
+
+            $applicants = \App\Models\ScholarshipApplication::whereIn('status', $pendingStatuses)
+                ->distinct('student_id')
+                ->count('student_id');
+
             // Assuming 'probation' or similar status indicating at risk
             $atRisk = Student::whereIn('scholarship_status', ['probation', 'warning', 'at_risk'])->count();
-            
+
             // Use only basic fields that definitely exist
             $studentsByStatus = [
                 'enrolled' => Student::where('is_currently_enrolled', true)->count(),
@@ -936,13 +956,13 @@ class StudentController extends Controller
             }
 
             // Get Registration Trends (Last 7 months)
-            $registrationData = collect(range(6, 0))->map(function($i) {
+            $registrationData = collect(range(6, 0))->map(function ($i) {
                 $date = now()->subMonths($i);
                 return [
                     'name' => $date->format('M'),
                     'students' => Student::whereYear('created_at', $date->year)
-                                         ->whereMonth('created_at', $date->month)
-                                         ->count()
+                        ->whereMonth('created_at', $date->month)
+                        ->count()
                 ];
             });
 
@@ -955,9 +975,9 @@ class StudentController extends Controller
                 ->orderByDesc('value')
                 ->limit(5) // Limit to top 5 programs
                 ->get()
-                ->map(function($record) {
+                ->map(function ($record) {
                     return [
-                        'name' => $record->program, 
+                        'name' => $record->program,
                         'value' => $record->value
                     ];
                 });
@@ -967,7 +987,7 @@ class StudentController extends Controller
                 'data' => [
                     'total_students' => $totalStudents,
                     'active_scholars' => $activeScholars,
-                    'applicants' => $applicants,
+                    'applicants' => $applicants, // Now using real count from applications table
                     'at_risk' => $atRisk,
                     'alumni' => Student::where('scholarship_status', 'alumni')->count(),
                     'students_by_status' => $studentsByStatus,
