@@ -26,7 +26,7 @@ import studentApiService from '../../../../services/studentApiService';
 import archivedDataService from '../../../../services/archivedDataService';
 
 const ArchivedOverview = () => {
-  const { showSuccess, showError } = useToastContext();
+  const { success, error } = useToastContext();
   const [archivedData, setArchivedData] = useState({
     users: [],
     applications: [],
@@ -188,7 +188,7 @@ const ArchivedOverview = () => {
         }))
       );
 
-      showError('Using offline data - API connection failed');
+      error('Using offline data - API connection failed');
     } finally {
       setLoading(false);
     }
@@ -233,7 +233,7 @@ const ArchivedOverview = () => {
       }
 
       if (response && (response.success || response.data)) {
-        showSuccess(`${item.name || item.applicantName || item.action} has been restored successfully`);
+        success(`${item.name || item.applicantName || item.action} has been restored successfully`);
 
         // Remove from archived data
         if (category && archivedData[category]) {
@@ -248,9 +248,9 @@ const ArchivedOverview = () => {
 
       setShowRestoreModal(false);
       setItemToRestore(null);
-    } catch (error) {
-      console.error('Error restoring item:', error);
-      showError(error?.response?.data?.message || 'Failed to restore item');
+    } catch (err) {
+      console.error('Error restoring item:', err);
+      error(err?.response?.data?.message || 'Failed to restore item');
     }
   };
 
@@ -265,14 +265,14 @@ const ArchivedOverview = () => {
       // Check if this is a student record
       if (item.role === 'student' || category === 'users') {
         // Use studentApiService for students
-        response = await studentApiService.forceDeleteStudent(item.id);
+        response = await studentApiService.deleteStudent(item.id);
       } else {
         // Use archivedDataService for other types
         response = await archivedDataService.permanentDeleteItem(category, item.id);
       }
 
       if (response && (response.success || response.data)) {
-        showSuccess(`${item.name || item.applicantName || item.action} has been permanently deleted`);
+        success(`${item.name || item.applicantName || item.action} has been permanently deleted`);
 
         // Remove from archived data
         if (category && archivedData[category]) {
@@ -287,9 +287,9 @@ const ArchivedOverview = () => {
 
       setShowDeleteModal(false);
       setItemToRestore(null);
-    } catch (error) {
-      console.error('Error permanently deleting item:', error);
-      showError(error?.response?.data?.message || 'Failed to permanently delete item');
+    } catch (err) {
+      console.error('Error permanently deleting item:', err);
+      error(err?.response?.data?.message || 'Failed to permanently delete item');
     }
   };
 
