@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
     X, User, GraduationCap, PhilippinePeso, FileText, Activity,
-    Edit, Plus, Calendar,
+    Edit,
     MapPin, Phone, Mail, Award,
     Loader2
 } from 'lucide-react';
@@ -23,8 +23,8 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose
     const [student, setStudent] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [academicHistory, setAcademicHistory] = useState<any[]>([]);
-    const [financialHistory, setFinancialHistory] = useState<any[]>([]);
-    const [documents, setDocuments] = useState<any[]>([]);
+    // const [financialHistory, setFinancialHistory] = useState<any[]>([]);
+    // const [documents, setDocuments] = useState<any[]>([]);
     const [notes, setNotes] = useState<any[]>([]);
     const [newNote, setNewNote] = useState('');
 
@@ -47,20 +47,20 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose
         setLoading(true);
         try {
             // Parallel fetch for efficiency
-            const [studentData, academicData, financialData, notesData] = await Promise.all([
+            const [studentData, academicData, notesData] = await Promise.all([
                 studentApiService.getStudentByUUID(String(studentUuid!)),
                 studentApiService.getStudentAcademicHistory(String(studentUuid!)),
-                studentApiService.getStudentFinancialHistory(String(studentUuid!)),
+                // studentApiService.getStudentFinancialHistory(String(studentUuid!)),
                 studentApiService.getStudentNotes(String(studentUuid!))
             ]);
 
             setStudent((studentData as any).data);
             setAcademicHistory((academicData as any).data || []);
-            setFinancialHistory((financialData as any).data || []);
+            // setFinancialHistory((financialData as any).data || []);
             setNotes((notesData as any).data || []);
 
             // Mock documents for now as the API might not be fully ready or empty
-            setDocuments([]);
+            // setDocuments([]);
         } catch (error) {
             console.error('Error fetching student data:', error);
             showError('Failed to load student data');
