@@ -91,14 +91,16 @@ const StreamlinedDashboard = ({ onPageChange }) => {
             value: overview.actionable_count || 0,
             subtext: "Applications in workflow",
             status: (overview.actionable_count > 50) ? 'warning' : 'good',
-            icon: Clock
+            icon: Clock,
+            onClick: () => onPageChange('scholarship-applications')
         },
         {
             label: "Critical Issues",
             value: overview.critical_count || 0,
             subtext: "Require resolution",
             status: (overview.critical_count > 0) ? 'critical' : 'good',
-            icon: AlertTriangle
+            icon: AlertTriangle,
+            onClick: () => onPageChange('scholarship-applications')
         },
         {
             label: "Processing Speed",
@@ -106,7 +108,8 @@ const StreamlinedDashboard = ({ onPageChange }) => {
             subtext: "Avg time to approve",
             status: 'good',
             trend: 1,
-            icon: Activity
+            icon: Activity,
+            onClick: () => onPageChange('emr-overview')
         },
         {
             label: "Disbursed (Cycle)",
@@ -115,7 +118,8 @@ const StreamlinedDashboard = ({ onPageChange }) => {
                 : `₱${((overview.disbursedAmount || 0) / 1000).toFixed(1)}K`,
             subtext: `${overview.disbursedCount || 0} accounts disbursed`,
             status: 'neutral',
-            icon: Send
+            icon: Send,
+            onClick: () => onPageChange('sad-overview')
         }
     ];
 

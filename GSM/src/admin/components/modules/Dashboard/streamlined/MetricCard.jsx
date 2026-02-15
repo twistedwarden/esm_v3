@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 
-const MetricCard = ({ label, value, subtext, status = 'neutral', trend = null, icon: Icon }) => {
+const MetricCard = ({ label, value, subtext, status = 'neutral', trend = null, icon: Icon, onClick }) => {
     const getStatusColor = () => {
         switch (status) {
             case 'good': return 'text-green-600 bg-green-50 border-green-200';
@@ -19,7 +19,10 @@ const MetricCard = ({ label, value, subtext, status = 'neutral', trend = null, i
     };
 
     return (
-        <div className={`p-4 rounded-xl border transition-all duration-200 ${getStatusColor()} flex flex-col justify-between h-32`}>
+        <div
+            onClick={onClick}
+            className={`p-4 rounded-xl border transition-all duration-200 ${getStatusColor()} flex flex-col justify-between h-32 ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-95' : ''}`}
+        >
             <div className="flex justify-between items-start">
                 <span className="text-sm font-medium opacity-80 uppercase tracking-wide">{label}</span>
                 {Icon && <Icon className="w-5 h-5 opacity-60" />}
