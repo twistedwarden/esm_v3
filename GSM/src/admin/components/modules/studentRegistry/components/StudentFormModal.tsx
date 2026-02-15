@@ -13,7 +13,7 @@ interface StudentFormModalProps {
 }
 
 const StudentFormModal: React.FC<StudentFormModalProps> = ({ isOpen, onClose, initialData, onSuccess }) => {
-    const { showSuccess, showError } = useToastContext();
+    const { success: showSuccess, error: showError } = useToastContext();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [formData, setFormData] = useState({

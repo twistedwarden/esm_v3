@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
-import { 
-  Upload, Download, CheckCircle, Settings, X
+import {
+    Upload, Download, CheckCircle, Settings, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import studentApiService from '../../../../../services/studentApiService';
 
 const DataTools: React.FC = () => {
-    const { showSuccess, showError } = useToastContext();
+    const { success: showSuccess, error: showError } = useToastContext();
     const [importFile, setImportFile] = useState<File | null>(null);
     const [importProgress, setImportProgress] = useState(0);
     const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'success' | 'error'>('idle');
     const [importResults, setImportResults] = useState<any>(null);
     const [showImportSettings, setShowImportSettings] = useState(false);
-    
+
     // Settings state
     const [importSettings, setImportSettings] = useState({
         skipFirstRow: true,
         delimiter: ',',
         defaultStatus: 'active'
     });
-    
+
     const [exportSettings, setExportSettings] = useState({
         format: 'csv',
         includeHeaders: true,
@@ -59,13 +59,13 @@ const DataTools: React.FC = () => {
 
             // Real implementation would be:
             // await studentApiService.importStudents(importFile, importSettings);
-            
+
             // Simulating API delay
             await new Promise(resolve => setTimeout(resolve, 2000));
-            
+
             clearInterval(interval);
             setImportProgress(100);
-            
+
             setImportResults({
                 total: 10,
                 successful: 8,
@@ -74,7 +74,7 @@ const DataTools: React.FC = () => {
             });
             setImportStatus('success');
             showSuccess('Import completed with some errors');
-            
+
         } catch (error) {
             setImportStatus('error');
             showError('Import failed');
@@ -123,19 +123,19 @@ const DataTools: React.FC = () => {
                             >
                                 <div className="space-y-3">
                                     <label className="flex items-center space-x-2">
-                                        <input 
-                                            type="checkbox" 
+                                        <input
+                                            type="checkbox"
                                             checked={importSettings.skipFirstRow}
-                                            onChange={e => setImportSettings(prev => ({...prev, skipFirstRow: e.target.checked}))}
+                                            onChange={e => setImportSettings(prev => ({ ...prev, skipFirstRow: e.target.checked }))}
                                             className="rounded text-blue-600"
                                         />
                                         <span className="text-sm text-gray-700 dark:text-gray-300">Skip Header Row</span>
                                     </label>
                                     <div>
                                         <span className="text-xs text-gray-500 uppercase font-semibold">Delimiter</span>
-                                        <select 
+                                        <select
                                             value={importSettings.delimiter}
-                                            onChange={e => setImportSettings(prev => ({...prev, delimiter: e.target.value}))}
+                                            onChange={e => setImportSettings(prev => ({ ...prev, delimiter: e.target.value }))}
                                             className="mt-1 block w-full text-sm border-gray-300 rounded-md dark:bg-slate-800 dark:border-slate-600 px-2 py-1"
                                         >
                                             <option value=",">Comma (,)</option>
@@ -148,8 +148,8 @@ const DataTools: React.FC = () => {
                     </AnimatePresence>
 
                     <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer relative">
-                        <input 
-                            type="file" 
+                        <input
+                            type="file"
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             onChange={handleFileSelect}
                             accept=".csv,.xlsx,.xls"
@@ -192,14 +192,14 @@ const DataTools: React.FC = () => {
                     )}
 
                     <div className="mt-6 flex space-x-3">
-                        <button 
+                        <button
                             onClick={handleImport}
                             disabled={!importFile || importStatus === 'importing'}
                             className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                         >
                             Start Import
                         </button>
-                        <button 
+                        <button
                             onClick={downloadTemplate}
                             className="px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300"
                         >
@@ -229,12 +229,11 @@ const DataTools: React.FC = () => {
                                 {['csv', 'excel', 'json', 'pdf'].map(fmt => (
                                     <button
                                         key={fmt}
-                                        onClick={() => setExportSettings(prev => ({...prev, format: fmt}))}
-                                        className={`flex items-center justify-center space-x-2 p-3 border rounded-lg transition-colors ${
-                                            exportSettings.format === fmt 
+                                        onClick={() => setExportSettings(prev => ({ ...prev, format: fmt }))}
+                                        className={`flex items-center justify-center space-x-2 p-3 border rounded-lg transition-colors ${exportSettings.format === fmt
                                                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
                                                 : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-                                        }`}
+                                            }`}
                                     >
                                         <span className="uppercase text-sm font-medium">{fmt}</span>
                                     </button>
@@ -245,26 +244,26 @@ const DataTools: React.FC = () => {
                         <div className="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg space-y-3">
                             <h4 className="text-sm font-medium text-gray-900 dark:text-white">Filters</h4>
                             <label className="flex items-center space-x-2">
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     checked={exportSettings.filterActive}
-                                    onChange={e => setExportSettings(prev => ({...prev, filterActive: e.target.checked}))}
+                                    onChange={e => setExportSettings(prev => ({ ...prev, filterActive: e.target.checked }))}
                                     className="rounded text-green-600"
                                 />
                                 <span className="text-sm text-gray-700 dark:text-gray-300">Active Students Only</span>
                             </label>
                             <label className="flex items-center space-x-2">
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     checked={exportSettings.includeHeaders}
-                                    onChange={e => setExportSettings(prev => ({...prev, includeHeaders: e.target.checked}))}
+                                    onChange={e => setExportSettings(prev => ({ ...prev, includeHeaders: e.target.checked }))}
                                     className="rounded text-green-600"
                                 />
                                 <span className="text-sm text-gray-700 dark:text-gray-300">Include Headers</span>
                             </label>
                         </div>
 
-                        <button 
+                        <button
                             onClick={handleExport}
                             className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
                         >

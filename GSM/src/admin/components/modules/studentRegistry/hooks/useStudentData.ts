@@ -22,7 +22,7 @@ export interface PaginationState {
 }
 
 export const useStudentData = (viewMode: ViewMode = 'all') => {
-    const { showSuccess, showError } = useToastContext();
+    const { success: showSuccess, error: showError } = useToastContext();
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState<StudentFilters>({

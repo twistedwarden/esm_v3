@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    BarChart3, PieChart, TrendingUp, Download, Users, 
-    GraduationCap, Award, PhilippinePeso, BookOpen, FileText, 
-    RefreshCw, Loader2 
+import {
+    BarChart3, PieChart, TrendingUp, Download, Users,
+    GraduationCap, Award, PhilippinePeso, BookOpen, FileText,
+    RefreshCw, Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 import studentApiService from '../../../../../services/studentApiService';
 
 const AnalyticsView: React.FC = () => {
-    const { showSuccess, showError } = useToastContext();
+    const { success: showSuccess, error: showError } = useToastContext();
     const [loading, setLoading] = useState(true);
     const [selectedReport, setSelectedReport] = useState('demographics');
     const [reportData, setReportData] = useState<any>(null);
@@ -74,13 +74,13 @@ const AnalyticsView: React.FC = () => {
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Generate insights and track performance</p>
                 </div>
                 <div className="flex gap-2">
-                    <button 
-                        onClick={() => fetchReportData()} 
+                    <button
+                        onClick={() => fetchReportData()}
                         className="p-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50"
                     >
                         <RefreshCw className={`w-4 h-4 text-gray-600 dark:text-gray-300 ${loading ? 'animate-spin' : ''}`} />
                     </button>
-                    <button 
+                    <button
                         onClick={() => handleExport('pdf')}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                     >
@@ -97,11 +97,10 @@ const AnalyticsView: React.FC = () => {
                         <button
                             key={report.id}
                             onClick={() => setSelectedReport(report.id)}
-                            className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
-                                selectedReport === report.id
+                            className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${selectedReport === report.id
                                     ? `bg-${report.color}-50 border-${report.color}-200 text-${report.color}-700 dark:bg-${report.color}-900/20 dark:border-${report.color}-800 dark:text-${report.color}-300`
                                     : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-slate-800 dark:border-slate-700 dark:text-gray-400 dark:hover:bg-slate-700'
-                            }`}
+                                }`}
                         >
                             <report.icon className="w-5 h-5" />
                             <span className="font-medium">{report.title}</span>
@@ -125,7 +124,7 @@ const AnalyticsView: React.FC = () => {
                                 <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6 capitalize">
                                     {selectedReport.replace('_', ' ')} Overview
                                 </h2>
-                                
+
                                 {selectedReport === 'demographics' && reportData && (
                                     <div className="space-y-6">
                                         <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl">
@@ -134,7 +133,7 @@ const AnalyticsView: React.FC = () => {
                                                 {reportData.totalStudents?.toLocaleString()}
                                             </p>
                                         </div>
-                                        
+
                                         <div className="space-y-4">
                                             <h3 className="font-semibold text-gray-700 dark:text-gray-300">Distribution by School</h3>
                                             {reportData.bySchool?.map((item: any, i: number) => (
@@ -144,8 +143,8 @@ const AnalyticsView: React.FC = () => {
                                                         <span className="font-medium text-gray-900 dark:text-white">{item.percentage}% ({item.count})</span>
                                                     </div>
                                                     <div className="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-2">
-                                                        <div 
-                                                            className="bg-blue-500 h-2 rounded-full" 
+                                                        <div
+                                                            className="bg-blue-500 h-2 rounded-full"
                                                             style={{ width: `${item.percentage}%` }}
                                                         />
                                                     </div>

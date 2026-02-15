@@ -18,7 +18,7 @@ interface StudentDetailModalProps {
 }
 
 const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, onClose, studentUuid, onEdit }) => {
-    const { showSuccess, showError } = useToastContext();
+    const { success: showSuccess, error: showError } = useToastContext();
     const [activeTab, setActiveTab] = useState('overview');
     const [student, setStudent] = useState<any>(null);
     const [loading, setLoading] = useState(true);

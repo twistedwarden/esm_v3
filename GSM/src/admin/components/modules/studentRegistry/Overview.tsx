@@ -25,7 +25,7 @@ interface OverviewProps {
 }
 
 const Overview: React.FC<OverviewProps> = () => {
-    const { showSuccess } = useToastContext();
+    const { success: showSuccess } = useToastContext();
     const [showAddModal, setShowAddModal] = useState(false);
     const [registrationData, setRegistrationData] = useState<any[]>([]);
     const [programData, setProgramData] = useState<any[]>([]);
