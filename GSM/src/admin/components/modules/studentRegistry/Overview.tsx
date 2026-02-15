@@ -41,7 +41,7 @@ interface OverviewProps {
     onPageChange?: (id: string, tabId?: string) => void;
 }
 
-const Overview: React.FC<OverviewProps> = ({ onPageChange }) => {
+const Overview: React.FC<OverviewProps> = () => {
     const { showSuccess } = useToastContext();
     const [showAddModal, setShowAddModal] = useState(false);
 
@@ -115,7 +115,7 @@ const Overview: React.FC<OverviewProps> = ({ onPageChange }) => {
                                     fill="#8884d8"
                                     dataKey="value"
                                 >
-                                    {programData.map((entry, index) => (
+                                    {programData.map((_, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
