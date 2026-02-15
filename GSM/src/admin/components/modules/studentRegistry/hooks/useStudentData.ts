@@ -71,17 +71,17 @@ export const useStudentData = (viewMode: ViewMode = 'all') => {
             if (filters.program !== 'all') apiFilters.program = filters.program;
             if (filters.year_level !== 'all') apiFilters.year_level = filters.year_level;
             if (filters.academic_status !== 'all') apiFilters.academic_status = filters.academic_status;
-            
+
             // Override scholarship status filter if set manually and not conflicting with viewMode
             if (filters.scholarship_status !== 'all' && viewMode !== 'scholars' && viewMode !== 'non_scholars') {
                 apiFilters.scholarship_status = filters.scholarship_status;
             }
 
-            const response = await studentApiService.getStudents(apiFilters);
+            const response: any = await studentApiService.getStudents(apiFilters);
             // Handle different response structures: response.data.data or response.data or response
             const studentsData = response?.data?.data || response?.data || response || [];
             const studentsArray = Array.isArray(studentsData) ? studentsData : [];
-            
+
             setStudents(studentsArray);
             setPagination(prev => ({
                 ...prev,
@@ -124,32 +124,48 @@ export const useStudentData = (viewMode: ViewMode = 'all') => {
     // Bulk Actions
     const handleArchive = async (uuids: string[]) => {
         try {
-            await studentApiService.bulkArchiveStudents(uuids);
-            showSuccess(`${uuids.length} students archived`);
-            refreshData();
-        } catch (error) {
-            showError('Failed to archive students');
+            const response: any = await studentApiService.bulkArchiveStudents(uuids);
+            console.log('Archive response:', response);
+            if (response && response.success) {
+                showSuccess(`${uuids.length} student(s) archived successfully`);
+                refreshData();
+            } else {
+                showError(response?.message || 'Failed to archive students');
+            }
+        } catch (error: any) {
+            console.error('Error bulk archiving students:', error);
+            showError(error?.response?.data?.message || 'Failed to archive students');
         }
     };
 
     const handleRestore = async (uuids: string[]) => {
         try {
-            await studentApiService.bulkRestoreStudents(uuids);
-            showSuccess(`${uuids.length} students restored`);
-            refreshData();
-        } catch (error) {
-            showError('Failed to restore students');
+            const response: any = await studentApiService.bulkRestoreStudents(uuids);
+            if (response && response.success) {
+                showSuccess(`${uuids.length} student(s) restored successfully`);
+                refreshData();
+            } else {
+                showError(response?.message || 'Failed to restore students');
+            }
+        } catch (error: any) {
+            console.error('Error bulk restoring students:', error);
+            showError(error?.response?.data?.message || 'Failed to restore students');
         }
     };
 
     const handleDelete = async (uuids: string[]) => {
         if (!confirm('Are you sure you want to permanently delete these students? This action cannot be undone.')) return;
         try {
-            await studentApiService.bulkForceDeleteStudents(uuids);
-            showSuccess(`${uuids.length} students permanently deleted`);
-            refreshData();
-        } catch (error) {
-            showError('Failed to delete students');
+            const response: any = await studentApiService.bulkForceDeleteStudents(uuids);
+            if (response && response.success) {
+                showSuccess(`${uuids.length} student(s) permanently deleted`);
+                refreshData();
+            } else {
+                showError(response?.message || 'Failed to delete students');
+            }
+        } catch (error: any) {
+            console.error('Error bulk deleting students:', error);
+            showError(error?.response?.data?.message || 'Failed to delete students');
         }
     };
 
