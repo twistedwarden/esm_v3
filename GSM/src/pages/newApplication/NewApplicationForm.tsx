@@ -633,7 +633,7 @@ export const NewApplicationForm: React.FC = () => {
         presentAddressLine2: existingApplication.student?.addresses?.[0]?.address_line_2 || '',
         barangay: existingApplication.student?.addresses?.[0]?.barangay || '',
         district: existingApplication.student?.addresses?.[0]?.district || '',
-        city: existingApplication.student?.addresses?.[0]?.city || 'QUEZON CITY',
+        city: existingApplication.student?.addresses?.[0]?.city || 'CALOOCAN CITY',
         province: existingApplication.student?.addresses?.[0]?.province || '',
         region: existingApplication.student?.addresses?.[0]?.region || '',
         zipCode: existingApplication.student?.addresses?.[0]?.zip_code || '',
@@ -902,7 +902,7 @@ export const NewApplicationForm: React.FC = () => {
             setValue('presentAddressLine2', address.address_line_2 || '');
             setValue('barangay', address.barangay || '');
             setValue('district', address.district || '');
-            setValue('city', address.city || 'QUEZON CITY');
+            setValue('city', address.city || 'CALOOCAN CITY');
             setValue('province', address.province || '');
             setValue('region', address.region || '');
             setValue('zipCode', address.zip_code || '');
