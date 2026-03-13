@@ -17,13 +17,17 @@ import { getStudentAcademicPerformance } from '../../../../../services/monitorin
 
 // Utility functions
 // Philippine 5-point scale: 1.0 = highest, 5.0 = lowest, 3.0 = passing
-const formatGPA = (gpa) => (gpa ? gpa.toFixed(2) : 'N/A');
+const formatGPA = (gpa) => {
+    const num = parseFloat(gpa);
+    return !isNaN(num) ? num.toFixed(2) : 'N/A';
+};
 const getGradeLabel = (gpa) => {
-    if (!gpa) return 'No Grade';
-    if (gpa <= 1.5) return 'Excellent';
-    if (gpa <= 2.0) return 'Very Good';
-    if (gpa <= 2.5) return 'Good';
-    if (gpa <= 3.0) return 'Passing';
+    const num = parseFloat(gpa);
+    if (isNaN(num)) return 'No Grade';
+    if (num <= 1.5) return 'Excellent';
+    if (num <= 2.0) return 'Very Good';
+    if (num <= 2.5) return 'Good';
+    if (num <= 3.0) return 'Passing';
     return 'Failing';
 };
 const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : 'N/A');
