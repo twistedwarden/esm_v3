@@ -770,14 +770,14 @@ class ScholarshipApiService {
   }
 
   async submitRenewalApplication(formData: any): Promise<ScholarshipApplication> {
-    const response = await this.makeRequest<{ data: ScholarshipApplication }>(
+    const response = await this.makeRequest<ScholarshipApplication>(
       API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS.FORM_RENEWAL_APPLICATION,
       {
         method: 'POST',
         body: JSON.stringify(formData),
       }
     );
-    return response.data!.data!;
+    return response.data!;
   }
 
   async uploadDocument(documentData: FormData): Promise<Document> {

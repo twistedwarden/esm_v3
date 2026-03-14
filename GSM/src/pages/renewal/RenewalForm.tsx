@@ -493,8 +493,7 @@ export const RenewalForm: React.FC = () => {
 
           <div className="p-6 md:p-8">
             {/* STEP 1: Personal Information */}
-            {currentStep === 1 && (
-              <div className="space-y-6">
+              <div className="space-y-6" style={{ display: currentStep === 1 ? 'block' : 'none' }}>
                 <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-100">
                   <User className="h-6 w-6 text-green-600" />
                   <h2 className="text-xl font-semibold text-gray-800">Review Personal Information</h2>
@@ -550,11 +549,9 @@ export const RenewalForm: React.FC = () => {
                   />
                 </div>
               </div>
-            )}
 
             {/* STEP 2: Academic Updates */}
-            {currentStep === 2 && (
-              <div className="space-y-6">
+              <div className="space-y-6" style={{ display: currentStep === 2 ? 'block' : 'none' }}>
                 <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-100">
                   <GraduationCap className="h-6 w-6 text-green-600" />
                   <h2 className="text-xl font-semibold text-gray-800">Academic Updates</h2>
@@ -682,11 +679,9 @@ export const RenewalForm: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )}
 
             {/* STEP 3: Documents */}
-            {currentStep === 3 && (
-              <div className="space-y-6">
+              <div className="space-y-6" style={{ display: currentStep === 3 ? 'block' : 'none' }}>
                 <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-100">
                   <FileText className="h-6 w-6 text-green-600" />
                   <h2 className="text-xl font-semibold text-gray-800">Required Documents</h2>
@@ -746,7 +741,6 @@ export const RenewalForm: React.FC = () => {
                   </div>
                 )}
               </div>
-            )}
           </div>
 
           {/* Footer Actions */}
