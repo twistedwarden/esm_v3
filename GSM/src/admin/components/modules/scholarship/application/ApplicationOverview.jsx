@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Users,
   CheckCircle,
@@ -143,27 +145,6 @@ function ApplicationOverview() {
         return;
       }
 
-      // Dynamically import jsPDF to avoid bundling issues
-      const jspdfModule = await import('jspdf');
-
-      // Try multiple ways to get the constructor based on how Vite bundles it
-      let JsPDFConstructor;
-      if (typeof jspdfModule.jsPDF === 'function') {
-        JsPDFConstructor = jspdfModule.jsPDF;
-      } else if (typeof jspdfModule.default === 'function') {
-        JsPDFConstructor = jspdfModule.default;
-      } else if (jspdfModule.default && typeof jspdfModule.default.jsPDF === 'function') {
-        JsPDFConstructor = jspdfModule.default.jsPDF;
-      } else if (jspdfModule.default && typeof jspdfModule.default.default === 'function') {
-        JsPDFConstructor = jspdfModule.default.default;
-      } else {
-        throw new Error('Failed to locate jsPDF constructor');
-      }
-
-      // Import autotable plugin and get the function
-      const autoTableModule = await import('jspdf-autotable');
-      let autoTable = autoTableModule.default || autoTableModule;
-
       // Configure PDF options, including encryption if password is provided
       const pdfOptions = { orientation: 'landscape' };
       if (password) {
@@ -174,7 +155,7 @@ function ApplicationOverview() {
         };
       }
 
-      const doc = new JsPDFConstructor(pdfOptions);
+      const doc = new jsPDF(pdfOptions);
 
       const timestamp = new Date().toLocaleString();
 
@@ -202,7 +183,7 @@ function ApplicationOverview() {
       ]);
 
       // Use the imported autoTable function
-      const tableOptions = {
+      autoTable(doc, {
         startY: 45,
         head: [['App #', 'Student Name', 'School', 'Category', 'Subcategory', 'Status', 'Date Applied']],
         body: tableRows,
@@ -213,17 +194,7 @@ function ApplicationOverview() {
           1: { cellWidth: 'auto' }, // Student Name
           2: { cellWidth: 'auto' }  // School
         }
-      };
-
-      if (typeof autoTable === 'function') {
-        autoTable(doc, tableOptions);
-      } else if (typeof doc.autoTable === 'function') {
-        doc.autoTable(tableOptions);
-      } else if (autoTable && typeof autoTable.default === 'function') {
-        autoTable.default(doc, tableOptions);
-      } else {
-        throw new Error('Failed to load autotable plugin');
-      }
+      });
 
       // Footer
       const pageCount = doc.internal.getNumberOfPages();
