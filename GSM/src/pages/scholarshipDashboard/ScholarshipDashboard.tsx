@@ -1072,7 +1072,7 @@ export const ScholarshipDashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 mb-3">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
                 <GraduationCap className="h-7 w-7 text-white" />
@@ -1238,24 +1238,24 @@ export const ScholarshipDashboard: React.FC = () => {
         )}
 
         {/* Application Status Card */}
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 mb-6 text-white">
-          <div className="flex items-center justify-between">
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg p-4 sm:p-6 mb-6 text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
             <div className="flex-1">
               <p className="text-orange-100 text-sm font-medium mb-1">Reference Number</p>
-              <p className="text-3xl font-bold mb-3">{scholarshipData.referenceNumber}</p>
-              <div className="flex items-center space-x-4">
+              <p className="text-2xl sm:text-3xl font-bold mb-3">{scholarshipData.referenceNumber}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                 <div>
                   <p className="text-orange-100 text-xs mb-1">Scholarship Type</p>
                   <p className="text-sm font-medium">{scholarshipData.scholarshipType}</p>
                 </div>
-                <div className="h-8 w-px bg-orange-400"></div>
+                <div className="hidden sm:block h-8 w-px bg-orange-400"></div>
                 <div>
                   <p className="text-orange-100 text-xs mb-1">Amount</p>
                   <p className="text-sm font-medium">{scholarshipData.amount}</p>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-end space-y-2">
+            <div className="flex flex-col items-start sm:items-end space-y-2">
               <div className={`px-4 py-2 rounded-full ${getStatusColor(scholarshipData.status)} shadow-md`}>
                 <div className="flex items-center space-x-2">
                   {getStatusIcon(scholarshipData.status)}
@@ -1294,7 +1294,7 @@ export const ScholarshipDashboard: React.FC = () => {
             </div>
 
             {/* Process Stages */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="flex sm:grid sm:grid-cols-5 gap-3 overflow-x-auto pb-4 sm:pb-0 snap-x hide-scrollbar">
               {processStages.map((stage, index) => {
                 const IconComponent = stage.icon;
                 const isCompleted = scholarshipData.currentStage === -1 ? false : index <= scholarshipData.currentStage;
@@ -1302,7 +1302,7 @@ export const ScholarshipDashboard: React.FC = () => {
                 const isRejected = scholarshipData.currentStage === -1;
 
                 return (
-                  <div key={stage.id} className="text-center">
+                  <div key={stage.id} className="text-center min-w-[120px] sm:min-w-0 flex-shrink-0 snap-center">
                     <div className="relative mb-3">
                       <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center border-2 transition-all duration-300 ${isRejected
                         ? 'bg-red-500 border-red-500 text-white shadow-lg'
