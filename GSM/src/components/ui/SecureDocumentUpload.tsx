@@ -9,7 +9,9 @@ export interface SecureDocumentUploadProps {
   studentId: number;
   applicationId: number;
   isUploading?: boolean;
+  disabled?: boolean;
   existingDocument?: any;
+  applicationStatus?: string;
   onUploadStart: () => void;
   onUploadSuccess: (document: any) => void;
   onUploadError: (error: string) => void;
@@ -26,7 +28,9 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   studentId,
   applicationId,
   isUploading = false,
+  disabled = false,
   existingDocument,
+  applicationStatus,
   onUploadStart,
   onUploadSuccess,
   onUploadError,
@@ -50,6 +54,7 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   }, [documentTypeName, documentTypeId]);
 
   const triggerFileInput = (e: React.MouseEvent) => {
+    if (disabled || isUploading) return;
     // Only trigger if not clicking something interactive inside
     if ((e.target as HTMLElement).closest('button')) {
       return;
@@ -63,12 +68,14 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disabled || isUploading) return;
+    
     if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
     } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
-  }, []);
+  }, [disabled, isUploading]);
 
   const handleFileSelect = async (file: File) => {
     console.log('🔍 File selected:', file.name, file.type, file.size);
@@ -117,13 +124,14 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disabled || isUploading) return;
     setDragActive(false);
 
     const files = e.dataTransfer.files;
     if (files && files[0]) {
       handleFileSelect(files[0]);
     }
-  }, [handleFileSelect]);
+  }, [handleFileSelect, disabled, isUploading]);
 
   const handleUpload = async (file: File) => {
     console.log('🚀 Upload started for:', file.name);
@@ -205,11 +213,25 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
 
   // If document already exists, show current status
   if (existingDocument) {
+    const isApplicationApproved = applicationStatus && ['approved', 'grants_processing', 'grants_disbursed'].includes(applicationStatus.toLowerCase());
+    const displayStatus = isApplicationApproved ? 'verified' : existingDocument.status;
+
+    let existingDocColor = 'border-blue-200 bg-white';
+    let existingDocIcon = <Shield className="h-4 w-4 text-blue-500" />;
+
+    if (displayStatus === 'verified') {
+      existingDocColor = 'border-green-300 bg-green-50';
+      existingDocIcon = <CheckCircle className="h-4 w-4 text-green-500" />;
+    } else if (displayStatus === 'rejected') {
+      existingDocColor = 'border-red-300 bg-red-50';
+      existingDocIcon = <AlertCircle className="h-4 w-4 text-red-500" />;
+    }
+
     return (
-      <div className={`p-3 rounded-lg border ${getStatusColor()} ${className}`}>
+      <div className={`p-3 rounded-lg border ${existingDocColor} ${className}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 flex-1 min-w-0">
-            {getStatusIcon()}
+            {existingDocIcon}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
                 {existingDocument.file_name}
@@ -226,14 +248,14 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-1">
-            <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${existingDocument.status === 'verified'
+            <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${displayStatus === 'verified'
               ? 'bg-green-100 text-green-800'
-              : existingDocument.status === 'rejected'
+              : displayStatus === 'rejected'
                 ? 'bg-red-100 text-red-800'
                 : 'bg-blue-100 text-blue-800'
               }`}>
-              {existingDocument.status === 'verified' ? '✓ Verified' :
-                existingDocument.status === 'rejected' ? '✗ Rejected' : '⏱ Pending'}
+              {displayStatus === 'verified' ? '✓ Verified' :
+                displayStatus === 'rejected' ? '✗ Rejected' : '⏱ Pending'}
             </span>
             {showRemoveButton && onRemove && (
               <button
@@ -255,9 +277,11 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
     <div className={`space-y-2 ${className}`}>
       {/* Upload Area */}
       <div
-        className={`cursor-pointer w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg transition-colors ${dragActive
-          ? 'border-orange-400 bg-orange-50'
-          : 'border-gray-300 hover:border-orange-400 hover:bg-orange-50'
+        className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg transition-colors ${
+          disabled ? 'opacity-50 pointer-events-none bg-gray-50 border-gray-200 cursor-not-allowed' :
+          dragActive
+          ? 'border-orange-400 bg-orange-50 cursor-pointer'
+          : 'border-gray-300 hover:border-orange-400 hover:bg-orange-50 cursor-pointer'
           } ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -311,9 +335,11 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
             </div>
           )}
 
-          <div className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${isUploading || isValidating
+          <div className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            disabled ? 'bg-gray-200 text-gray-400 cursor-not-allowed' :
+            isUploading || isValidating
             ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-            : 'bg-orange-500 text-white hover:bg-orange-600'
+            : 'bg-orange-500 text-white hover:bg-orange-600 cursor-pointer'
             }`}>
             {isUploading || isValidating ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -343,7 +369,7 @@ export const SecureDocumentUpload: React.FC<SecureDocumentUploadProps> = ({
         accept={acceptedTypes.join(',')}
         onChange={handleFileInputChange}
         className="hidden"
-        disabled={isUploading || isValidating}
+        disabled={isUploading || isValidating || disabled}
       />
 
       {/* Validation Warnings */}

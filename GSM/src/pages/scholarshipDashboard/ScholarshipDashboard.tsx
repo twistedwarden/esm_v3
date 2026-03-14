@@ -17,7 +17,7 @@ export const ScholarshipDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [requiredDocuments, setRequiredDocuments] = useState<any[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingDocId, setUploadingDocId] = useState<number | string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isSubmittingApp, setIsSubmittingApp] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -460,6 +460,9 @@ export const ScholarshipDashboard: React.FC = () => {
 
   // Create documents checklist
   const createDocumentsChecklist = () => {
+    // If the overall application is approved, treat all submitted documents as verified
+    const isApplicationApproved = currentApplication && ['approved', 'grants_processing', 'grants_disbursed'].includes(currentApplication.status.toLowerCase());
+
     // Use API data if available, otherwise fall back to standard documents
     const documentsToCheck = requiredDocuments.length > 0 ? requiredDocuments : standardRequiredDocuments;
 
@@ -483,7 +486,7 @@ export const ScholarshipDashboard: React.FC = () => {
         category: requiredDoc.category,
         isRequired: requiredDoc.is_required !== false, // Default to true if not specified
         isSubmitted: !!submittedDoc,
-        status: submittedDoc ? submittedDoc.status : 'missing',
+        status: submittedDoc ? (isApplicationApproved ? 'verified' : submittedDoc.status) : 'missing',
         submittedAt: submittedDoc ? new Date(submittedDoc.created_at).toLocaleDateString() : null,
         verifiedAt: submittedDoc?.verified_at ? new Date(submittedDoc.verified_at).toLocaleDateString() : null,
         verificationNotes: submittedDoc?.verification_notes || null,
@@ -512,7 +515,7 @@ export const ScholarshipDashboard: React.FC = () => {
           category: submittedDoc.document_type?.category || 'other',
           isRequired: false,
           isSubmitted: true,
-          status: submittedDoc.status,
+          status: isApplicationApproved ? 'verified' : submittedDoc.status,
           submittedAt: new Date(submittedDoc.created_at).toLocaleDateString(),
           verifiedAt: submittedDoc.verified_at ? new Date(submittedDoc.verified_at).toLocaleDateString() : null,
           verificationNotes: submittedDoc.verification_notes || null,
@@ -1686,11 +1689,13 @@ export const ScholarshipDashboard: React.FC = () => {
                                       documentTypeName={item.name}
                                       studentId={currentApplication.student_id}
                                       applicationId={currentApplication.id}
-                                      isUploading={isUploading}
+                                      isUploading={uploadingDocId === item.id}
+                                      disabled={uploadingDocId !== null && uploadingDocId !== item.id}
                                       existingDocument={item.document}
-                                      onUploadStart={() => setIsUploading(true)}
+                                      applicationStatus={scholarshipData.rawStatus}
+                                      onUploadStart={() => setUploadingDocId(item.id)}
                                       onUploadSuccess={async () => {
-                                        setIsUploading(false);
+                                        setUploadingDocId(null);
                                         // Refresh documents
                                         const documentsData = await scholarshipApiService.getDocuments({
                                           application_id: currentApplication.id
@@ -1698,7 +1703,7 @@ export const ScholarshipDashboard: React.FC = () => {
                                         setDocuments(documentsData.data || []);
                                       }}
                                       onUploadError={(error) => {
-                                        setIsUploading(false);
+                                        setUploadingDocId(null);
                                         setUploadError(error);
                                       }}
                                       showRemoveButton={item.isSubmitted && ['draft', 'for_compliance'].includes(currentApplication.status)}
