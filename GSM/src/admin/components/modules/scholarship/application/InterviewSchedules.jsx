@@ -225,20 +225,21 @@ function InterviewSchedules() {
 
   const fetchPendingApplications = async () => {
     try {
+      // Build params: only include filters that have real values (backend treats 'all' as literal and returns nothing)
       const params = {
         page: pagination.currentPage,
         per_page: pagination.perPage,
-        ...filters
-      };
-
-      // Basic search param
-      if (searchTerm) params.search = searchTerm;
-
-      const resp = await scholarshipApiService.getApplications({
-        ...params,
         status: 'documents_reviewed',
         with: 'student,category,subcategory'
+      };
+      if (searchTerm) params.search = searchTerm;
+      // Add advanced filters only when they have meaningful values
+      ['category_id', 'subcategory_id', 'level', 'school_id', 'dateFrom', 'dateTo', 'minGwa', 'maxGwa'].forEach((key) => {
+        const v = filters[key];
+        if (v && v !== 'all') params[key] = v;
       });
+
+      const resp = await scholarshipApiService.getApplications(params);
       setPendingApplications(Array.isArray(resp.data) ? resp.data : []);
 
       // Update pagination only if this is the active tab
