@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { FileText, Upload, CheckCircle, User, GraduationCap, PhilippinePeso, ArrowRight, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import {
+  FileText, Upload, CheckCircle, User, GraduationCap,
+  PhilippinePeso, ArrowRight, ArrowLeft, Loader2, AlertCircle, Clock
+} from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { InputField } from '../../components/ui/InputField';
 import { useAuthStore } from '../../store/v1authStore';
 import { scholarshipApiService } from '../../services/scholarshipApiService';
 import * as yup from 'yup';
 import { Link, useNavigate } from 'react-router-dom';
+import { getScholarshipServiceUrl } from '../../config/api';
 
 // Schema Validation
 const renewalSchema = yup.object({
@@ -78,6 +82,8 @@ export const RenewalForm: React.FC = () => {
   const [previousApplication, setPreviousApplication] = useState<any>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
+  const [isSemester2Open, setIsSemester2Open] = useState<boolean | null>(null);
+  const [submittedApplicationNumber, setSubmittedApplicationNumber] = useState<string | null>(null);
 
   const {
     register,
@@ -101,7 +107,6 @@ export const RenewalForm: React.FC = () => {
 
   // Watch fields for conditional rendering
   const paymentMethod = watch('paymentMethod');
-  const [hasOpenPeriod, setHasOpenPeriod] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchPreviousApplication = async () => {
@@ -114,19 +119,25 @@ export const RenewalForm: React.FC = () => {
           scholarshipApiService.getAcademicPeriods()
         ]);
 
-        // Check for open period and get it
+        // Check for open period specifically at semester 2
         const openPeriod = periods.find(p => p.status === 'open' && p.is_current);
-        const open = !!openPeriod;
-        setHasOpenPeriod(open);
+        const isSem2 = openPeriod ? (openPeriod.period_number === 2) : false;
+        setIsSemester2Open(isSem2);
 
-        if (!open) {
+        if (!openPeriod) {
+          setIsEligible(false);
+          setError('No active academic period is currently open.');
+          return;
+        }
+
+        if (!isSem2) {
+          // Period is open but not semester 2 — renewal not yet available
           setIsEligible(false);
           return;
         }
 
         // Auto-populate School Year and Semester from the active academic period
         if (openPeriod) {
-          console.log('Auto-populating renewal academic period:', openPeriod);
           setValue('schoolYear', openPeriod.academic_year);
 
           let term = '';
@@ -135,36 +146,34 @@ export const RenewalForm: React.FC = () => {
             else if (openPeriod.period_number === 2) term = '2nd Semester';
             else if (openPeriod.period_number === 3) term = 'Summer';
           } else {
-            // Fallback
             if (openPeriod.period_number === 1) term = `1st ${openPeriod.period_type}`;
             else if (openPeriod.period_number === 2) term = `2nd ${openPeriod.period_type}`;
             else if (openPeriod.period_number === 3) term = `3rd ${openPeriod.period_type}`;
           }
-
           if (term) setValue('schoolTerm', term);
         }
 
-        // Check if user has any completed applications
-        const completedStatuses = ['approved', 'grants_disbursed'];
-        const completedApps = applications.filter(app =>
-          completedStatuses.includes(app.status?.toLowerCase())
+        // Eligible statuses: student was a scholar in Semester 1 or has an existing application
+        const eligibleStatuses = [
+          'approved', 'grants_processing', 'grants_disbursed',
+          'endorsed_to_ssc', 'submitted', 'documents_reviewed',
+          'interview_completed', 'interview_scheduled'
+        ];
+        const eligibleApps = applications.filter(app =>
+          eligibleStatuses.includes(app.status?.toLowerCase())
         );
 
-        if (completedApps.length === 0) {
-          // User is not eligible for renewal
+        if (eligibleApps.length === 0) {
           setIsEligible(false);
-          setError('You are not eligible for renewal. Please submit a new application first.');
-          // Redirect after 3 seconds
-          setTimeout(() => {
-            navigate('/portal');
-          }, 3000);
+          setError('You are not eligible for renewal. You must have an existing scholarship application from Semester 1.');
+          setTimeout(() => navigate('/portal'), 3000);
           return;
         }
 
         setIsEligible(true);
 
-        // Find the latest completed application to pre-fill
-        const latestApp = completedApps[0];
+        // Find the latest eligible application to pre-fill
+        const latestApp = eligibleApps[0];
 
         if (latestApp) {
           setPreviousApplication(latestApp);
@@ -179,7 +188,6 @@ export const RenewalForm: React.FC = () => {
 
           // Pre-fill some Academic Info that might stay same
           setValue('currentEducationalLevel', 'Tertiary/College');
-          // Try to get course from academic records if available
           if (latestApp.student?.academic_records?.[0]?.program) {
             setValue('course', latestApp.student.academic_records[0].program);
           }
@@ -187,18 +195,14 @@ export const RenewalForm: React.FC = () => {
           // Pre-fill Wallet/Payment if available
           if (latestApp.wallet_account_number) {
             setValue('walletAccountNumber', latestApp.wallet_account_number);
-            // Heuristic to guess payment method
             const walletNum = latestApp.wallet_account_number;
             if (walletNum.startsWith('09')) {
-              // Likely GCash or PayMaya
               setValue('paymentMethod', latestApp.digital_wallets?.[0] || 'GCash');
             } else {
-              // Likely Bank Transfer if not starting with 09
               setValue('paymentMethod', 'Bank Transfer');
             }
           }
         } else {
-          // Fallback to current user data if no app found
           // @ts-ignore
           setValue('firstName', currentUser?.first_name || '');
           // @ts-ignore
@@ -207,7 +211,7 @@ export const RenewalForm: React.FC = () => {
         }
       } catch (err) {
         console.error('Error fetching previous application:', err);
-        setError('Failed to load previous application data. You may need to fill in all fields manually.');
+        setError('Failed to load previous application data. Please try again.');
         setIsEligible(false);
       } finally {
         setIsLoadingData(false);
@@ -230,10 +234,52 @@ export const RenewalForm: React.FC = () => {
     setUploadedFiles(prev => prev.filter(file => file.name !== fileName));
   };
 
+  /**
+   * Upload a single file document via the forms/upload-document endpoint.
+   * Returns the created document record or null on failure.
+   */
+  const uploadDocumentFile = async (file: File, applicationId: number, studentId: number): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) throw new Error('No auth token');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('application_id', String(applicationId));
+      formData.append('student_id', String(studentId));
+      // Use a generic document type - document_type_id 1 as default for renewal uploads
+      formData.append('document_type_id', '1');
+
+      const response = await fetch(
+        getScholarshipServiceUrl('/api/forms/upload-document'),
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        console.warn('Document upload warning:', errData);
+        // Don't fail entire submission for individual doc upload errors
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.warn('Document upload error (non-fatal):', err);
+      return false;
+    }
+  };
+
   const onSubmit = async (data: RenewalFormData) => {
     setIsSubmitting(true);
     setError(null);
 
+    // Validate files
     if (uploadedFiles.length === 0) {
       setError('Please upload the required renewal documents (e.g., Grades, Certificate of Registration).');
       setIsSubmitting(false);
@@ -241,23 +287,60 @@ export const RenewalForm: React.FC = () => {
     }
 
     try {
-      // Construct payload
-      const payload = {
-        ...data,
-        type: 'renewal',
-        previous_application_id: previousApplication?.id,
-        // In real implementation, you would upload files first and send their IDs/URLs
-        // For now we just log them
+      // Build the academic record from form data
+      const academicRecord = {
+        educational_level: 'TERTIARY/COLLEGE',
+        program: data.course,
+        year_level: data.yearLevel,
+        school_year: data.schoolYear,
+        school_term: data.schoolTerm,
+        units_enrolled: parseInt(data.unitsEnrolled) || 0,
+        general_weighted_average: parseFloat(data.gwa) || 0,
+        is_graduating: data.isGraduating === 'Yes',
       };
 
-      console.log('Submitting Renewal:', payload);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Build payment info
+      const digitalWallets: string[] = [];
+      if (data.paymentMethod && data.paymentMethod !== 'Cash' && data.paymentMethod !== 'Bank Transfer') {
+        digitalWallets.push(data.paymentMethod);
+      }
 
+      const payload = {
+        // Student contact info updates (will be sent via form data)
+        financial_need_description: 'Renewal application — continuing scholarship program.',
+        reason_for_renewal: `Applying for renewal for ${data.schoolTerm} ${data.schoolYear}. GWA: ${data.gwa}.`,
+
+        // Academic record for new semester
+        academic_record: academicRecord,
+
+        // Payment info
+        payment_method: data.paymentMethod,
+        bank_name: data.bankName || null,
+        wallet_account_number: data.walletAccountNumber || null,
+        digital_wallets: digitalWallets,
+      };
+
+      console.log('Submitting Renewal Application:', payload);
+
+      // Call the actual API — backend handles eligibility, semester check, copy docs, endorse to SSC
+      const result = await scholarshipApiService.submitRenewalApplication(payload);
+
+      console.log('Renewal submission result:', result);
+
+      // Upload new documents for the new application
+      if (result?.id && previousApplication?.student?.id) {
+        const uploadPromises = uploadedFiles.map(file =>
+          uploadDocumentFile(file, result.id as number, previousApplication.student.id)
+        );
+        await Promise.all(uploadPromises);
+      }
+
+      setSubmittedApplicationNumber(result?.application_number || null);
       setSubmitSuccess(true);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to submit renewal application. Please try again.');
+    } catch (err: any) {
+      console.error('Renewal submission error:', err);
+      const message = err?.message || 'Failed to submit renewal application. Please try again.';
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -266,18 +349,30 @@ export const RenewalForm: React.FC = () => {
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 3));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  // Access check for academic period
-  if (hasOpenPeriod === false) {
+  // ── Loading state ────────────────────────────────────────────────────────────
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 text-green-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading your information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Not semester 2 ──────────────────────────────────────────────────────────
+  if (isSemester2Open === false) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
           <div className="p-3 bg-yellow-100 rounded-full inline-block mb-4">
-            {/* Clock is imported above in original file */}
-            <div className="w-12 h-12 text-yellow-600 flex items-center justify-center font-bold text-2xl">!</div>
+            <Clock className="w-12 h-12 text-yellow-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Applications Closed</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Renewal Not Yet Available</h1>
           <p className="text-gray-600 mb-6">
-            Scholarship renewal applications are currently closed. Please wait for the next academic period to open.
+            Scholarship renewal applications are only available when <strong>Semester 2</strong> is open.
+            Please wait for the administrator to open the second semester application period.
           </p>
           <Button onClick={() => navigate('/portal')} className="w-full">
             Return to Dashboard
@@ -287,7 +382,7 @@ export const RenewalForm: React.FC = () => {
     );
   }
 
-  // Show ineligibility message if user is not eligible for renewal (and period logic didn't catch it)
+  // ── Not eligible ─────────────────────────────────────────────────────────────
   if (isEligible === false) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
@@ -295,7 +390,7 @@ export const RenewalForm: React.FC = () => {
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Not Eligible for Renewal</h1>
           <p className="text-gray-600 mb-6">
-            You need to have a completed scholarship application from a previous semester before you can renew. Please submit a new application first.
+            {error || 'You need to have a scholarship application from a previous semester before you can apply for renewal.'}
           </p>
           <p className="text-sm text-gray-500 mb-4">
             Redirecting you back to the portal...
@@ -308,25 +403,24 @@ export const RenewalForm: React.FC = () => {
     );
   }
 
-  if (isLoadingData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 text-green-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading your information...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // ── Success state ─────────────────────────────────────────────────────────────
   if (submitSuccess) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Renewal Submitted!</h1>
-          <p className="text-gray-600 mb-6">
-            Your scholarship renewal application has been successfully submitted. We will review your academic records and updated documents.
+          {submittedApplicationNumber && (
+            <p className="text-sm text-gray-500 mb-2">
+              Application #: <strong>{submittedApplicationNumber}</strong>
+            </p>
+          )}
+          <p className="text-gray-600 mb-4">
+            Your scholarship renewal application has been successfully submitted and <strong>endorsed to SSC</strong> for review.
+            Your previous documents have been carried over automatically.
+          </p>
+          <p className="text-sm text-green-700 bg-green-50 rounded p-2 mb-6">
+            Status: <strong>Endorsed to SSC</strong> — No interview required for renewal.
           </p>
           <Button onClick={() => navigate('/portal')} className="w-full">
             Return to Portal
@@ -336,6 +430,7 @@ export const RenewalForm: React.FC = () => {
     );
   }
 
+  // ── Main Form ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -347,6 +442,13 @@ export const RenewalForm: React.FC = () => {
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Scholarship Renewal</h1>
           <p className="text-gray-600 mt-2">Update your academic information for the new term.</p>
+
+          {previousApplication && (
+            <div className="mt-3 inline-flex items-center text-sm bg-green-50 text-green-700 px-3 py-1.5 rounded-full border border-green-200">
+              <CheckCircle className="h-4 w-4 mr-1.5" />
+              Renewing from application #{previousApplication.application_number}
+            </div>
+          )}
         </div>
 
         {/* Progress Steps */}
@@ -375,7 +477,7 @@ export const RenewalForm: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           {error && (
             <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 mx-6 mt-6 flex items-start">
-              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
               <p>{error}</p>
             </div>
           )}
@@ -580,8 +682,15 @@ export const RenewalForm: React.FC = () => {
                   <h2 className="text-xl font-semibold text-gray-800">Required Documents</h2>
                 </div>
 
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h4 className="text-sm font-semibold text-blue-800 mb-1">Previous Documents Carried Over</h4>
+                  <p className="text-sm text-blue-700">
+                    Your documents from application #{previousApplication?.application_number} will be automatically linked to your renewal. Please upload any <strong>new or updated</strong> documents below.
+                  </p>
+                </div>
+
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                  <h4 className="text-sm font-semibold text-yellow-800 mb-2">Important for Renewal:</h4>
+                  <h4 className="text-sm font-semibold text-yellow-800 mb-2">Required for Renewal:</h4>
                   <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
                     <li>Upload your <strong>Certificate of Registration/Enrollment</strong> for the new term.</li>
                     <li>Upload your <strong>Certificate of Grades/TOR</strong> from the previous term.</li>
@@ -645,7 +754,12 @@ export const RenewalForm: React.FC = () => {
                 Next <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button type="submit" disabled={isSubmitting} className="bg-green-600 hover:bg-green-700 text-white min-w-[150px]">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-green-600 hover:bg-green-700 text-white min-w-[150px]"
+                id="renewal-submit-btn"
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...

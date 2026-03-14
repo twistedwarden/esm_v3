@@ -455,25 +455,134 @@ Route::prefix('forms')->middleware(['auth.auth_service'])->group(function () {
 
     // Renewal Application Form
     Route::post('/renewal-application', function (Request $request) {
+        // 1. Validate: the current open period must be semester 2
+        $currentPeriod = \App\Models\AcademicPeriod::where('is_current', true)
+            ->where('status', 'open')
+            ->first();
+
+        if (!$currentPeriod) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active academic period is currently open.'
+            ], 400);
+        }
+
+        if ((int) $currentPeriod->period_number !== 2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Renewal applications are only accepted during Semester 2. Please wait until the admin opens Semester 2.'
+            ], 403);
+        }
+
+        // 2. Identify the authenticated student
+        $authUser = $request->get('auth_user');
+        $userId = $authUser['id'] ?? null;
+
+        if (!$userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required.'
+            ], 401);
+        }
+
+        $student = \App\Models\Student::where('user_id', $userId)->first();
+
+        if (!$student) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No student record found for the authenticated user.'
+            ], 404);
+        }
+
+        // 3. Find previous semester-1 application (scholar in Semester 1) or any existing approved application
+        $eligibleStatuses = ['approved', 'grants_processing', 'grants_disbursed', 'endorsed_to_ssc', 'submitted', 'documents_reviewed', 'interview_completed', 'interview_scheduled'];
+        $previousApplication = \App\Models\ScholarshipApplication::where('student_id', $student->id)
+            ->whereIn('status', $eligibleStatuses)
+            ->latest()
+            ->first();
+
+        if (!$previousApplication) {
+            // Also allow students who have ANY non-rejected application (in case they are still in process)
+            $anyApplication = \App\Models\ScholarshipApplication::where('student_id', $student->id)
+                ->whereNotIn('status', ['rejected', 'cancelled', 'draft'])
+                ->latest()
+                ->first();
+
+            if (!$anyApplication) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are not eligible for renewal. No qualifying scholarship application found from a previous semester.'
+                ], 403);
+            }
+
+            $previousApplication = $anyApplication;
+        }
+
+        // 4. Merge required context fields
+        $request->merge([
+            'type'                    => 'renewal',
+            'student_id'              => $student->id,
+            'parent_application_id'   => $previousApplication->application_number,
+            // Carry over category/subcategory/school from previous application
+            'category_id'             => $previousApplication->category_id,
+            'subcategory_id'          => $previousApplication->subcategory_id,
+            'school_id'               => $previousApplication->school_id,
+            'financial_need_description' => $request->input('financial_need_description', 'Renewal application — continuing scholarship.'),
+        ]);
+
         $applicationController = app(ScholarshipApplicationController::class);
-
-        // Set type to renewal
-        $request->merge(['type' => 'renewal']);
-
         $applicationResponse = $applicationController->store($request);
         $applicationData = json_decode($applicationResponse->getContent(), true);
 
-        if (!$applicationData['success']) {
+        if (!isset($applicationData['success']) || !$applicationData['success']) {
             return $applicationResponse;
         }
 
-        // Automatically submit the application
-        $application = \App\Models\ScholarshipApplication::find($applicationData['data']['id']);
-        if ($application) {
-            $application->submit();
+        $newApplication = \App\Models\ScholarshipApplication::find($applicationData['data']['id']);
+
+        if ($newApplication) {
+            // 5. Copy previous documents to the new application (link by application_id)
+            $previousDocs = \App\Models\Document::where('application_id', $previousApplication->id)->get();
+            foreach ($previousDocs as $doc) {
+                \App\Models\Document::create([
+                    'student_id'         => $doc->student_id,
+                    'application_id'     => $newApplication->id,
+                    'document_type_id'   => $doc->document_type_id,
+                    'file_name'          => $doc->file_name,
+                    'file_path'          => $doc->file_path,
+                    'file_size'          => $doc->file_size,
+                    'mime_type'          => $doc->mime_type,
+                    'status'             => 'pending',
+                    'verification_notes' => 'Copied from previous application #' . $previousApplication->application_number,
+                ]);
+            }
+
+            // 6. Submit the application (draft → submitted)
+            $newApplication->submit();
+
+            // 7. Directly endorse to SSC — renewal bypasses the interview workflow
+            // Force the status transition since renewable apps don't require interview
+            $newApplication->update([
+                'status' => 'endorsed_to_ssc',
+            ]);
+
+            $newApplication->statusHistory()->create([
+                'status'     => 'endorsed_to_ssc',
+                'notes'      => 'Renewal application automatically endorsed to SSC. Previous application: #' . $previousApplication->application_number,
+                'changed_by' => null,
+                'changed_at' => now(),
+            ]);
+
+            // Reload the application with updated status
+            $newApplication->refresh();
+            $applicationData['data'] = $newApplication->toArray();
         }
 
-        return $applicationResponse;
+        return response()->json([
+            'success' => true,
+            'message' => 'Renewal application submitted and endorsed to SSC successfully.',
+            'data'    => $applicationData['data'],
+        ], 201);
     });
 
     // Document Upload - Fixed route

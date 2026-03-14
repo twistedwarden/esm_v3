@@ -85,6 +85,7 @@ export const Portal: React.FC = () => {
   const [hasActiveApplication, setHasActiveApplication] = useState(false);
   const [canRenew, setCanRenew] = useState(false);
   const [hasOpenPeriod, setHasOpenPeriod] = useState<boolean | null>(null);
+  const [isSemester2Open, setIsSemester2Open] = useState<boolean>(false);
   const [categories, setCategories] = useState<ScholarshipCategory[]>([]);
   const [isCheckingApplications, setIsCheckingApplications] = useState(true);
   const [showToast, setShowToast] = useState(false);
@@ -135,25 +136,34 @@ export const Portal: React.FC = () => {
         ];
         const hasActive = applications.some(app => activeStatuses.includes(app.status?.toLowerCase()));
 
-        // Check if user can renew: must have at least one COMPLETED application from previous semester
-        // Completed statuses: approved, grants_disbursed (scholarships that were successfully completed)
-        const completedStatuses = ['approved', 'grants_disbursed'];
-        const hasCompletedApplication = applications.some(app =>
-          completedStatuses.includes(app.status?.toLowerCase())
+        // Check if user can renew: must have at least one non-rejected/non-cancelled
+        // application — they were scholars or applicants in a previous semester.
+        const renewalEligibleStatuses = [
+          'approved', 'grants_disbursed', 'grants_processing',
+          'endorsed_to_ssc', 'submitted', 'documents_reviewed',
+          'interview_completed', 'interview_scheduled'
+        ];
+        const hasEligibleApplication = applications.some(app =>
+          renewalEligibleStatuses.includes(app.status?.toLowerCase())
         );
 
         // Check active period
         const periods = await scholarshipApiService.getAcademicPeriods();
-        const openPeriod = periods.some(p => p.status === 'open' && p.is_current);
+        const currentOpenPeriod = periods.find(p => p.status === 'open' && p.is_current);
+        const openPeriod = !!currentOpenPeriod;
+        // Renewal is only available when Admin opens Semester 2
+        const sem2Open = openPeriod && currentOpenPeriod?.period_number === 2;
         setHasOpenPeriod(openPeriod);
+        setIsSemester2Open(sem2Open);
 
         setHasActiveApplication(hasActive);
-        setCanRenew(hasCompletedApplication);
+        setCanRenew(hasEligibleApplication);
 
         console.log('User applications:', applications);
         console.log('Has active application:', hasActive);
-        console.log('Can renew:', hasCompletedApplication);
+        console.log('Can renew:', hasEligibleApplication);
         console.log('Open period:', openPeriod);
+        console.log('Is semester 2 open:', sem2Open);
       } catch (error) {
         console.error('Error checking existing applications:', error);
         // If there's an error, allow access (fail open)
@@ -312,6 +322,7 @@ export const Portal: React.FC = () => {
                     <Skeleton variant="rectangular" height="100%" />
                   </div>
                 ) : !hasOpenPeriod ? (
+                  // No open period at all
                   <div className="relative group">
                     <Button
                       size="lg"
@@ -324,16 +335,8 @@ export const Portal: React.FC = () => {
                       Applications are currently closed
                     </div>
                   </div>
-                ) : canRenew ? (
-                  <Link to="/renewal" className="block w-full">
-                    <Button
-                      size="lg"
-                      className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
-                    >
-                      Renewal Application
-                    </Button>
-                  </Link>
-                ) : (
+                ) : !isSemester2Open ? (
+                  // Open period exists but it is NOT semester 2
                   <div className="relative group">
                     <Button
                       size="lg"
@@ -343,7 +346,31 @@ export const Portal: React.FC = () => {
                       Renewal Application
                     </Button>
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      Only available for returning scholars with completed applications
+                      Renewal is only available when Semester 2 is open
+                    </div>
+                  </div>
+                ) : canRenew ? (
+                  // Semester 2 is open AND student is eligible
+                  <Link to="/renewal" className="block w-full">
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide"
+                    >
+                      Renewal Application
+                    </Button>
+                  </Link>
+                ) : (
+                  // Semester 2 is open but student has no qualifying application
+                  <div className="relative group">
+                    <Button
+                      size="lg"
+                      disabled
+                      className="bg-gray-300 text-gray-500 border-0 shadow-md px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide cursor-not-allowed opacity-60"
+                    >
+                      Renewal Application
+                    </Button>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Only available for scholars with an application from Semester 1
                     </div>
                   </div>
                 )}
