@@ -80,12 +80,12 @@ export const RenewalForm: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previousApplication, setPreviousApplication] = useState<any>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<Record<number, File>>({});
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
   const [isSemester2Open, setIsSemester2Open] = useState<boolean | null>(null);
   const [submittedApplicationNumber, setSubmittedApplicationNumber] = useState<string | null>(null);
   const [academicYears, setAcademicYears] = useState<string[]>([]);
-  const [renewalDocTypeId, setRenewalDocTypeId] = useState<number | null>(null);
+  const [renewalDocTypes, setRenewalDocTypes] = useState<any[]>([]);
 
   const {
     register,
@@ -123,11 +123,9 @@ export const RenewalForm: React.FC = () => {
           scholarshipApiService.getDocumentTypes().catch(() => [])
         ]);
 
-        // Find renewal document type ID
-        const renewalType = docTypes.find((dt: any) => dt.category === 'renewal');
-        if (renewalType) {
-          setRenewalDocTypeId(renewalType.id);
-        }
+        // Find all renewal document types
+        const renewalTypes = docTypes.filter((dt: any) => dt.category === 'renewal');
+        setRenewalDocTypes(renewalTypes);
 
         // Check for open period specifically at semester 2
         const openPeriod = periods.find(p => p.status === 'open' && p.is_current);
@@ -241,22 +239,25 @@ export const RenewalForm: React.FC = () => {
     }
   }, [currentUser, setValue, navigate]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const filesArray = Array.from(event.target.files);
-      setUploadedFiles(prev => [...prev, ...filesArray]);
+  const handleFileForDocType = (docTypeId: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setUploadedFiles(prev => ({ ...prev, [docTypeId]: event.target.files![0] }));
     }
   };
 
-  const handleRemoveFile = (fileName: string) => {
-    setUploadedFiles(prev => prev.filter(file => file.name !== fileName));
+  const handleRemoveFileForDocType = (docTypeId: number) => {
+    setUploadedFiles(prev => {
+      const next = { ...prev };
+      delete next[docTypeId];
+      return next;
+    });
   };
 
   /**
    * Upload a single file document via the forms/upload-document endpoint.
    * Returns the created document record or null on failure.
    */
-  const uploadDocumentFile = async (file: File, applicationId: number, studentId: number): Promise<boolean> => {
+  const uploadDocumentFile = async (file: File, applicationId: number, studentId: number, docTypeId: number): Promise<boolean> => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) throw new Error('No auth token');
@@ -265,8 +266,8 @@ export const RenewalForm: React.FC = () => {
       formData.append('file', file);
       formData.append('application_id', String(applicationId));
       formData.append('student_id', String(studentId));
-      // Use the renewal document type if available, otherwise fallback to generic
-      formData.append('document_type_id', String(renewalDocTypeId || 1));
+      // document_type_id is passed in by the caller
+      formData.append('document_type_id', String(docTypeId));
 
       const response = await fetch(
         getScholarshipServiceUrl('/api/forms/upload-document'),
@@ -298,8 +299,9 @@ export const RenewalForm: React.FC = () => {
     setError(null);
 
     // Validate files
-    if (uploadedFiles.length === 0) {
-      setError('Please upload the required renewal documents (e.g., Grades, Certificate of Registration).');
+    const fileEntries = Object.entries(uploadedFiles);
+    if (fileEntries.length === 0) {
+      setError('Please upload at least one renewal document (e.g., Grades, Certificate of Registration).');
       setIsSubmitting(false);
       return;
     }
@@ -347,8 +349,8 @@ export const RenewalForm: React.FC = () => {
 
       // Upload new documents for the new application
       if (result?.id && previousApplication?.student?.id) {
-        const uploadPromises = uploadedFiles.map(file =>
-          uploadDocumentFile(file, result.id as number, previousApplication.student.id)
+        const uploadPromises = fileEntries.map(([docTypeId, file]) =>
+          uploadDocumentFile(file, result.id as number, previousApplication.student.id, Number(docTypeId))
         );
         await Promise.all(uploadPromises);
       }
@@ -712,41 +714,61 @@ export const RenewalForm: React.FC = () => {
                   </ul>
                 </div>
 
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-                  <input
-                    type="file"
-                    multiple
-                    onChange={handleFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                  />
-                  <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-900 font-medium">Click to upload or drag and drop</p>
-                  <p className="text-gray-500 text-sm mt-1">PDF, JPG, PNG (Max 5MB)</p>
-                </div>
-
-                {uploadedFiles.length > 0 && (
-                  <div className="space-y-3">
-                    {uploadedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-md border border-gray-200">
-                        <div className="flex items-center">
-                          <FileText className="h-5 w-5 text-gray-500 mr-3" />
+                {renewalDocTypes.length > 0 ? (
+                  <div className="space-y-4">
+                    {renewalDocTypes.map((docType) => (
+                      <div key={docType.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="text-sm font-medium text-gray-700">{file.name}</p>
-                            <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <h4 className="text-sm font-semibold text-gray-800">{docType.name}</h4>
+                            {docType.description && (
+                              <p className="text-xs text-gray-500 mt-0.5">{docType.description}</p>
+                            )}
                           </div>
+                          {uploadedFiles[docType.id] && (
+                            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                          )}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
-                          onClick={() => handleRemoveFile(file.name)}
-                          type="button"
-                        >
-                          Remove
-                        </Button>
+
+                        {uploadedFiles[docType.id] ? (
+                          <div className="flex items-center justify-between bg-green-50 p-3 rounded-md border border-green-200">
+                            <div className="flex items-center">
+                              <FileText className="h-5 w-5 text-green-600 mr-3" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">{uploadedFiles[docType.id].name}</p>
+                                <p className="text-xs text-gray-500">{(uploadedFiles[docType.id].size / 1024 / 1024).toFixed(2)} MB</p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+                              onClick={() => handleRemoveFileForDocType(docType.id)}
+                              type="button"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+                            <input
+                              type="file"
+                              onChange={(e) => handleFileForDocType(docType.id, e)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                            />
+                            <Upload className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                            <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+                            <p className="text-xs text-gray-400 mt-0.5">PDF, JPG, PNG (Max 5MB)</p>
+                          </div>
+                        )}
                       </div>
                     ))}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <Loader2 className="h-8 w-8 text-gray-400 mx-auto mb-2 animate-spin" />
+                    <p className="text-gray-500 text-sm">Loading document types...</p>
                   </div>
                 )}
               </div>
