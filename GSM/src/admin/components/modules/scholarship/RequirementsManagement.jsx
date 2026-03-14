@@ -16,7 +16,8 @@ import {
     Filter,
     ClipboardList,
     GraduationCap,
-    BookOpen
+    BookOpen,
+    Wrench
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -34,27 +35,31 @@ const CATEGORY_COLORS = {
 };
 
 const LEVELS = [
-    { value: 'college',     label: 'College',          icon: GraduationCap },
-    { value: 'senior_high', label: 'Senior High',      icon: BookOpen      },
-    { value: 'both',        label: 'Both Levels',      icon: ClipboardList }
+    { value: 'college',     label: 'College',     icon: GraduationCap },
+    { value: 'senior_high', label: 'Senior High', icon: BookOpen      },
+    { value: 'vocational',  label: 'Vocational',  icon: Wrench        },
+    { value: 'both',        label: 'All Levels',  icon: ClipboardList }
 ];
 
 const LEVEL_COLORS = {
     college:     'bg-indigo-100 text-indigo-700',
     senior_high: 'bg-orange-100 text-orange-700',
+    vocational:  'bg-yellow-100 text-yellow-700',
     both:        'bg-teal-100 text-teal-700'
 };
 
 const LEVEL_LABELS = {
     college:     'College',
     senior_high: 'Senior High',
-    both:        'Both'
+    vocational:  'Vocational',
+    both:        'All Levels'
 };
 
 const TABS = [
-    { id: 'college',     label: 'College',         icon: GraduationCap },
-    { id: 'senior_high', label: 'Senior High',     icon: BookOpen      },
-    { id: 'both',        label: 'Shared / Both',   icon: ClipboardList }
+    { id: 'college',     label: 'College',       icon: GraduationCap },
+    { id: 'senior_high', label: 'Senior High',   icon: BookOpen      },
+    { id: 'vocational',  label: 'Vocational',    icon: Wrench        },
+    { id: 'both',        label: 'Shared / All',  icon: ClipboardList }
 ];
 
 const EMPTY_FORM = {
@@ -204,16 +209,8 @@ export default function RequirementsManagement() {
         }
     };
 
-    // Tab-scoped data: tab "college" shows level=college + level=both, etc.
-    const tabRequirements = requirements.filter(r =>
-        r.level === activeTab || r.level === 'both'
-            ? activeTab === 'both' ? r.level === 'both' : (r.level === activeTab || r.level === 'both')
-            : false
-    );
-
-    // Simplify: "college" tab → level=college OR level=both
-    //            "senior_high" tab → level=senior_high OR level=both
-    //            "both" tab → only level=both (shared requirements)
+    // "college/senior_high/vocational" tabs → that level + shared (both)
+    // "both" tab → only the shared ones
     const tabFiltered = requirements.filter(r => {
         if (activeTab === 'both') return r.level === 'both';
         return r.level === activeTab || r.level === 'both';

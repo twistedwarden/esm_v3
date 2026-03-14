@@ -28,7 +28,7 @@ class DocumentTypeController extends Controller
             $query->where('is_required', filter_var($request->is_required, FILTER_VALIDATE_BOOLEAN));
         }
 
-        if ($request->has('level') && in_array($request->level, ['college', 'senior_high', 'both'])) {
+        if ($request->has('level') && in_array($request->level, ['college', 'senior_high', 'vocational', 'both'])) {
             $query->byLevel($request->level);
         }
 
@@ -50,7 +50,7 @@ class DocumentTypeController extends Controller
             'description' => 'nullable|string',
             'category'    => 'required|in:personal,academic,financial,other',
             'is_required' => 'boolean',
-            'level'       => 'required|in:college,senior_high,both',
+            'level'       => 'required|in:college,senior_high,vocational,both',
         ]);
 
         if ($validator->fails()) {
@@ -99,7 +99,7 @@ class DocumentTypeController extends Controller
             'category'    => 'sometimes|required|in:personal,academic,financial,other',
             'is_required' => 'boolean',
             'is_active'   => 'boolean',
-            'level'       => 'sometimes|required|in:college,senior_high,both',
+            'level'       => 'sometimes|required|in:college,senior_high,vocational,both',
         ]);
 
         if ($validator->fails()) {

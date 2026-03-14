@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('document_types', function (Blueprint $table) {
-            // 'college' = college only, 'senior_high' = SHS only, 'both' = applies to both
-            $table->enum('level', ['college', 'senior_high', 'both'])->default('both')->after('is_active');
+            // 'college' = college only, 'senior_high' = SHS only, 'vocational' = vocational/tech-voc only, 'both' = applies to all
+            $table->enum('level', ['college', 'senior_high', 'vocational', 'both'])->default('both')->after('is_active');
         });
     }
 
