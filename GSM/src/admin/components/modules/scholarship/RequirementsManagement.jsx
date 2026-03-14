@@ -76,8 +76,9 @@ export default function RequirementsManagement() {
     const [readOnly, setReadOnly]         = useState(false);
     const [activeTab, setActiveTab]       = useState('college');
     const [search, setSearch]             = useState('');
-    const [filterCategory, setFilterCategory] = useState('all');
-    const [filterStatus, setFilterStatus]     = useState('all');
+    const [filterCategory, setFilterCategory]   = useState('all');
+    const [filterStatus, setFilterStatus]       = useState('all');
+    const [filterRequired, setFilterRequired]   = useState('all');
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal,   setShowEditModal]   = useState(false);
@@ -112,6 +113,7 @@ export default function RequirementsManagement() {
         setSearch('');
         setFilterCategory('all');
         setFilterStatus('all');
+        setFilterRequired('all');
     };
 
     const openCreate = () => {
@@ -223,7 +225,10 @@ export default function RequirementsManagement() {
         const matchStatus   = filterStatus === 'all' ||
             (filterStatus === 'active' && r.is_active) ||
             (filterStatus === 'inactive' && !r.is_active);
-        return matchSearch && matchCategory && matchStatus;
+        const matchRequired = filterRequired === 'all' ||
+            (filterRequired === 'required' && r.is_required) ||
+            (filterRequired === 'optional' && !r.is_required);
+        return matchSearch && matchCategory && matchStatus && matchRequired;
     });
 
     const countFor = (level) => {
@@ -419,6 +424,15 @@ export default function RequirementsManagement() {
                             <option value="all">All Status</option>
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
+                        </select>
+                        <select
+                            value={filterRequired}
+                            onChange={e => setFilterRequired(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                            <option value="all">All Types</option>
+                            <option value="required">Required</option>
+                            <option value="optional">Optional</option>
                         </select>
                     </div>
                 </div>
