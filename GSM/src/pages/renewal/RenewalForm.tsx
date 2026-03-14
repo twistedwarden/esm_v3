@@ -84,6 +84,7 @@ export const RenewalForm: React.FC = () => {
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
   const [isSemester2Open, setIsSemester2Open] = useState<boolean | null>(null);
   const [submittedApplicationNumber, setSubmittedApplicationNumber] = useState<string | null>(null);
+  const [academicYears, setAcademicYears] = useState<string[]>([]);
 
   const {
     register,
@@ -122,6 +123,14 @@ export const RenewalForm: React.FC = () => {
         // Check for open period specifically at semester 2
         const openPeriod = periods.find(p => p.status === 'open' && p.is_current);
         const isSem2 = openPeriod ? (openPeriod.period_number === 2) : false;
+
+        // Extract unique academic years and sort them descending
+        const uniqueYears = Array.from(new Set(periods.map(p => p.academic_year)))
+          .filter(Boolean)
+          .sort()
+          .reverse();
+        setAcademicYears(uniqueYears);
+
         setIsSemester2Open(isSem2);
 
         if (!openPeriod) {
@@ -556,8 +565,9 @@ export const RenewalForm: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">School Year *</label>
                     <select {...register('schoolYear')} className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
                       <option value="">Select School Year</option>
-                      <option value="2024-2025">2024-2025</option>
-                      <option value="2025-2026">2025-2026</option>
+                      {academicYears.map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
                     </select>
                     {errors.schoolYear && <p className="text-red-500 text-xs mt-1">{errors.schoolYear.message}</p>}
                   </div>
