@@ -574,9 +574,16 @@ export const NewApplicationForm: React.FC = () => {
   useEffect(() => {
     const savedData = loadFormDataFromStorage();
     if (savedData && !isEditMode) {
-      // Only load saved data if we're not in edit mode
-      console.log('Loading saved form data:', savedData);
-      reset(savedData.formData);
+      // Only load saved data if we're not in edit mode.
+      // Strip auth-sourced identity fields so populateUserData always wins for those.
+      const {
+        firstName: _fn, lastName: _ln, middleName: _mn, extensionName: _en,
+        emailAddress: _ea, contactNumber: _cn, dateOfBirth: _dob,
+        presentAddress: _pa, barangay: _br,
+        ...otherFormData
+      } = savedData.formData;
+      console.log('Loading saved form data (auth identity fields will be populated from Citizen ID)');
+      reset(otherFormData);
       setCurrentStep(savedData.currentStep);
       setSelectedCategoryId(savedData.formData.scholarshipCategory ? parseInt(savedData.formData.scholarshipCategory) : null);
       setSelectedSubcategoryId(savedData.formData.scholarshipSubCategory ? parseInt(savedData.formData.scholarshipSubCategory) : null);
@@ -793,26 +800,12 @@ export const NewApplicationForm: React.FC = () => {
         return;
       }
 
-      // Check if there's saved data in localStorage - if so, don't auto-populate
-      const savedData = loadFormDataFromStorage();
-      const forceAutoPopulate = new URLSearchParams(window.location.search).get('force-populate') === 'true';
-
-      if (savedData && !forceAutoPopulate) {
-        console.log('Skipping auto-population - saved form data exists in localStorage');
-        console.log('To test auto-population, add ?force-populate=true to URL or clear localStorage');
-        return;
-      }
-
-      if (forceAutoPopulate && savedData) {
-        console.log('Force auto-population enabled - clearing saved data and populating from user record');
-        clearFormDataFromStorage();
-      }
-
       console.log('Auto-populating form with user data:', currentUser);
 
       const populated = new Set<string>();
 
-      // Only populate fields that have actual data from the citizen record
+      // Always populate auth-sourced identity fields from currentUser regardless of localStorage,
+      // since these are read-only Citizen ID fields the user cannot edit in the form.
       if (currentUser.first_name) {
         setValue('firstName', currentUser.first_name);
         populated.add('firstName');
@@ -842,14 +835,10 @@ export const NewApplicationForm: React.FC = () => {
         populated.add('dateOfBirth');
       }
 
-      // Address Population
-      // Construct the address from available components if the main address field is missing or simplistic
+      // Build address from available components, falling back to the generic address field
       const houseNumber = currentUser.house_number || '';
       const street = currentUser.street || '';
       const fullStreetAddress = [houseNumber, street].filter(Boolean).join(' ');
-
-      // Use the constructed address if available, otherwise fallback to the generic address field
-      // If both are available, we prefer the more granular components combined
       const addressToUse = fullStreetAddress || currentUser.address || '';
 
       if (addressToUse) {
@@ -863,6 +852,14 @@ export const NewApplicationForm: React.FC = () => {
       }
 
       setAutoPopulatedFields(populated);
+
+      // If localStorage already has saved data, skip fetching extra student data —
+      // the user's previous entries are preserved for all non-identity fields.
+      const savedData = loadFormDataFromStorage();
+      if (savedData) {
+        console.log('Saved form data exists — skipping additional student data fetch, preserving user entries.');
+        return;
+      }
 
       // Optionally try to fetch additional student data if it exists (from previous applications)
       try {
