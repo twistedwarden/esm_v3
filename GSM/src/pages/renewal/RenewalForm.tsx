@@ -80,7 +80,7 @@ export const RenewalForm: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previousApplication, setPreviousApplication] = useState<any>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<Record<number, File>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string | number, File>>({});
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
   const [isSemester2Open, setIsSemester2Open] = useState<boolean | null>(null);
   const [submittedApplicationNumber, setSubmittedApplicationNumber] = useState<string | null>(null);
@@ -123,9 +123,18 @@ export const RenewalForm: React.FC = () => {
           scholarshipApiService.getDocumentTypes().catch(() => [])
         ]);
 
-        // Find all renewal document types
+        // Find all renewal document types, with hardcoded fallback if none exist in DB yet
         const renewalTypes = docTypes.filter((dt: any) => dt.category === 'renewal');
-        setRenewalDocTypes(renewalTypes);
+        if (renewalTypes.length > 0) {
+          setRenewalDocTypes(renewalTypes);
+        } else {
+          // Fallback: use placeholder IDs that will be created by the migration
+          setRenewalDocTypes([
+            { id: 'renewal-cor', name: 'Certificate of Registration (Renewal)', description: 'Certificate of Registration/Enrollment for the new term' },
+            { id: 'renewal-tor', name: 'Certificate of Grades / TOR (Renewal)', description: 'Certificate of Grades or Transcript of Records from the previous term' },
+            { id: 'renewal-other', name: 'Other Renewal Document', description: 'Any other supporting document for scholarship renewal' },
+          ]);
+        }
 
         // Check for open period specifically at semester 2
         const openPeriod = periods.find(p => p.status === 'open' && p.is_current);
@@ -239,13 +248,13 @@ export const RenewalForm: React.FC = () => {
     }
   }, [currentUser, setValue, navigate]);
 
-  const handleFileForDocType = (docTypeId: number, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileForDocType = (docTypeId: string | number, event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setUploadedFiles(prev => ({ ...prev, [docTypeId]: event.target.files![0] }));
     }
   };
 
-  const handleRemoveFileForDocType = (docTypeId: number) => {
+  const handleRemoveFileForDocType = (docTypeId: string | number) => {
     setUploadedFiles(prev => {
       const next = { ...prev };
       delete next[docTypeId];
@@ -257,17 +266,19 @@ export const RenewalForm: React.FC = () => {
    * Upload a single file document via the forms/upload-document endpoint.
    * Returns the created document record or null on failure.
    */
-  const uploadDocumentFile = async (file: File, applicationId: number, studentId: number, docTypeId: number): Promise<boolean> => {
+  const uploadDocumentFile = async (file: File, applicationId: number, studentId: number, docTypeId: string | number): Promise<boolean> => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) throw new Error('No auth token');
+
+      // If docTypeId is a real numeric ID use it; otherwise fall back to 1
+      const numericId = typeof docTypeId === 'number' ? docTypeId : (isNaN(Number(docTypeId)) ? 1 : Number(docTypeId));
 
       const formData = new FormData();
       formData.append('file', file);
       formData.append('application_id', String(applicationId));
       formData.append('student_id', String(studentId));
-      // document_type_id is passed in by the caller
-      formData.append('document_type_id', String(docTypeId));
+      formData.append('document_type_id', String(numericId));
 
       const response = await fetch(
         getScholarshipServiceUrl('/api/forms/upload-document'),
@@ -350,7 +361,7 @@ export const RenewalForm: React.FC = () => {
       // Upload new documents for the new application
       if (result?.id && previousApplication?.student?.id) {
         const uploadPromises = fileEntries.map(([docTypeId, file]) =>
-          uploadDocumentFile(file, result.id as number, previousApplication.student.id, Number(docTypeId))
+          uploadDocumentFile(file, result.id as number, previousApplication.student.id, docTypeId)
         );
         await Promise.all(uploadPromises);
       }
