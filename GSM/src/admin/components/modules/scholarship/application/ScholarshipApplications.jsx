@@ -1079,10 +1079,6 @@ function ScholarshipApplications() {
             <span className="hidden sm:inline">Export PDF</span>
             <span className="sm:hidden">PDF</span>
           </button>
-          <button className="bg-orange-500 hover:bg-orange-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base">
-            <span className="hidden sm:inline">Review Selected</span>
-            <span className="sm:hidden">Review</span>
-          </button>
         </div>
       </div>
 
