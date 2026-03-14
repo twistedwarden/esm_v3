@@ -3296,6 +3296,7 @@ export const NewApplicationForm: React.FC = () => {
                             <option value="">Select Term</option>
                             <option value="1st Semester">1st Semester</option>
                             <option value="2nd Semester">2nd Semester</option>
+                            <option value="3rd Semester">3rd Semester</option>
                             <option value="Summer">Summer</option>
                           </select>
                         )}
