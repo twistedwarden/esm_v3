@@ -44,10 +44,64 @@ function ApplicationOverview() {
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [password, setPassword] = useState('');
+  
+  const [schools, setSchools] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  
+  const [filters, setFilters] = useState({
+    status: 'all',
+    school_id: 'all',
+    category_id: 'all',
+    subcategory_id: 'all',
+    start_date: '',
+    end_date: ''
+  });
 
   useEffect(() => {
     fetchOverviewData();
   }, []);
+
+  useEffect(() => {
+    if (showExportModal) {
+      fetchFilterOptions();
+    }
+  }, [showExportModal]);
+
+  const fetchFilterOptions = async () => {
+    try {
+      const [schoolsData, categoriesData] = await Promise.all([
+        scholarshipApiService.getSchools(),
+        scholarshipApiService.getScholarshipCategories()
+      ]);
+      setSchools(schoolsData || []);
+      setCategories(categoriesData || []);
+    } catch (error) {
+      console.error('Failed to fetch filter options:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (filters.category_id && filters.category_id !== 'all') {
+      const selectedCategory = categories.find(c => c.id.toString() === filters.category_id.toString());
+      if (selectedCategory && selectedCategory.subcategories) {
+        setSubcategories(selectedCategory.subcategories);
+      } else {
+        setSubcategories([]);
+      }
+    } else {
+      setSubcategories([]);
+    }
+  }, [filters.category_id, categories]);
+
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: value,
+      // Reset subcategory if category changes
+      ...(name === 'category_id' ? { subcategory_id: 'all' } : {})
+    }));
+  };
 
   const fetchOverviewData = async () => {
     try {
@@ -82,7 +136,7 @@ function ApplicationOverview() {
       setShowExportModal(false);
 
       // Fetch report data
-      const data = await scholarshipApiService.getApplicationsReportData();
+      const data = await scholarshipApiService.getApplicationsReportData(filters);
 
       if (!data || data.length === 0) {
         showError('No applications found to export');
@@ -425,9 +479,9 @@ function ApplicationOverview() {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md overflow-hidden"
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
               >
-                <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50">
+                <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50 shrink-0">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     Export Report
@@ -440,12 +494,95 @@ function ApplicationOverview() {
                   </button>
                 </div>
 
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-4 overflow-y-auto">
                   <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    Generate a PDF report of all current scholarship applications.
+                    Filter and generate a PDF report of scholarship applications.
                   </p>
 
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                      <select
+                        value={filters.status}
+                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                      >
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="under_review">Under Review</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="interview_scheduled">Interview Scheduled</option>
+                        <option value="endorsed_to_ssc">Endorsed to SSC</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">School</label>
+                      <select
+                        value={filters.school_id}
+                        onChange={(e) => handleFilterChange('school_id', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                      >
+                        <option value="all">All Schools</option>
+                        {schools.map(school => (
+                          <option key={school.id} value={school.id}>{school.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+                      <select
+                        value={filters.category_id}
+                        onChange={(e) => handleFilterChange('category_id', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                      >
+                        <option value="all">All Categories</option>
+                        {categories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Subcategory</label>
+                      <select
+                        value={filters.subcategory_id}
+                        onChange={(e) => handleFilterChange('subcategory_id', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                        disabled={!filters.category_id || filters.category_id === 'all'}
+                      >
+                        <option value="all">All Subcategories</option>
+                        {subcategories.map(sub => (
+                          <option key={sub.id} value={sub.id}>{sub.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
+                      <input
+                        type="date"
+                        value={filters.start_date}
+                        onChange={(e) => handleFilterChange('start_date', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End Date</label>
+                      <input
+                        type="date"
+                        value={filters.end_date}
+                        onChange={(e) => handleFilterChange('end_date', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-slate-700 mt-4">
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                       Password Protection (Optional)
                     </label>
@@ -463,32 +600,32 @@ function ApplicationOverview() {
                       Leave blank for an unprotected PDF.
                     </p>
                   </div>
+                </div>
 
-                  <div className="pt-4 flex justify-end gap-3">
-                    <button
-                      onClick={() => setShowExportModal(false)}
-                      className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleExport}
-                      disabled={exporting}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-                    >
-                      {exporting ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Exporting...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-4 h-4" />
-                          Generate PDF
-                        </>
-                      )}
-                    </button>
-                  </div>
+                <div className="p-6 border-t border-gray-100 dark:border-slate-700 flex justify-end gap-3 shrink-0">
+                  <button
+                    onClick={() => setShowExportModal(false)}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {exporting ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        Generate PDF
+                      </>
+                    )}
+                  </button>
                 </div>
               </motion.div>
             </div>

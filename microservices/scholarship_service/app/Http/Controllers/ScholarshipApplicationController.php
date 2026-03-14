@@ -4156,8 +4156,17 @@ class ScholarshipApplicationController extends Controller
             if ($request->has('status') && $request->status !== 'all') {
                 $query->where('status', $request->status);
             }
-            if ($request->has('start_date') && $request->has('end_date')) {
-                $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
+            if ($request->has('school_id') && $request->school_id !== 'all' && $request->school_id !== '') {
+                $query->where('school_id', $request->school_id);
+            }
+            if ($request->has('category_id') && $request->category_id !== 'all' && $request->category_id !== '') {
+                $query->where('category_id', $request->category_id);
+            }
+            if ($request->has('subcategory_id') && $request->subcategory_id !== 'all' && $request->subcategory_id !== '') {
+                $query->where('subcategory_id', $request->subcategory_id);
+            }
+            if ($request->has('start_date') && $request->has('end_date') && $request->start_date !== '' && $request->end_date !== '') {
+                $query->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
             }
 
             $applications = $query->orderBy('created_at', 'desc')->get();
@@ -4213,11 +4222,20 @@ class ScholarshipApplicationController extends Controller
                 $query = ScholarshipApplication::with(['student', 'school', 'category', 'subcategory']);
 
                 // Apply rudimentary filters
-                if ($request->has('status')) {
+                if ($request->has('status') && $request->status !== 'all') {
                     $query->where('status', $request->status);
                 }
-                if ($request->has('start_date') && $request->has('end_date')) {
-                    $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
+                if ($request->has('school_id') && $request->school_id !== 'all' && $request->school_id !== '') {
+                    $query->where('school_id', $request->school_id);
+                }
+                if ($request->has('category_id') && $request->category_id !== 'all' && $request->category_id !== '') {
+                    $query->where('category_id', $request->category_id);
+                }
+                if ($request->has('subcategory_id') && $request->subcategory_id !== 'all' && $request->subcategory_id !== '') {
+                    $query->where('subcategory_id', $request->subcategory_id);
+                }
+                if ($request->has('start_date') && $request->has('end_date') && $request->start_date !== '' && $request->end_date !== '') {
+                    $query->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
                 }
 
                 $query->chunk(100, function ($applications) use ($file) {
