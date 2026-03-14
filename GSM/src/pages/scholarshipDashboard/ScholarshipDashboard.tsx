@@ -282,7 +282,7 @@ export const ScholarshipDashboard: React.FC = () => {
         setError(null);
         const [userApplications, requiredDocumentsData, periodsData] = await Promise.all([
           scholarshipApiService.getUserApplications(),
-          scholarshipApiService.getDocumentTypes().catch((e) => { console.warn('[Dashboard] getDocumentTypes failed:', e?.message); return scholarshipApiService.getRequiredDocuments().catch(() => []); }),
+          scholarshipApiService.adminGetDocumentTypes(),
           scholarshipApiService.getAcademicPeriods()
         ]);
         setApplications(userApplications);
