@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
   Users,
@@ -27,7 +27,7 @@ import scholarshipApiService from '../../../../../services/scholarshipApiService
 import { useToastContext } from '../../../../../components/providers/ToastProvider';
 
 function ApplicationOverview() {
-  const { showSuccess, showError } = useToastContext();
+  const { success, error: showError, warning, info } = useToastContext();
   const [stats, setStats] = useState({
     totalApplications: 0,
     pendingReview: 0,
@@ -205,7 +205,7 @@ function ApplicationOverview() {
       }
 
       doc.save(`scholarship_report_${new Date().toISOString().split('T')[0]}.pdf`);
-      showSuccess('PDF report generated successfully');
+      success('PDF report generated successfully');
       setPassword(''); // Reset password after generation
     } catch (error) {
       console.error('Failed to export report:', error);
