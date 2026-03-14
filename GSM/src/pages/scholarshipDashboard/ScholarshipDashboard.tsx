@@ -44,6 +44,7 @@ export const ScholarshipDashboard: React.FC = () => {
     application: true,
     documents: true,
   });
+  const [showOptionalDocuments, setShowOptionalDocuments] = useState(false);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
@@ -1707,15 +1708,28 @@ export const ScholarshipDashboard: React.FC = () => {
                           </div>
                         )}
 
-                        {/* Optional Documents */}
+                        {/* Optional Documents — collapsible, hidden by default */}
                         {optionalItems.length > 0 && (
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2 pt-2 border-t border-dashed border-gray-200">
+                          <div className="pt-2 border-t border-dashed border-gray-200">
+                            <button
+                              type="button"
+                              onClick={() => setShowOptionalDocuments(prev => !prev)}
+                              className="flex items-center gap-2 w-full text-left py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              {showOptionalDocuments ? (
+                                <ChevronUp className="h-4 w-4 text-gray-500 shrink-0" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-gray-500 shrink-0" />
+                              )}
                               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Optional Documents</span>
                               <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500">{optionalItems.length}</span>
                               <span className="text-[10px] text-gray-400 italic">These are not mandatory but may support your application</span>
-                            </div>
-                            {renderGroup(optionalItems)}
+                            </button>
+                            {showOptionalDocuments && (
+                              <div className="space-y-4 pt-2">
+                                {renderGroup(optionalItems)}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
