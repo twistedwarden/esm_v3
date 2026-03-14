@@ -1864,9 +1864,69 @@ Please check your internet connection and try again. If the problem persists, co
         {/* Advanced Filters */}
         {showAdvancedFilters && (
           <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-slate-700">
-            {activeTab === 'scheduled' ? (
-              /* Scheduled tab: interviewer + date range */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {/* Row 1: Category / Subcategory / Level / School — plus Interviewer for scheduled tab */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                <select
+                  value={filters.category_id}
+                  onChange={(e) => updateFilter('category_id', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subcategory</label>
+                <select
+                  value={filters.subcategory_id}
+                  onChange={(e) => updateFilter('subcategory_id', e.target.value)}
+                  disabled={filters.category_id === 'all' || availableSubcategories.length === 0}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="all">All Subcategories</option>
+                  {availableSubcategories.map(sub => (
+                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Level</label>
+                <select
+                  value={filters.level}
+                  onChange={(e) => updateFilter('level', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="all">All Levels</option>
+                  <option value="SENIOR HIGH SCHOOL">Senior High School</option>
+                  <option value="TERTIARY/COLLEGE">Tertiary/College</option>
+                  <option value="TECHNICAL VOCATIONAL">Technical Vocational</option>
+                  <option value="GRADUATE SCHOOL">Graduate School</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School</label>
+                <select
+                  value={filters.school_id}
+                  onChange={(e) => updateFilter('school_id', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="all">All Schools</option>
+                  {schools.map(school => (
+                    <option key={school.id} value={school.id}>
+                      {school.name}{school.campus ? ` — ${school.campus}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Row 2: Date From / Date To / Min GWA / Max GWA — plus Interviewer for scheduled tab */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4">
+              {activeTab === 'scheduled' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Interviewer</label>
                   <select
@@ -1880,131 +1940,67 @@ Please check your internet connection and try again. If the problem persists, co
                     ))}
                   </select>
                 </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date From</label>
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => updateFilter('dateFrom', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date To</label>
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => updateFilter('dateTo', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Min GWA</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="4"
+                  value={filters.minGwa}
+                  onChange={(e) => updateFilter('minGwa', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+              {activeTab !== 'scheduled' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date From</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max GWA</label>
                   <input
-                    type="date"
-                    value={filters.dateFrom}
-                    onChange={(e) => updateFilter('dateFrom', e.target.value)}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="4"
+                    value={filters.maxGwa}
+                    onChange={(e) => updateFilter('maxGwa', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                 </div>
+              )}
+            </div>
+            {activeTab === 'scheduled' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date To</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max GWA</label>
                   <input
-                    type="date"
-                    value={filters.dateTo}
-                    onChange={(e) => updateFilter('dateTo', e.target.value)}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="4"
+                    value={filters.maxGwa}
+                    onChange={(e) => updateFilter('maxGwa', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                 </div>
               </div>
-            ) : (
-              /* Pending tab: category / subcategory / level / school / date / GWA */
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                    <select
-                      value={filters.category_id}
-                      onChange={(e) => updateFilter('category_id', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    >
-                      <option value="all">All Categories</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subcategory</label>
-                    <select
-                      value={filters.subcategory_id}
-                      onChange={(e) => updateFilter('subcategory_id', e.target.value)}
-                      disabled={filters.category_id === 'all' || availableSubcategories.length === 0}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="all">All Subcategories</option>
-                      {availableSubcategories.map(sub => (
-                        <option key={sub.id} value={sub.id}>{sub.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Level</label>
-                    <select
-                      value={filters.level}
-                      onChange={(e) => updateFilter('level', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    >
-                      <option value="all">All Levels</option>
-                      <option value="SENIOR HIGH SCHOOL">Senior High School</option>
-                      <option value="TERTIARY/COLLEGE">Tertiary/College</option>
-                      <option value="TECHNICAL VOCATIONAL">Technical Vocational</option>
-                      <option value="GRADUATE SCHOOL">Graduate School</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School</label>
-                    <select
-                      value={filters.school_id}
-                      onChange={(e) => updateFilter('school_id', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    >
-                      <option value="all">All Schools</option>
-                      {schools.map(school => (
-                        <option key={school.id} value={school.id}>
-                          {school.name}{school.campus ? ` — ${school.campus}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date From</label>
-                    <input
-                      type="date"
-                      value={filters.dateFrom}
-                      onChange={(e) => updateFilter('dateFrom', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date To</label>
-                    <input
-                      type="date"
-                      value={filters.dateTo}
-                      onChange={(e) => updateFilter('dateTo', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Min GWA</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="4"
-                      value={filters.minGwa}
-                      onChange={(e) => updateFilter('minGwa', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max GWA</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="4"
-                      value={filters.maxGwa}
-                      onChange={(e) => updateFilter('maxGwa', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-              </>
             )}
           </div>
         )}
