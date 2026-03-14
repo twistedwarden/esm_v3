@@ -128,29 +128,27 @@ function EndorseToSSC() {
       setLoading(true);
       setError('');
 
+      // Build params: only include filters with real values (backend treats 'all' as literal and returns nothing)
       const params = {
         page: pagination.currentPage,
         per_page: pagination.perPage,
         sort_by: sortBy,
         sort_order: sortOrder,
-        with: 'student.academic_records,school,category,subcategory,interview_schedule,interview_evaluation', // Eager load if supported
-        ...filters
+        with: 'student.academic_records,school,category,subcategory,interview_schedule,interview_evaluation',
       };
-
       if (searchTerm) params.search = searchTerm;
-      if (filters.category !== 'all') params.category = filters.category;
-      // Other filters might need server support or we filter locally what we get (less ideal)
+      ['category_id', 'subcategory_id', 'level', 'school_id', 'dateFrom', 'dateTo', 'minGwa', 'maxGwa'].forEach((key) => {
+        const v = filters[key];
+        if (v && v !== 'all') params[key] = v;
+      });
 
       let response;
       if (activeTab === 'ready') {
-        // Fetch applications ready for endorsement (interview completed)
-        // We rely on 'interview_completed' status.
         response = await scholarshipApiService.getApplications({
           ...params,
           status: 'interview_completed'
         });
       } else {
-        // Fetch already endorsed applications
         response = await scholarshipApiService.getApplications({
           ...params,
           status: 'endorsed_to_ssc'
