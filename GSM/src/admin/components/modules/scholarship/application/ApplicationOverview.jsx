@@ -162,7 +162,7 @@ function ApplicationOverview() {
 
       // Import autotable plugin and get the function
       const autoTableModule = await import('jspdf-autotable');
-      const autoTable = autoTableModule.default || autoTableModule.applyPlugin || autoTableModule;
+      let autoTable = autoTableModule.default || autoTableModule;
 
       // Configure PDF options, including encryption if password is provided
       const pdfOptions = { orientation: 'landscape' };
@@ -175,15 +175,6 @@ function ApplicationOverview() {
       }
 
       const doc = new JsPDFConstructor(pdfOptions);
-
-      // Apply plugin if it's a function that needs to be applied
-      if (typeof autoTable === 'function' && !doc.autoTable) {
-        try {
-          autoTable.default?.(doc) || autoTable(doc);
-        } catch (e) {
-          console.log('autoTable plugin application attempt:', e.message);
-        }
-      }
 
       const timestamp = new Date().toLocaleString();
 
@@ -211,7 +202,7 @@ function ApplicationOverview() {
       ]);
 
       // Use the imported autoTable function
-      autoTable(doc, {
+      const tableOptions = {
         startY: 45,
         head: [['App #', 'Student Name', 'School', 'Category', 'Subcategory', 'Status', 'Date Applied']],
         body: tableRows,
@@ -222,7 +213,17 @@ function ApplicationOverview() {
           1: { cellWidth: 'auto' }, // Student Name
           2: { cellWidth: 'auto' }  // School
         }
-      });
+      };
+
+      if (typeof autoTable === 'function') {
+        autoTable(doc, tableOptions);
+      } else if (typeof doc.autoTable === 'function') {
+        doc.autoTable(tableOptions);
+      } else if (autoTable && typeof autoTable.default === 'function') {
+        autoTable.default(doc, tableOptions);
+      } else {
+        throw new Error('Failed to load autotable plugin');
+      }
 
       // Footer
       const pageCount = doc.internal.getNumberOfPages();
