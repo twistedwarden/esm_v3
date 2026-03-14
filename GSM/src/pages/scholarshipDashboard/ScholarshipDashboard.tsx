@@ -282,7 +282,7 @@ export const ScholarshipDashboard: React.FC = () => {
         setError(null);
         const [userApplications, requiredDocumentsData, periodsData] = await Promise.all([
           scholarshipApiService.getUserApplications(),
-          scholarshipApiService.getDocumentTypes().catch(() => scholarshipApiService.getRequiredDocuments().catch(() => [])), // fetch all; fallback to required-only; fallback to empty
+          scholarshipApiService.getDocumentTypes().catch((e) => { console.warn('[Dashboard] getDocumentTypes failed:', e?.message); return scholarshipApiService.getRequiredDocuments().catch(() => []); }),
           scholarshipApiService.getAcademicPeriods()
         ]);
         setApplications(userApplications);
@@ -408,6 +408,7 @@ export const ScholarshipDashboard: React.FC = () => {
     { id: 4,  name: 'Barangay Certificate',               description: 'Certificate from your barangay confirming your residency',                            category: 'personal',  is_required: true, is_active: true, level: 'all', priority: 6 },
     { id: 5,  name: 'Valid ID (Government-issued)',        description: 'Government-issued identification document (Driver\'s License, Passport, etc.)',        category: 'personal',  is_required: true, is_active: true, level: 'all', priority: 7 },
     { id: 6,  name: 'Birth Certificate',                  description: 'Official birth certificate from PSA (Philippine Statistics Authority)',                category: 'personal',  is_required: true, is_active: true, level: 'all', priority: 8 },
+    { id: 14, name: 'Form 137',                           description: 'Complete academic records',                                                              category: 'academic',  is_required: true, is_active: true, level: 'all', priority: 9 },
   ];
 
   // Map educational level strings from the form to the DB level enum
@@ -456,7 +457,7 @@ export const ScholarshipDashboard: React.FC = () => {
         name: requiredDoc.name,
         description: requiredDoc.description,
         category: requiredDoc.category,
-        isRequired: requiredDoc.is_required !== false, // Default to true if not specified
+        isRequired: requiredDoc.is_required === true || requiredDoc.is_required === 1, // handle both boolean and MySQL integer
         isSubmitted: !!submittedDoc,
         status: submittedDoc ? (isApplicationApproved ? 'verified' : submittedDoc.status) : 'missing',
         submittedAt: submittedDoc ? new Date(submittedDoc.created_at).toLocaleDateString() : null,
