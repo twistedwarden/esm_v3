@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Users,
   CheckCircle,
@@ -143,48 +145,6 @@ function ApplicationOverview() {
         return;
       }
 
-      // Debug: inspect what each dynamic import resolves to
-      const jsPDFModule = await import('jspdf');
-      console.log('[PDF Export] jsPDFModule keys:', Object.keys(jsPDFModule));
-      console.log('[PDF Export] jsPDFModule.default type:', typeof jsPDFModule.default);
-      console.log('[PDF Export] jsPDFModule.jsPDF type:', typeof jsPDFModule.jsPDF);
-
-      const atModule = await import('jspdf-autotable');
-      console.log('[PDF Export] autoTable module keys:', Object.keys(atModule));
-      console.log('[PDF Export] atModule.default type:', typeof atModule.default);
-      console.log('[PDF Export] atModule.autoTable type:', typeof atModule.autoTable);
-      console.log('[PDF Export] Is atModule.default a plain object?', atModule.default !== null && typeof atModule.default === 'object');
-
-      // Resolve jsPDF constructor — try named export first, then default
-      let JsPDF;
-      if (typeof jsPDFModule.jsPDF === 'function') {
-        JsPDF = jsPDFModule.jsPDF;
-        console.log('[PDF Export] Using jsPDFModule.jsPDF');
-      } else if (typeof jsPDFModule.default === 'function') {
-        JsPDF = jsPDFModule.default;
-        console.log('[PDF Export] Using jsPDFModule.default');
-      } else if (jsPDFModule.default && typeof jsPDFModule.default.jsPDF === 'function') {
-        JsPDF = jsPDFModule.default.jsPDF;
-        console.log('[PDF Export] Using jsPDFModule.default.jsPDF');
-      } else {
-        throw new Error('[PDF Export] Cannot resolve jsPDF constructor. Module shape: ' + JSON.stringify(Object.keys(jsPDFModule)));
-      }
-
-      // Resolve autoTable — named export is most reliable across Vite CJS interop
-      let autoTable;
-      if (typeof atModule.autoTable === 'function') {
-        autoTable = atModule.autoTable;
-        console.log('[PDF Export] Using atModule.autoTable');
-      } else if (typeof atModule.default === 'function') {
-        autoTable = atModule.default;
-        console.log('[PDF Export] Using atModule.default');
-      } else if (atModule.default && typeof atModule.default.autoTable === 'function') {
-        autoTable = atModule.default.autoTable;
-        console.log('[PDF Export] Using atModule.default.autoTable');
-      } else {
-        throw new Error('[PDF Export] Cannot resolve autoTable function. Module shape: ' + JSON.stringify(Object.keys(atModule)));
-      }
-
       // Configure PDF options, including encryption if password is provided
       const pdfOptions = { orientation: 'landscape' };
       if (password) {
@@ -195,8 +155,7 @@ function ApplicationOverview() {
         };
       }
 
-      const doc = new JsPDF(pdfOptions);
-      console.log('[PDF Export] doc created:', typeof doc);
+      const doc = new jsPDF(pdfOptions);
 
       const timestamp = new Date().toLocaleString();
 
@@ -235,7 +194,6 @@ function ApplicationOverview() {
           2: { cellWidth: 'auto' }
         }
       });
-      console.log('[PDF Export] autoTable rendered successfully');
 
       // Footer
       const pageCount = doc.internal.getNumberOfPages();
