@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { scholarshipApiService, type School, type ScholarshipCategory, type Student } from '../../services/scholarshipApiService';
+import { scholarshipApiService, type School, type ScholarshipCategory, type Student, type AcademicPeriod } from '../../services/scholarshipApiService';
 import { useAuthStore } from '../../store/v1authStore';
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton';
 import Toast from '../../components/ui/Toast';
@@ -75,6 +75,7 @@ export const NewApplicationForm: React.FC = () => {
   const [showReligionOther, setShowReligionOther] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
   const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(new Set());
+  const [academicPeriods, setAcademicPeriods] = useState<AcademicPeriod[]>([]);
 
   const {
     control,
@@ -435,6 +436,8 @@ export const NewApplicationForm: React.FC = () => {
           scholarshipApiService.getUserApplications(),
           scholarshipApiService.getAcademicPeriods()
         ]);
+
+        setAcademicPeriods(periods);
 
         // Check for open academic period
         const currentOpenPeriod = periods.find(p => p.status === 'open' && p.is_current);
@@ -3307,12 +3310,15 @@ export const NewApplicationForm: React.FC = () => {
                         control={control}
                         rules={{ required: 'School Year is required' }}
                         render={({ field }) => (
-                          <input
+                          <select
                             {...field}
-                            type="text"
-                            placeholder="e.g., 2023-2024"
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                          />
+                          >
+                            <option value="">Select School Year</option>
+                            {[...new Set(academicPeriods.map(p => p.academic_year))].map(sy => (
+                              <option key={sy} value={sy}>{sy}</option>
+                            ))}
+                          </select>
                         )}
                       />
                       {errors.schoolYear && <p className="mt-1 text-sm text-red-600">{String(errors.schoolYear.message)}</p>}
