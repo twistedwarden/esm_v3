@@ -282,7 +282,7 @@ export const ScholarshipDashboard: React.FC = () => {
         setError(null);
         const [userApplications, requiredDocumentsData, periodsData] = await Promise.all([
           scholarshipApiService.getUserApplications(),
-          scholarshipApiService.getRequiredDocuments(),
+          scholarshipApiService.getDocumentTypes(), // fetch all (required + optional) to show full checklist
           scholarshipApiService.getAcademicPeriods()
         ]);
         setApplications(userApplications);
@@ -458,13 +458,31 @@ export const ScholarshipDashboard: React.FC = () => {
     }
   ];
 
+  // Map educational level strings from the form to the DB level enum
+  const getDbLevel = (educationalLevel: string): string => {
+    const lvl = (educationalLevel || '').toUpperCase();
+    if (lvl.includes('SENIOR') || lvl.includes('SHS')) return 'senior_high';
+    if (lvl.includes('VOCATIONAL') || lvl.includes('TECH')) return 'vocational';
+    return 'college'; // TERTIARY/COLLEGE and anything else
+  };
+
   // Create documents checklist
   const createDocumentsChecklist = () => {
     // If the overall application is approved, treat all submitted documents as verified
     const isApplicationApproved = currentApplication && ['approved', 'grants_processing', 'grants_disbursed'].includes(currentApplication.status.toLowerCase());
 
+    // Determine student's level so we can filter document types
+    const studentLevel = getDbLevel(applicationDetails?.educationalLevel || '');
+
     // Use API data if available, otherwise fall back to standard documents
-    const documentsToCheck = requiredDocuments.length > 0 ? requiredDocuments : standardRequiredDocuments;
+    const allDocs = requiredDocuments.length > 0 ? requiredDocuments : standardRequiredDocuments;
+
+    // Filter: keep active docs that match this level (or 'both') — level field may be missing on old data
+    const documentsToCheck = allDocs.filter((d: any) => {
+      if (!d.is_active && d.is_active !== undefined) return false;
+      const docLevel = d.level || 'both';
+      return docLevel === 'both' || docLevel === studentLevel;
+    });
 
     const checklist = documentsToCheck.map(requiredDoc => {
       // For standard documents, try to match by document type ID or name
@@ -526,7 +544,7 @@ export const ScholarshipDashboard: React.FC = () => {
       }
     });
 
-    // Sort by priority (required documents first, then by priority number)
+    // Sort: required first (by priority), then optional at the bottom
     return checklist.sort((a, b) => {
       if (a.isRequired && !b.isRequired) return -1;
       if (!a.isRequired && b.isRequired) return 1;
@@ -1603,30 +1621,33 @@ export const ScholarshipDashboard: React.FC = () => {
               <div className="space-y-4">
                 {documentsChecklist.length > 0 ? (
                   (() => {
-                    // Group documents by category
-                    const groupedDocs = documentsChecklist.reduce((groups, item) => {
-                      const category = item.category || 'other';
-                      if (!groups[category]) {
-                        groups[category] = [];
-                      }
-                      groups[category].push(item);
-                      return groups;
-                    }, {} as Record<string, typeof documentsChecklist>);
+                    const requiredItems  = documentsChecklist.filter(d => d.isRequired);
+                    const optionalItems  = documentsChecklist.filter(d => !d.isRequired);
+
+                    // Group a list of items by category
+                    const groupByCategory = (items: typeof documentsChecklist) =>
+                      items.reduce((groups, item) => {
+                        const category = item.category || 'other';
+                        if (!groups[category]) groups[category] = [];
+                        groups[category].push(item);
+                        return groups;
+                      }, {} as Record<string, typeof documentsChecklist>);
 
                     // Category labels
-                    const categoryLabels = {
+                    const categoryLabels: Record<string, string> = {
                       academic: '📚 Academic Documents',
                       financial: '💰 Financial Documents',
                       personal: '🆔 Personal Documents',
                       other: '📄 Other Documents'
                     };
 
-                    return Object.entries(groupedDocs).map(([category, items]) => (
-                      <div key={category} className="space-y-2">
-                        <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-1 mb-2">
-                          {categoryLabels[category as keyof typeof categoryLabels] || `📄 ${category.charAt(0).toUpperCase() + category.slice(1)} Documents`}
-                        </h4>
-                        {items.map((item, index) => (
+                    const renderGroup = (items: typeof documentsChecklist) =>
+                      Object.entries(groupByCategory(items)).map(([category, catItems]) => (
+                        <div key={category} className="space-y-2">
+                          <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-1 mb-2">
+                            {categoryLabels[category] || `📄 ${category.charAt(0).toUpperCase() + category.slice(1)} Documents`}
+                          </h4>
+                          {catItems.map((item, index) => (
                           <div key={index} className={`p-3 rounded-lg border transition-all hover:shadow-sm ${item.isRequired
                             ? item.isSubmitted
                               ? item.status === 'verified'
@@ -1735,9 +1756,36 @@ export const ScholarshipDashboard: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                        ))}
+                          ))}
+                        </div>
+                      ));
+
+                    return (
+                      <div className="space-y-6">
+                        {/* Required Documents */}
+                        {requiredItems.length > 0 && (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-orange-700 uppercase tracking-wider">Required Documents</span>
+                              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-700">{requiredItems.length}</span>
+                            </div>
+                            {renderGroup(requiredItems)}
+                          </div>
+                        )}
+
+                        {/* Optional Documents */}
+                        {optionalItems.length > 0 && (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 pt-2 border-t border-dashed border-gray-200">
+                              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Optional Documents</span>
+                              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500">{optionalItems.length}</span>
+                              <span className="text-[10px] text-gray-400 italic">These are not mandatory but may support your application</span>
+                            </div>
+                            {renderGroup(optionalItems)}
+                          </div>
+                        )}
                       </div>
-                    ));
+                    );
                   })()
                 ) : (
                   <div className="text-center py-8 text-gray-500">

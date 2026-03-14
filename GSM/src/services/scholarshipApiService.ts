@@ -218,6 +218,7 @@ export interface DocumentType {
   is_required: boolean;
   category: 'personal' | 'academic' | 'financial' | 'other';
   is_active: boolean;
+  level?: 'college' | 'senior_high' | 'vocational' | 'both';
 }
 
 export interface Document {
