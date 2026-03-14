@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import {
   Users,
   CheckCircle,
@@ -145,6 +143,11 @@ function ApplicationOverview() {
         return;
       }
 
+      // Dynamic imports matching the working pattern in ApplicationsTab.tsx
+      const jsPDFModule = await import('jspdf');
+      const jsPDF = jsPDFModule.default;
+      const autoTable = (await import('jspdf-autotable')).default;
+
       // Configure PDF options, including encryption if password is provided
       const pdfOptions = { orientation: 'landscape' };
       if (password) {
@@ -182,8 +185,7 @@ function ApplicationOverview() {
         new Date(app.created_at).toLocaleDateString()
       ]);
 
-      // Use doc.autoTable (registered by the side-effect import)
-      doc.autoTable({
+      autoTable(doc, {
         startY: 45,
         head: [['App #', 'Student Name', 'School', 'Category', 'Subcategory', 'Status', 'Date Applied']],
         body: tableRows,
