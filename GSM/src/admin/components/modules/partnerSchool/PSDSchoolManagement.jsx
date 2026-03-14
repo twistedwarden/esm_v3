@@ -1,6 +1,7 @@
 import React from 'react';
 import { School as SchoolIcon, Plus, Search, Filter, Edit, Trash2, Eye, MapPin, Users, Phone, Mail, Globe, Building, CheckCircle, XCircle, AlertCircle, Grid3X3, List, CheckSquare, Square } from 'lucide-react';
 import AddSchoolModal from './AddSchoolModal';
+import EditSchoolModal from './EditSchoolModal';
 import BulkDeleteModal from './BulkDeleteModal';
 import { getSchools, deleteSchool, getSchoolById } from '../../../../services/schoolService';
 import { API_CONFIG } from '../../../../config/api';
@@ -75,6 +76,13 @@ function PSDSchoolManagement() {
     const handleSchoolCreated = (newSchool) => {
         setSchools(prev => [newSchool, ...prev]);
         setShowAddModal(false);
+    };
+
+    // Handle successful school update
+    const handleSchoolUpdated = (updatedSchool) => {
+        setSchools(prev => prev.map(s => s.id === updatedSchool.id ? updatedSchool : s));
+        setShowEditModal(false);
+        setSelectedSchool(null);
     };
 
     // Handle school deletion
@@ -501,6 +509,14 @@ function PSDSchoolManagement() {
                 isOpen={showAddModal}
                 onClose={() => setShowAddModal(false)}
                 onSuccess={handleSchoolCreated}
+            />
+
+            {/* Edit School Modal */}
+            <EditSchoolModal
+                isOpen={showEditModal}
+                onClose={() => { setShowEditModal(false); setSelectedSchool(null); }}
+                onSuccess={handleSchoolUpdated}
+                school={selectedSchool}
             />
 
             {/* Bulk Delete Modal */}
