@@ -14,45 +14,73 @@ import {
     ToggleRight,
     Search,
     Filter,
-    ClipboardList
+    ClipboardList,
+    GraduationCap,
+    BookOpen
 } from 'lucide-react';
 
 const CATEGORIES = [
-    { value: 'personal', label: 'Personal' },
-    { value: 'academic', label: 'Academic' },
+    { value: 'personal',  label: 'Personal'  },
+    { value: 'academic',  label: 'Academic'  },
     { value: 'financial', label: 'Financial' },
-    { value: 'other', label: 'Other' }
+    { value: 'other',     label: 'Other'     }
 ];
 
 const CATEGORY_COLORS = {
-    personal: 'bg-blue-100 text-blue-700',
-    academic: 'bg-purple-100 text-purple-700',
+    personal:  'bg-blue-100 text-blue-700',
+    academic:  'bg-purple-100 text-purple-700',
     financial: 'bg-green-100 text-green-700',
-    other: 'bg-gray-100 text-gray-600'
+    other:     'bg-gray-100 text-gray-600'
 };
 
+const LEVELS = [
+    { value: 'college',     label: 'College',          icon: GraduationCap },
+    { value: 'senior_high', label: 'Senior High',      icon: BookOpen      },
+    { value: 'both',        label: 'Both Levels',      icon: ClipboardList }
+];
+
+const LEVEL_COLORS = {
+    college:     'bg-indigo-100 text-indigo-700',
+    senior_high: 'bg-orange-100 text-orange-700',
+    both:        'bg-teal-100 text-teal-700'
+};
+
+const LEVEL_LABELS = {
+    college:     'College',
+    senior_high: 'Senior High',
+    both:        'Both'
+};
+
+const TABS = [
+    { id: 'college',     label: 'College',         icon: GraduationCap },
+    { id: 'senior_high', label: 'Senior High',     icon: BookOpen      },
+    { id: 'both',        label: 'Shared / Both',   icon: ClipboardList }
+];
+
 const EMPTY_FORM = {
-    name: '',
+    name:        '',
     description: '',
-    category: 'personal',
-    is_required: true
+    category:    'personal',
+    is_required: true,
+    level:       'college'
 };
 
 export default function RequirementsManagement() {
     const [requirements, setRequirements] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [readOnly, setReadOnly] = useState(false);
-    const [search, setSearch] = useState('');
+    const [loading, setLoading]           = useState(true);
+    const [readOnly, setReadOnly]         = useState(false);
+    const [activeTab, setActiveTab]       = useState('college');
+    const [search, setSearch]             = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
-    const [filterStatus, setFilterStatus] = useState('all');
+    const [filterStatus, setFilterStatus]     = useState('all');
 
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
+    const [showEditModal,   setShowEditModal]   = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showToggleModal, setShowToggleModal] = useState(false);
 
-    const [selected, setSelected] = useState(null);
-    const [form, setForm] = useState(EMPTY_FORM);
+    const [selected,   setSelected]   = useState(null);
+    const [form,       setForm]       = useState(EMPTY_FORM);
     const [submitting, setSubmitting] = useState(false);
 
     const { success: showSuccess, error: showError } = useToastContext();
@@ -71,36 +99,43 @@ export default function RequirementsManagement() {
         }
     };
 
-    useEffect(() => {
-        loadRequirements();
-    }, []);
+    useEffect(() => { loadRequirements(); }, []);
+
+    // Reset search/filters when switching tabs
+    const switchTab = (tab) => {
+        setActiveTab(tab);
+        setSearch('');
+        setFilterCategory('all');
+        setFilterStatus('all');
+    };
 
     const openCreate = () => {
-        if (readOnly) { showError('Create is not available — admin API endpoint not yet configured on the backend.'); return; }
-        setForm(EMPTY_FORM);
+        if (readOnly) { showError('Create is not available — admin API endpoint not configured on the backend.'); return; }
+        setForm({ ...EMPTY_FORM, level: activeTab });
         setShowCreateModal(true);
     };
 
     const openEdit = (req) => {
-        if (readOnly) { showError('Edit is not available — admin API endpoint not yet configured on the backend.'); return; }
+        if (readOnly) { showError('Edit is not available — admin API endpoint not configured on the backend.'); return; }
         setSelected(req);
         setForm({
-            name: req.name,
+            name:        req.name,
             description: req.description || '',
-            category: req.category,
-            is_required: req.is_required
+            category:    req.category,
+            is_required: req.is_required,
+            level:       req.level || 'both'
         });
         setShowEditModal(true);
     };
 
     const openDelete = (req) => {
-        if (readOnly) { showError('Delete is not available — admin API endpoint not yet configured on the backend.'); return; }
+        if (readOnly) { showError('Delete is not available — admin API endpoint not configured on the backend.'); return; }
         setSelected(req);
         setShowDeleteModal(true);
     };
 
     const openToggle = (req) => {
-        if (readOnly) { showError('Toggle is not available — admin API endpoint not yet configured on the backend.'); return; }
+        if (readOnly) { showError('Toggle is not available — admin API endpoint not configured on the backend.'); return; }
         setSelected(req);
         setShowToggleModal(true);
     };
@@ -169,24 +204,43 @@ export default function RequirementsManagement() {
         }
     };
 
-    const filtered = requirements.filter((r) => {
-        const matchSearch = r.name.toLowerCase().includes(search.toLowerCase()) ||
+    // Tab-scoped data: tab "college" shows level=college + level=both, etc.
+    const tabRequirements = requirements.filter(r =>
+        r.level === activeTab || r.level === 'both'
+            ? activeTab === 'both' ? r.level === 'both' : (r.level === activeTab || r.level === 'both')
+            : false
+    );
+
+    // Simplify: "college" tab → level=college OR level=both
+    //            "senior_high" tab → level=senior_high OR level=both
+    //            "both" tab → only level=both (shared requirements)
+    const tabFiltered = requirements.filter(r => {
+        if (activeTab === 'both') return r.level === 'both';
+        return r.level === activeTab || r.level === 'both';
+    });
+
+    const filtered = tabFiltered.filter((r) => {
+        const matchSearch   = r.name.toLowerCase().includes(search.toLowerCase()) ||
             (r.description || '').toLowerCase().includes(search.toLowerCase());
         const matchCategory = filterCategory === 'all' || r.category === filterCategory;
-        const matchStatus = filterStatus === 'all' ||
+        const matchStatus   = filterStatus === 'all' ||
             (filterStatus === 'active' && r.is_active) ||
             (filterStatus === 'inactive' && !r.is_active);
         return matchSearch && matchCategory && matchStatus;
     });
 
+    const countFor = (level) => {
+        if (level === 'both') return requirements.filter(r => r.level === 'both').length;
+        return requirements.filter(r => r.level === level || r.level === 'both').length;
+    };
+
     const stats = {
-        total: requirements.length,
-        active: requirements.filter(r => r.is_active).length,
+        total:    requirements.length,
+        active:   requirements.filter(r => r.is_active).length,
         required: requirements.filter(r => r.is_required).length,
         inactive: requirements.filter(r => !r.is_active).length
     };
 
-    // ── Modal helper ──────────────────────────────────────────────────────────
     const FormFields = ({ value, onChange }) => (
         <div className="space-y-4">
             <div>
@@ -237,6 +291,26 @@ export default function RequirementsManagement() {
                     </select>
                 </div>
             </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Applies To</label>
+                <div className="grid grid-cols-3 gap-2">
+                    {LEVELS.map(({ value: lv, label, icon: Icon }) => (
+                        <button
+                            key={lv}
+                            type="button"
+                            onClick={() => onChange({ ...value, level: lv })}
+                            className={`flex flex-col items-center gap-1 py-3 rounded-lg border-2 text-xs font-medium transition-colors ${
+                                value.level === lv
+                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                    : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                            }`}
+                        >
+                            <Icon className="w-4 h-4" />
+                            {label}
+                        </button>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 
@@ -248,7 +322,8 @@ export default function RequirementsManagement() {
                     <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
                     <span>
                         <strong>Read-only mode —</strong> the admin document-type API endpoint is not configured on the backend yet.
-                        Data is loaded from the public endpoint. Create, edit, delete, and toggle actions will be available once the backend exposes <code className="bg-amber-100 px-1 rounded">/api/document-types</code>.
+                        Data is loaded from the public endpoint. Create, edit, delete, and toggle actions will be available once the backend exposes{' '}
+                        <code className="bg-amber-100 px-1 rounded">/api/document-types</code>.
                     </span>
                 </div>
             )}
@@ -274,10 +349,10 @@ export default function RequirementsManagement() {
             {/* ── Stat Cards ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                    { label: 'Total Requirements', value: stats.total, icon: ClipboardList, color: 'text-gray-600', bg: 'bg-gray-50' },
-                    { label: 'Active', value: stats.active, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
-                    { label: 'Required', value: stats.required, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Inactive', value: stats.inactive, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50' }
+                    { label: 'Total Requirements', value: stats.total,    icon: ClipboardList, color: 'text-gray-600',  bg: 'bg-gray-50'  },
+                    { label: 'Active',             value: stats.active,   icon: CheckCircle,   color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Required',           value: stats.required, icon: FileText,      color: 'text-blue-600',  bg: 'bg-blue-50'  },
+                    { label: 'Inactive',           value: stats.inactive, icon: XCircle,       color: 'text-red-500',   bg: 'bg-red-50'   }
                 ].map(({ label, value, icon: Icon, color, bg }) => (
                     <div key={label} className={`${bg} rounded-xl p-4 flex items-center gap-3`}>
                         <div className={`${color} p-2 rounded-lg bg-white shadow-sm`}>
@@ -291,44 +366,67 @@ export default function RequirementsManagement() {
                 ))}
             </div>
 
-            {/* ── Filters ── */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 items-center">
-                <div className="flex-1 min-w-[200px] relative">
-                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                        type="text"
-                        placeholder="Search requirements..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    />
-                </div>
-                <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-gray-400" />
-                    <select
-                        value={filterCategory}
-                        onChange={e => setFilterCategory(e.target.value)}
-                        className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    >
-                        <option value="all">All Categories</option>
-                        {CATEGORIES.map(c => (
-                            <option key={c.value} value={c.value}>{c.label}</option>
-                        ))}
-                    </select>
-                    <select
-                        value={filterStatus}
-                        onChange={e => setFilterStatus(e.target.value)}
-                        className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
-
-            {/* ── Table ── */}
+            {/* ── Level Tabs ── */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="flex border-b border-gray-200">
+                    {TABS.map(({ id, label, icon: Icon }) => (
+                        <button
+                            key={id}
+                            onClick={() => switchTab(id)}
+                            className={`flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-colors flex-1 justify-center ${
+                                activeTab === id
+                                    ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50/50'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                            }`}
+                        >
+                            <Icon className="w-4 h-4" />
+                            {label}
+                            <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+                                activeTab === id ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+                            }`}>
+                                {countFor(id)}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* ── Filters ── */}
+                <div className="p-4 flex flex-wrap gap-3 items-center border-b border-gray-100">
+                    <div className="flex-1 min-w-[200px] relative">
+                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                            type="text"
+                            placeholder="Search requirements..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Filter className="w-4 h-4 text-gray-400" />
+                        <select
+                            value={filterCategory}
+                            onChange={e => setFilterCategory(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                            <option value="all">All Categories</option>
+                            {CATEGORIES.map(c => (
+                                <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={filterStatus}
+                            onChange={e => setFilterStatus(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* ── Table ── */}
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
@@ -346,9 +444,10 @@ export default function RequirementsManagement() {
                 ) : (
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="bg-gray-50 border-b border-gray-200 text-left">
+                            <tr className="bg-gray-50 text-left">
                                 <th className="px-5 py-3 font-semibold text-gray-600">Requirement</th>
                                 <th className="px-5 py-3 font-semibold text-gray-600">Category</th>
+                                <th className="px-5 py-3 font-semibold text-gray-600">Level</th>
                                 <th className="px-5 py-3 font-semibold text-gray-600">Type</th>
                                 <th className="px-5 py-3 font-semibold text-gray-600">Status</th>
                                 <th className="px-5 py-3 font-semibold text-gray-600 text-right">Actions</th>
@@ -366,6 +465,11 @@ export default function RequirementsManagement() {
                                     <td className="px-5 py-4">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${CATEGORY_COLORS[req.category] || CATEGORY_COLORS.other}`}>
                                             {req.category}
+                                        </span>
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${LEVEL_COLORS[req.level] || 'bg-gray-100 text-gray-600'}`}>
+                                            {LEVEL_LABELS[req.level] || req.level}
                                         </span>
                                     </td>
                                     <td className="px-5 py-4">
@@ -542,7 +646,8 @@ export default function RequirementsManagement() {
                             </div>
                             <h2 className="text-lg font-semibold text-gray-900">Delete Requirement</h2>
                             <p className="text-sm text-gray-500 mt-2">
-                                Are you sure you want to delete <span className="font-medium text-gray-700">"{selected.name}"</span>?
+                                Are you sure you want to delete{' '}
+                                <span className="font-medium text-gray-700">"{selected.name}"</span>?
                                 This action cannot be undone.
                             </p>
                         </div>

@@ -16,6 +16,7 @@ class DocumentType extends Model
         'is_required',
         'category',
         'is_active',
+        'level',
     ];
 
     protected $casts = [
@@ -43,5 +44,12 @@ class DocumentType extends Model
     public function scopeByCategory($query, $category)
     {
         return $query->where('category', $category);
+    }
+
+    public function scopeByLevel($query, $level)
+    {
+        return $query->where(function ($q) use ($level) {
+            $q->where('level', $level)->orWhere('level', 'both');
+        });
     }
 }

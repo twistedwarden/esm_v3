@@ -28,6 +28,10 @@ class DocumentTypeController extends Controller
             $query->where('is_required', filter_var($request->is_required, FILTER_VALIDATE_BOOLEAN));
         }
 
+        if ($request->has('level') && in_array($request->level, ['college', 'senior_high', 'both'])) {
+            $query->byLevel($request->level);
+        }
+
         $documentTypes = $query->orderBy('category')->orderBy('name')->get();
 
         return response()->json([
@@ -46,6 +50,7 @@ class DocumentTypeController extends Controller
             'description' => 'nullable|string',
             'category'    => 'required|in:personal,academic,financial,other',
             'is_required' => 'boolean',
+            'level'       => 'required|in:college,senior_high,both',
         ]);
 
         if ($validator->fails()) {
@@ -62,6 +67,7 @@ class DocumentTypeController extends Controller
             'category'    => $request->category,
             'is_required' => $request->boolean('is_required', false),
             'is_active'   => true,
+            'level'       => $request->level,
         ]);
 
         return response()->json([
@@ -93,6 +99,7 @@ class DocumentTypeController extends Controller
             'category'    => 'sometimes|required|in:personal,academic,financial,other',
             'is_required' => 'boolean',
             'is_active'   => 'boolean',
+            'level'       => 'sometimes|required|in:college,senior_high,both',
         ]);
 
         if ($validator->fails()) {
@@ -104,7 +111,7 @@ class DocumentTypeController extends Controller
         }
 
         $documentType->update($request->only([
-            'name', 'description', 'category', 'is_required', 'is_active',
+            'name', 'description', 'category', 'is_required', 'is_active', 'level',
         ]));
 
         return response()->json([
