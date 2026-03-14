@@ -401,21 +401,23 @@ export const NewApplicationForm: React.FC = () => {
     return parseFloat(incomeString.replace(/[^\d]/g, '')) || 0;
   };
 
-  // Helper function to convert percentage to GWA (1.00-5.00 scale, 1.00 being highest)
+  // Helper function to convert percentage (50-100) to GWA (1.00-4.00 scale, 1.00 being highest)
   const convertPercentageToGWA = (percentage: number): number => {
-    // Clamp percentage to valid range (0-100)
-    const clampedPercentage = Math.max(0, Math.min(100, percentage));
+    const clampedPercentage = Math.max(50, Math.min(100, percentage));
 
-    if (clampedPercentage >= 96) return 1.00;
+    if (clampedPercentage >= 97) return 1.00;
     if (clampedPercentage >= 94) return 1.25;
-    if (clampedPercentage >= 92) return 1.50;
-    if (clampedPercentage >= 89) return 1.75;
-    if (clampedPercentage >= 87) return 2.00;
-    if (clampedPercentage >= 84) return 2.25;
-    if (clampedPercentage >= 82) return 2.50;
-    if (clampedPercentage >= 79) return 2.75;
-    if (clampedPercentage >= 75) return 3.00;
-    return 5.00; // Below 75
+    if (clampedPercentage >= 91) return 1.50;
+    if (clampedPercentage >= 88) return 1.75;
+    if (clampedPercentage >= 85) return 2.00;
+    if (clampedPercentage >= 82) return 2.25;
+    if (clampedPercentage >= 79) return 2.50;
+    if (clampedPercentage >= 76) return 2.75;
+    if (clampedPercentage >= 73) return 3.00;
+    if (clampedPercentage >= 70) return 3.25;
+    if (clampedPercentage >= 67) return 3.50;
+    if (clampedPercentage >= 64) return 3.75;
+    return 4.00; // 50-63
   };
 
 
@@ -3458,18 +3460,18 @@ export const NewApplicationForm: React.FC = () => {
                         rules={{
                           required: 'General Weighted Average is required',
                           validate: (value) => {
-                            if (!value) return true; // Let required rule handle empty values
+                            if (!value) return true;
 
                             const numValue = parseFloat(value);
                             if (isNaN(numValue)) return 'Please enter a valid number';
 
                             if (gwaInputFormat === 'percentage') {
-                              if (numValue < 0 || numValue > 100) {
-                                return 'Percentage must be between 0 and 100';
+                              if (numValue < 50 || numValue > 100) {
+                                return 'Percentage must be between 50 and 100';
                               }
                             } else {
-                              if (numValue < 1.00 || numValue > 5.00) {
-                                return 'GWA must be between 1.00 and 5.00';
+                              if (numValue < 1.00 || numValue > 4.00) {
+                                return 'GWA must be between 1.00 and 4.00';
                               }
                             }
 
@@ -3480,10 +3482,10 @@ export const NewApplicationForm: React.FC = () => {
                           <input
                             {...field}
                             type="number"
-                            step={gwaInputFormat === 'percentage' ? '0.01' : '0.25'}
-                            min={gwaInputFormat === 'percentage' ? '0' : '1.00'}
-                            max={gwaInputFormat === 'percentage' ? '100' : '5.00'}
-                            placeholder={gwaInputFormat === 'percentage' ? 'e.g., 96' : 'e.g., 1.25'}
+                            step={gwaInputFormat === 'percentage' ? '0.01' : '0.01'}
+                            min={gwaInputFormat === 'percentage' ? '50' : '1.00'}
+                            max={gwaInputFormat === 'percentage' ? '100' : '4.00'}
+                            placeholder={gwaInputFormat === 'percentage' ? 'e.g., 90' : 'e.g., 1.25'}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                           />
                         )}
@@ -3493,7 +3495,12 @@ export const NewApplicationForm: React.FC = () => {
                       {/* Conversion Info */}
                       {gwaInputFormat === 'percentage' && (
                         <p className="mt-1 text-xs text-gray-500">
-                          Will be converted to GWA scale (1.00-5.00, where 1.00 is highest)
+                          Accepted range: 50–100. Will be converted to GWA scale (1.00–4.00, where 1.00 is highest).
+                        </p>
+                      )}
+                      {gwaInputFormat === 'gwa' && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Accepted range: 1.00–4.00 (where 1.00 is highest).
                         </p>
                       )}
                     </div>
