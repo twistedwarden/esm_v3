@@ -1547,7 +1547,16 @@ class ScholarshipApiService {
   }
 
   async getApplicationsReportData(params?: any): Promise<any[]> {
-    const queryParams = new URLSearchParams(params).toString();
+    // Strip out 'all' and empty values so the backend returns unfiltered results for those fields
+    const cleanParams: Record<string, string> = {};
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value && value !== 'all' && value !== '') {
+          cleanParams[key] = String(value);
+        }
+      });
+    }
+    const queryParams = new URLSearchParams(cleanParams).toString();
     const endpoint = queryParams
       ? `/api/reports/applications/get-report-data?${queryParams}`
       : `/api/reports/applications/get-report-data`;
