@@ -1130,6 +1130,16 @@ function ScholarshipApplications() {
               <option value="draft">Draft</option>
               <option value="submitted">Submitted</option>
               <option value="for_compliance">For Compliance</option>
+              <option value="compliance_documents_submitted">Compliance Documents Submitted</option>
+              <option value="interview_scheduled">Interview Scheduled</option>
+              <option value="interview_completed">Interview Completed</option>
+              <option value="endorsed_to_ssc">Endorsed to SSC</option>
+              <option value="approved">Approved</option>
+              <option value="grants_processing">Grants Processing</option>
+              <option value="grants_disbursed">Grants Disbursed</option>
+              <option value="rejected">Rejected</option>
+              <option value="on_hold">On Hold</option>
+              <option value="cancelled">Cancelled</option>
             </select>
           </div>
 
