@@ -74,6 +74,7 @@ export const NewApplicationForm: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [showReligionOther, setShowReligionOther] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
+  const [autoPopulatedFields, setAutoPopulatedFields] = useState<Set<string>>(new Set());
 
   const {
     control,
@@ -809,27 +810,36 @@ export const NewApplicationForm: React.FC = () => {
 
       console.log('Auto-populating form with user data:', currentUser);
 
+      const populated = new Set<string>();
+
       // Only populate fields that have actual data from the citizen record
       if (currentUser.first_name) {
         setValue('firstName', currentUser.first_name);
+        populated.add('firstName');
       }
       if (currentUser.last_name) {
         setValue('lastName', currentUser.last_name);
+        populated.add('lastName');
       }
       if (currentUser.middle_name) {
         setValue('middleName', currentUser.middle_name);
+        populated.add('middleName');
       }
       if (currentUser.extension_name) {
         setValue('extensionName', currentUser.extension_name);
+        populated.add('extensionName');
       }
       if (currentUser.email) {
         setValue('emailAddress', currentUser.email);
+        populated.add('emailAddress');
       }
       if (currentUser.mobile) {
         setValue('contactNumber', currentUser.mobile);
+        populated.add('contactNumber');
       }
       if (currentUser.birthdate) {
         setValue('dateOfBirth', new Date(currentUser.birthdate).toISOString().split('T')[0]);
+        populated.add('dateOfBirth');
       }
 
       // Address Population
@@ -844,11 +854,15 @@ export const NewApplicationForm: React.FC = () => {
 
       if (addressToUse) {
         setValue('presentAddress', addressToUse);
+        populated.add('presentAddress');
       }
 
       if (currentUser.barangay) {
         setValue('barangay', currentUser.barangay);
+        populated.add('barangay');
       }
+
+      setAutoPopulatedFields(populated);
 
       // Optionally try to fetch additional student data if it exists (from previous applications)
       try {
@@ -1522,9 +1536,19 @@ export const NewApplicationForm: React.FC = () => {
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold text-gray-800">
-                    PERSONAL INFORMATION <span className="text-gray-600 text-lg">(Import from CaloocanCitizen ID)</span>
-                  </h2>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-800">
+                      PERSONAL INFORMATION <span className="text-gray-600 text-lg">(Import from CaloocanCitizen ID)</span>
+                    </h2>
+                    {autoPopulatedFields.size > 0 && (
+                      <p className="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Fields highlighted in blue are auto-filled from your Caloocan Citizen ID and are read-only.
+                      </p>
+                    )}
+                  </div>
                   <a href="#" className="text-blue-600 hover:underline text-sm">
                     edit personal information
                   </a>
@@ -1533,7 +1557,10 @@ export const NewApplicationForm: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Name Fields */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Name *
+                      {autoPopulatedFields.has('lastName') && <span className="ml-1 text-xs text-blue-500">(from Citizen ID)</span>}
+                    </label>
                     <Controller
                       name="lastName"
                       control={control}
@@ -1542,7 +1569,8 @@ export const NewApplicationForm: React.FC = () => {
                         <input
                           {...field}
                           type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          readOnly={autoPopulatedFields.has('lastName')}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${autoPopulatedFields.has('lastName') ? 'bg-blue-50 border-blue-200 text-gray-700 cursor-not-allowed' : 'border-gray-300'}`}
                         />
                       )}
                     />
@@ -1550,7 +1578,10 @@ export const NewApplicationForm: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name *
+                      {autoPopulatedFields.has('firstName') && <span className="ml-1 text-xs text-blue-500">(from Citizen ID)</span>}
+                    </label>
                     <Controller
                       name="firstName"
                       control={control}
@@ -1559,7 +1590,8 @@ export const NewApplicationForm: React.FC = () => {
                         <input
                           {...field}
                           type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          readOnly={autoPopulatedFields.has('firstName')}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${autoPopulatedFields.has('firstName') ? 'bg-blue-50 border-blue-200 text-gray-700 cursor-not-allowed' : 'border-gray-300'}`}
                         />
                       )}
                     />
@@ -1567,7 +1599,10 @@ export const NewApplicationForm: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Middle Name
+                      {autoPopulatedFields.has('middleName') && <span className="ml-1 text-xs text-blue-500">(from Citizen ID)</span>}
+                    </label>
                     <Controller
                       name="middleName"
                       control={control}
@@ -1575,14 +1610,18 @@ export const NewApplicationForm: React.FC = () => {
                         <input
                           {...field}
                           type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          readOnly={autoPopulatedFields.has('middleName')}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${autoPopulatedFields.has('middleName') ? 'bg-blue-50 border-blue-200 text-gray-700 cursor-not-allowed' : 'border-gray-300'}`}
                         />
                       )}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Extension Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Extension Name
+                      {autoPopulatedFields.has('extensionName') && <span className="ml-1 text-xs text-blue-500">(from Citizen ID)</span>}
+                    </label>
                     <Controller
                       name="extensionName"
                       control={control}
@@ -1591,7 +1630,8 @@ export const NewApplicationForm: React.FC = () => {
                           {...field}
                           type="text"
                           placeholder="e.g., Jr., Sr., III"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          readOnly={autoPopulatedFields.has('extensionName')}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${autoPopulatedFields.has('extensionName') ? 'bg-blue-50 border-blue-200 text-gray-700 cursor-not-allowed' : 'border-gray-300'}`}
                         />
                       )}
                     />
@@ -1706,7 +1746,10 @@ export const NewApplicationForm: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date of Birth *
+                      {autoPopulatedFields.has('dateOfBirth') && <span className="ml-1 text-xs text-blue-500">(from Citizen ID)</span>}
+                    </label>
                     <Controller
                       name="dateOfBirth"
                       control={control}
@@ -1715,7 +1758,8 @@ export const NewApplicationForm: React.FC = () => {
                         <input
                           {...field}
                           type="date"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          readOnly={autoPopulatedFields.has('dateOfBirth')}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${autoPopulatedFields.has('dateOfBirth') ? 'bg-blue-50 border-blue-200 text-gray-700 cursor-not-allowed' : 'border-gray-300'}`}
                         />
                       )}
                     />
@@ -1915,7 +1959,10 @@ export const NewApplicationForm: React.FC = () => {
 
                   {/* Address Information */}
                   <div className="col-span-full">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Present Address *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Present Address *
+                      {autoPopulatedFields.has('presentAddress') && <span className="ml-1 text-xs text-blue-500">(from Citizen ID)</span>}
+                    </label>
                     <Controller
                       name="presentAddress"
                       control={control}
@@ -1924,7 +1971,8 @@ export const NewApplicationForm: React.FC = () => {
                         <input
                           {...field}
                           type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          readOnly={autoPopulatedFields.has('presentAddress')}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${autoPopulatedFields.has('presentAddress') ? 'bg-blue-50 border-blue-200 text-gray-700 cursor-not-allowed' : 'border-gray-300'}`}
                         />
                       )}
                     />
@@ -1932,7 +1980,10 @@ export const NewApplicationForm: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Barangay *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Barangay *
+                      {autoPopulatedFields.has('barangay') && <span className="ml-1 text-xs text-blue-500">(from Citizen ID)</span>}
+                    </label>
                     <Controller
                       name="barangay"
                       control={control}
@@ -1941,7 +1992,8 @@ export const NewApplicationForm: React.FC = () => {
                         <input
                           {...field}
                           type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          readOnly={autoPopulatedFields.has('barangay')}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${autoPopulatedFields.has('barangay') ? 'bg-blue-50 border-blue-200 text-gray-700 cursor-not-allowed' : 'border-gray-300'}`}
                         />
                       )}
                     />
@@ -2007,7 +2059,10 @@ export const NewApplicationForm: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Active Contact Number *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Active Contact Number *
+                      {autoPopulatedFields.has('contactNumber') && <span className="ml-1 text-xs text-blue-500">(from Citizen ID)</span>}
+                    </label>
                     <Controller
                       name="contactNumber"
                       control={control}
@@ -2016,7 +2071,8 @@ export const NewApplicationForm: React.FC = () => {
                         <input
                           {...field}
                           type="tel"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          readOnly={autoPopulatedFields.has('contactNumber')}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${autoPopulatedFields.has('contactNumber') ? 'bg-blue-50 border-blue-200 text-gray-700 cursor-not-allowed' : 'border-gray-300'}`}
                         />
                       )}
                     />
@@ -2024,7 +2080,10 @@ export const NewApplicationForm: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Active Email Address *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Active Email Address *
+                      {autoPopulatedFields.has('emailAddress') && <span className="ml-1 text-xs text-blue-500">(from Citizen ID)</span>}
+                    </label>
                     <Controller
                       name="emailAddress"
                       control={control}
@@ -2039,7 +2098,8 @@ export const NewApplicationForm: React.FC = () => {
                         <input
                           {...field}
                           type="email"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          readOnly={autoPopulatedFields.has('emailAddress')}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${autoPopulatedFields.has('emailAddress') ? 'bg-blue-50 border-blue-200 text-gray-700 cursor-not-allowed' : 'border-gray-300'}`}
                         />
                       )}
                     />
@@ -2088,15 +2148,25 @@ export const NewApplicationForm: React.FC = () => {
                     {errors.isMotherAvailable && <p className="mt-1 text-sm text-red-600">{String(errors.isMotherAvailable.message)}</p>}
                   </div>
 
-                  {isMotherAvailable === 'yes' && (
+                  {(isMotherAvailable === 'yes' || isMotherAvailable === 'no') && (
                     <>
+                      {isMotherAvailable === 'no' && (
+                        <div className="col-span-full">
+                          <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600">
+                            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Please provide your mother's name for records purposes.
+                          </div>
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
                         <Controller
                           name="motherFirstName"
                           control={control}
-                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s First Name is required' : false }}
+                          rules={{ required: (isMotherAvailable === 'yes' || isMotherAvailable === 'no') ? 'Mother\'s First Name is required' : false }}
                           render={({ field }) => (
                             <input
                               {...field}
@@ -2113,7 +2183,7 @@ export const NewApplicationForm: React.FC = () => {
                         <Controller
                           name="motherLastName"
                           control={control}
-                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Last Name is required' : false }}
+                          rules={{ required: (isMotherAvailable === 'yes' || isMotherAvailable === 'no') ? 'Mother\'s Last Name is required' : false }}
                           render={({ field }) => (
                             <input
                               {...field}
@@ -2156,62 +2226,65 @@ export const NewApplicationForm: React.FC = () => {
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
-                        <Controller
-                          name="motherContactNumber"
-                          control={control}
-                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Contact Number is required' : false }}
-                          render={({ field }) => (
-                            <input
-                              {...field}
-                              type="tel"
-                              placeholder="e.g., 09171234567"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      {isMotherAvailable === 'yes' && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
+                            <Controller
+                              name="motherContactNumber"
+                              control={control}
+                              rules={{ required: 'Mother\'s Contact Number is required' }}
+                              render={({ field }) => (
+                                <input
+                                  {...field}
+                                  type="tel"
+                                  placeholder="e.g., 09171234567"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                />
+                              )}
                             />
-                          )}
-                        />
-                        {errors.motherContactNumber && <p className="mt-1 text-sm text-red-600">{String(errors.motherContactNumber.message)}</p>}
-                      </div>
+                            {errors.motherContactNumber && <p className="mt-1 text-sm text-red-600">{String(errors.motherContactNumber.message)}</p>}
+                          </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Occupation *</label>
-                        <Controller
-                          name="motherOccupation"
-                          control={control}
-                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Occupation is required' : false }}
-                          render={({ field }) => (
-                            <input
-                              {...field}
-                              type="text"
-                              placeholder="e.g., Teacher, Housewife"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Occupation *</label>
+                            <Controller
+                              name="motherOccupation"
+                              control={control}
+                              rules={{ required: 'Mother\'s Occupation is required' }}
+                              render={({ field }) => (
+                                <input
+                                  {...field}
+                                  type="text"
+                                  placeholder="e.g., Teacher, Housewife"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                />
+                              )}
                             />
-                          )}
-                        />
-                        {errors.motherOccupation && <p className="mt-1 text-sm text-red-600">{String(errors.motherOccupation.message)}</p>}
-                      </div>
+                            {errors.motherOccupation && <p className="mt-1 text-sm text-red-600">{String(errors.motherOccupation.message)}</p>}
+                          </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Income *</label>
-                        <Controller
-                          name="motherMonthlyIncome"
-                          control={control}
-                          rules={{ required: isMotherAvailable === 'yes' ? 'Mother\'s Monthly Income is required' : false }}
-                          render={({ field }) => (
-                            <input
-                              {...field}
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder="e.g., 15000 (Enter 0 if not applicable)"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Income *</label>
+                            <Controller
+                              name="motherMonthlyIncome"
+                              control={control}
+                              rules={{ required: 'Mother\'s Monthly Income is required' }}
+                              render={({ field }) => (
+                                <input
+                                  {...field}
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="e.g., 15000 (Enter 0 if not applicable)"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                />
+                              )}
                             />
-                          )}
-                        />
-                        {errors.motherMonthlyIncome && <p className="mt-1 text-sm text-red-600">{String(errors.motherMonthlyIncome.message)}</p>}
-                      </div>
-
+                            {errors.motherMonthlyIncome && <p className="mt-1 text-sm text-red-600">{String(errors.motherMonthlyIncome.message)}</p>}
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
 
@@ -2241,14 +2314,25 @@ export const NewApplicationForm: React.FC = () => {
                     {errors.isFatherAvailable && <p className="mt-1 text-sm text-red-600">{String(errors.isFatherAvailable.message)}</p>}
                   </div>
 
-                  {isFatherAvailable === 'yes' && (
+                  {(isFatherAvailable === 'yes' || isFatherAvailable === 'no') && (
                     <>
+                      {isFatherAvailable === 'no' && (
+                        <div className="col-span-full">
+                          <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600">
+                            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Please provide your father's name for records purposes.
+                          </div>
+                        </div>
+                      )}
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
                         <Controller
                           name="fatherFirstName"
                           control={control}
-                          rules={{ required: isFatherAvailable === 'yes' ? 'Father\'s First Name is required' : false }}
+                          rules={{ required: (isFatherAvailable === 'yes' || isFatherAvailable === 'no') ? 'Father\'s First Name is required' : false }}
                           render={({ field }) => (
                             <input
                               {...field}
@@ -2265,7 +2349,7 @@ export const NewApplicationForm: React.FC = () => {
                         <Controller
                           name="fatherLastName"
                           control={control}
-                          rules={{ required: isFatherAvailable === 'yes' ? 'Father\'s Last Name is required' : false }}
+                          rules={{ required: (isFatherAvailable === 'yes' || isFatherAvailable === 'no') ? 'Father\'s Last Name is required' : false }}
                           render={({ field }) => (
                             <input
                               {...field}
@@ -2308,61 +2392,65 @@ export const NewApplicationForm: React.FC = () => {
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
-                        <Controller
-                          name="fatherContactNumber"
-                          control={control}
-                          rules={{ required: isFatherAvailable === 'yes' ? 'Father\'s Contact Number is required' : false }}
-                          render={({ field }) => (
-                            <input
-                              {...field}
-                              type="tel"
-                              placeholder="e.g., 09171234567"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      {isFatherAvailable === 'yes' && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
+                            <Controller
+                              name="fatherContactNumber"
+                              control={control}
+                              rules={{ required: 'Father\'s Contact Number is required' }}
+                              render={({ field }) => (
+                                <input
+                                  {...field}
+                                  type="tel"
+                                  placeholder="e.g., 09171234567"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                />
+                              )}
                             />
-                          )}
-                        />
-                        {errors.fatherContactNumber && <p className="mt-1 text-sm text-red-600">{String(errors.fatherContactNumber.message)}</p>}
-                      </div>
+                            {errors.fatherContactNumber && <p className="mt-1 text-sm text-red-600">{String(errors.fatherContactNumber.message)}</p>}
+                          </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Occupation *</label>
-                        <Controller
-                          name="fatherOccupation"
-                          control={control}
-                          rules={{ required: isFatherAvailable === 'yes' ? 'Father\'s Occupation is required' : false }}
-                          render={({ field }) => (
-                            <input
-                              {...field}
-                              type="text"
-                              placeholder="e.g., Driver, Engineer"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Occupation *</label>
+                            <Controller
+                              name="fatherOccupation"
+                              control={control}
+                              rules={{ required: 'Father\'s Occupation is required' }}
+                              render={({ field }) => (
+                                <input
+                                  {...field}
+                                  type="text"
+                                  placeholder="e.g., Driver, Engineer"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                />
+                              )}
                             />
-                          )}
-                        />
-                        {errors.fatherOccupation && <p className="mt-1 text-sm text-red-600">{String(errors.fatherOccupation.message)}</p>}
-                      </div>
+                            {errors.fatherOccupation && <p className="mt-1 text-sm text-red-600">{String(errors.fatherOccupation.message)}</p>}
+                          </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Income *</label>
-                        <Controller
-                          name="fatherMonthlyIncome"
-                          control={control}
-                          rules={{ required: isFatherAvailable === 'yes' ? 'Father\'s Monthly Income is required' : false }}
-                          render={({ field }) => (
-                            <input
-                              {...field}
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder="e.g., 20000"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Income *</label>
+                            <Controller
+                              name="fatherMonthlyIncome"
+                              control={control}
+                              rules={{ required: 'Father\'s Monthly Income is required' }}
+                              render={({ field }) => (
+                                <input
+                                  {...field}
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="e.g., 20000"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                />
+                              )}
                             />
-                          )}
-                        />
-                        {errors.fatherMonthlyIncome && <p className="mt-1 text-sm text-red-600">{String(errors.fatherMonthlyIncome.message)}</p>}
-                      </div>
+                            {errors.fatherMonthlyIncome && <p className="mt-1 text-sm text-red-600">{String(errors.fatherMonthlyIncome.message)}</p>}
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
 
