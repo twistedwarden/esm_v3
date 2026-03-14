@@ -43,6 +43,7 @@ function ApplicationOverview() {
 
   const [loading, setLoading] = useState(true);
   const [recentActivities, setRecentActivities] = useState([]);
+  const [showAllActivities, setShowAllActivities] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [password, setPassword] = useState('');
@@ -358,18 +359,17 @@ function ApplicationOverview() {
       {/* Recent Activities */}
       {(() => {
         const LIMIT = 5;
-        const [showAll, setShowAll] = React.useState(false);
-        const visible = showAll ? recentActivities : recentActivities.slice(0, LIMIT);
+        const visible = showAllActivities ? recentActivities : recentActivities.slice(0, LIMIT);
         return (
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activities</h3>
               {recentActivities.length > LIMIT && (
                 <button
-                  onClick={() => setShowAll(prev => !prev)}
+                  onClick={() => setShowAllActivities(prev => !prev)}
                   className="text-sm text-orange-600 dark:text-orange-400 hover:underline font-medium"
                 >
-                  {showAll ? 'Show less' : `Show all (${recentActivities.length})`}
+                  {showAllActivities ? 'Show less' : `Show all (${recentActivities.length})`}
                 </button>
               )}
             </div>
