@@ -503,12 +503,18 @@ class ScholarshipApiService {
 
   // Admin CRUD for document types (Requirements Management)
   async adminGetDocumentTypes(): Promise<DocumentType[]> {
-    const response = await this.makeRequest<{ data: DocumentType[] }>(
-      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).DOCUMENT_TYPES
-    );
-    const payload = response.data as any;
-    if (payload && Array.isArray(payload.data)) return payload.data;
-    return Array.isArray(payload) ? payload : [];
+    // Try admin endpoint first; fall back to public read endpoint
+    try {
+      const response = await this.makeRequest<{ data: DocumentType[] }>(
+        (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).DOCUMENT_TYPES
+      );
+      const payload = response.data as any;
+      if (payload && Array.isArray(payload.data)) return payload.data;
+      return Array.isArray(payload) ? payload : [];
+    } catch {
+      // Admin CRUD endpoint not available — fall back to public list
+      return this.getDocumentTypes();
+    }
   }
 
   async createDocumentType(data: Partial<DocumentType>): Promise<DocumentType> {

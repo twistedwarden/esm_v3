@@ -41,6 +41,7 @@ const EMPTY_FORM = {
 export default function RequirementsManagement() {
     const [requirements, setRequirements] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [readOnly, setReadOnly] = useState(false);
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
@@ -59,8 +60,18 @@ export default function RequirementsManagement() {
     const loadRequirements = async () => {
         try {
             setLoading(true);
-            const data = await scholarshipApiService.adminGetDocumentTypes();
-            setRequirements(data);
+            // Try admin CRUD endpoint; service falls back to public read if unavailable
+            try {
+                const data = await scholarshipApiService.adminGetDocumentTypes();
+                setRequirements(data);
+                // If we got data via the public fallback, disable write actions
+                setReadOnly(false);
+            } catch {
+                // Both endpoints failed — try public directly
+                const data = await scholarshipApiService.getDocumentTypes();
+                setRequirements(data);
+                setReadOnly(true);
+            }
         } catch (err) {
             console.error(err);
             showError('Failed to load requirements');
@@ -74,11 +85,13 @@ export default function RequirementsManagement() {
     }, []);
 
     const openCreate = () => {
+        if (readOnly) { showError('Create is not available — admin API endpoint not yet configured on the backend.'); return; }
         setForm(EMPTY_FORM);
         setShowCreateModal(true);
     };
 
     const openEdit = (req) => {
+        if (readOnly) { showError('Edit is not available — admin API endpoint not yet configured on the backend.'); return; }
         setSelected(req);
         setForm({
             name: req.name,
@@ -90,11 +103,13 @@ export default function RequirementsManagement() {
     };
 
     const openDelete = (req) => {
+        if (readOnly) { showError('Delete is not available — admin API endpoint not yet configured on the backend.'); return; }
         setSelected(req);
         setShowDeleteModal(true);
     };
 
     const openToggle = (req) => {
+        if (readOnly) { showError('Toggle is not available — admin API endpoint not yet configured on the backend.'); return; }
         setSelected(req);
         setShowToggleModal(true);
     };
@@ -236,6 +251,17 @@ export default function RequirementsManagement() {
 
     return (
         <div className="space-y-6">
+            {/* ── Read-only notice ── */}
+            {readOnly && (
+                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+                    <span>
+                        <strong>Read-only mode —</strong> the admin document-type API endpoint is not configured on the backend yet.
+                        Data is loaded from the public endpoint. Create, edit, delete, and toggle actions will be available once the backend exposes <code className="bg-amber-100 px-1 rounded">/api/document-types</code>.
+                    </span>
+                </div>
+            )}
+
             {/* ── Header ── */}
             <div className="flex items-center justify-between">
                 <div>
@@ -246,7 +272,8 @@ export default function RequirementsManagement() {
                 </div>
                 <button
                     onClick={openCreate}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    disabled={readOnly}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Plus className="w-4 h-4" />
                     Add Requirement
