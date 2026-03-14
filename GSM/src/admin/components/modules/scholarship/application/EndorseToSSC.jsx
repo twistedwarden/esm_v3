@@ -52,12 +52,21 @@ function EndorseToSSC() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    status: 'all',
-    category: 'all',
+    endorsementStatus: 'all',
+    category_id: 'all',
+    subcategory_id: 'all',
     level: 'all',
-    school: 'all',
-    endorsementStatus: 'all'
+    school_id: 'all',
+    dateFrom: '',
+    dateTo: '',
+    minGwa: '',
+    maxGwa: '',
   });
+
+  // Data for filter dropdowns
+  const [schools, setSchools] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [availableSubcategories, setAvailableSubcategories] = useState([]);
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -85,6 +94,34 @@ function EndorseToSSC() {
   useEffect(() => {
     fetchApplications();
   }, [activeTab, pagination.currentPage, pagination.perPage, searchTerm, filters, sortBy, sortOrder]);
+
+  // Load schools and categories for filter dropdowns
+  useEffect(() => {
+    const loadFilterData = async () => {
+      try {
+        const [schoolList, categoryList] = await Promise.all([
+          scholarshipApiService.getSchools(),
+          scholarshipApiService.getScholarshipCategories(),
+        ]);
+        setSchools(schoolList);
+        setCategories(categoryList);
+      } catch (e) {
+        // silently fail
+      }
+    };
+    loadFilterData();
+  }, []);
+
+  // Update subcategories when category filter changes
+  useEffect(() => {
+    if (filters.category_id === 'all') {
+      setAvailableSubcategories([]);
+    } else {
+      const selected = categories.find(c => String(c.id) === String(filters.category_id));
+      setAvailableSubcategories(selected?.subcategories || []);
+    }
+    setFilters(prev => ({ ...prev, subcategory_id: 'all' }));
+  }, [filters.category_id, categories]);
 
   const fetchApplications = async () => {
     try {
@@ -663,17 +700,21 @@ function EndorseToSSC() {
 
   const clearAllFilters = () => {
     setFilters({
-      status: 'all',
-      category: 'all',
+      endorsementStatus: 'all',
+      category_id: 'all',
+      subcategory_id: 'all',
       level: 'all',
-      school: 'all',
-      endorsementStatus: 'all'
+      school_id: 'all',
+      dateFrom: '',
+      dateTo: '',
+      minGwa: '',
+      maxGwa: '',
     });
     setSearchTerm('');
   };
 
   const hasActiveFilters = () => {
-    return Object.values(filters).some(value => value !== 'all') || searchTerm;
+    return Object.entries(filters).some(([, value]) => value !== 'all' && value !== '') || !!searchTerm;
   };
 
   const handleExport = () => {
@@ -880,21 +921,35 @@ function EndorseToSSC() {
         {/* Advanced Filters */}
         {showAdvancedFilters && (
           <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-slate-700">
+            {/* Row 1: Category / Subcategory / Level / School */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
                 <select
-                  value={filters.category}
-                  onChange={(e) => updateFilter('category', e.target.value)}
+                  value={filters.category_id}
+                  onChange={(e) => updateFilter('category_id', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 >
                   <option value="all">All Categories</option>
-                  <option value="Academic Excellence">Academic Excellence</option>
-                  <option value="Financial Need">Financial Need</option>
-                  <option value="Special Programs">Special Programs</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
-
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subcategory</label>
+                <select
+                  value={filters.subcategory_id}
+                  onChange={(e) => updateFilter('subcategory_id', e.target.value)}
+                  disabled={filters.category_id === 'all' || availableSubcategories.length === 0}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="all">All Subcategories</option>
+                  {availableSubcategories.map(sub => (
+                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Level</label>
                 <select
@@ -903,24 +958,71 @@ function EndorseToSSC() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 >
                   <option value="all">All Levels</option>
-                  <option value="Senior High School">Senior High School</option>
-                  <option value="Tertiary">Tertiary</option>
-                  <option value="Graduate">Graduate</option>
+                  <option value="SENIOR HIGH SCHOOL">Senior High School</option>
+                  <option value="TERTIARY/COLLEGE">Tertiary/College</option>
+                  <option value="TECHNICAL VOCATIONAL">Technical Vocational</option>
+                  <option value="GRADUATE SCHOOL">Graduate School</option>
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School</label>
                 <select
-                  value={filters.school}
-                  onChange={(e) => updateFilter('school', e.target.value)}
+                  value={filters.school_id}
+                  onChange={(e) => updateFilter('school_id', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 >
                   <option value="all">All Schools</option>
-                  <option value="State University">State University</option>
-                  <option value="Private University">Private University</option>
-                  <option value="College">College</option>
+                  {schools.map(school => (
+                    <option key={school.id} value={school.id}>
+                      {school.name}{school.campus ? ` — ${school.campus}` : ''}
+                    </option>
+                  ))}
                 </select>
+              </div>
+            </div>
+            {/* Row 2: Date From / Date To / Min GWA / Max GWA */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date From</label>
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => updateFilter('dateFrom', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date To</label>
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => updateFilter('dateTo', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Min GWA</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="4"
+                  value={filters.minGwa}
+                  onChange={(e) => updateFilter('minGwa', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max GWA</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="4"
+                  value={filters.maxGwa}
+                  onChange={(e) => updateFilter('maxGwa', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
               </div>
             </div>
           </div>
@@ -932,17 +1034,61 @@ function EndorseToSSC() {
             {filters.endorsementStatus !== 'all' && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
                 Status: {filters.endorsementStatus}
-                <button onClick={() => updateFilter('endorsementStatus', 'all')} className="ml-1 hover:text-orange-600 dark:hover:text-orange-200">
-                  <X className="w-3 h-3" />
-                </button>
+                <button onClick={() => updateFilter('endorsementStatus', 'all')} className="ml-1 hover:text-orange-600 dark:hover:text-orange-200"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {filters.category_id !== 'all' && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                Category: {categories.find(c => String(c.id) === String(filters.category_id))?.name || filters.category_id}
+                <button onClick={() => updateFilter('category_id', 'all')} className="ml-1 hover:text-blue-600 dark:hover:text-blue-200"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {filters.subcategory_id !== 'all' && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                Subcategory: {availableSubcategories.find(s => String(s.id) === String(filters.subcategory_id))?.name || filters.subcategory_id}
+                <button onClick={() => updateFilter('subcategory_id', 'all')} className="ml-1 hover:text-indigo-600 dark:hover:text-indigo-200"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {filters.level !== 'all' && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                Level: {filters.level}
+                <button onClick={() => updateFilter('level', 'all')} className="ml-1 hover:text-green-600 dark:hover:text-green-200"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {filters.school_id !== 'all' && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300">
+                School: {(() => { const s = schools.find(sc => String(sc.id) === String(filters.school_id)); return s ? (s.campus ? `${s.name} — ${s.campus}` : s.name) : filters.school_id; })()}
+                <button onClick={() => updateFilter('school_id', 'all')} className="ml-1 hover:text-teal-600 dark:hover:text-teal-200"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {filters.dateFrom && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300">
+                From: {filters.dateFrom}
+                <button onClick={() => updateFilter('dateFrom', '')} className="ml-1 hover:text-gray-600 dark:hover:text-gray-200"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {filters.dateTo && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300">
+                To: {filters.dateTo}
+                <button onClick={() => updateFilter('dateTo', '')} className="ml-1 hover:text-gray-600 dark:hover:text-gray-200"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {filters.minGwa && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                Min GWA: {filters.minGwa}
+                <button onClick={() => updateFilter('minGwa', '')} className="ml-1 hover:text-yellow-600 dark:hover:text-yellow-200"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {filters.maxGwa && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                Max GWA: {filters.maxGwa}
+                <button onClick={() => updateFilter('maxGwa', '')} className="ml-1 hover:text-yellow-600 dark:hover:text-yellow-200"><X className="w-3 h-3" /></button>
               </span>
             )}
             {searchTerm && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
                 Search: "{searchTerm}"
-                <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-purple-600 dark:hover:text-purple-200">
-                  <X className="w-3 h-3" />
-                </button>
+                <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-purple-600 dark:hover:text-purple-200"><X className="w-3 h-3" /></button>
               </span>
             )}
             <button onClick={clearAllFilters} className="text-sm text-gray-600 dark:text-gray-300 underline hover:text-gray-800 dark:hover:text-gray-100">
