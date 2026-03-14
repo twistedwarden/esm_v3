@@ -77,15 +77,20 @@ function ScholarshipApplications() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     status: 'submitted',
-    category: 'all',
+    category_id: 'all',
+    subcategory_id: 'all',
     level: 'all',
-    school: 'all',
+    school_id: 'all',
     dateFrom: '',
     dateTo: '',
     minGwa: '',
     maxGwa: '',
-    priority: 'all'
   });
+
+  // Data for filter dropdowns
+  const [schools, setSchools] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [availableSubcategories, setAvailableSubcategories] = useState([]);
 
   // UI state
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
@@ -145,6 +150,35 @@ function ScholarshipApplications() {
     fetchStats();
   }, []);
 
+  // Load schools and categories for filter dropdowns
+  useEffect(() => {
+    const loadFilterData = async () => {
+      try {
+        const [schoolList, categoryList] = await Promise.all([
+          scholarshipApiService.getSchools(),
+          scholarshipApiService.getScholarshipCategories(),
+        ]);
+        setSchools(schoolList);
+        setCategories(categoryList);
+      } catch (e) {
+        // silently fail — dropdowns will just stay empty
+      }
+    };
+    loadFilterData();
+  }, []);
+
+  // Update available subcategories when category filter changes
+  useEffect(() => {
+    if (filters.category_id === 'all') {
+      setAvailableSubcategories([]);
+    } else {
+      const selected = categories.find(c => String(c.id) === String(filters.category_id));
+      setAvailableSubcategories(selected?.subcategories || []);
+    }
+    // Reset subcategory when category changes
+    setFilters(prev => ({ ...prev, subcategory_id: 'all' }));
+  }, [filters.category_id, categories]);
+
   const fetchStats = async () => {
     try {
       const resp = await scholarshipApiService.getApplications({ per_page: 1000 });
@@ -171,13 +205,18 @@ function ScholarshipApplications() {
       const params = {
         page: pagination.currentPage,
         per_page: pagination.perPage,
-        ...filters
       };
 
-      // Handle special 'all' cases or specific logic
-      if (filters.status === 'all') {
-        delete params.status;
-      }
+      // Map filter keys, skipping 'all' and empty values
+      if (filters.status && filters.status !== 'all') params.status = filters.status;
+      if (filters.category_id && filters.category_id !== 'all') params.category_id = filters.category_id;
+      if (filters.subcategory_id && filters.subcategory_id !== 'all') params.subcategory_id = filters.subcategory_id;
+      if (filters.school_id && filters.school_id !== 'all') params.school_id = filters.school_id;
+      if (filters.level && filters.level !== 'all') params.level = filters.level;
+      if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+      if (filters.dateTo) params.dateTo = filters.dateTo;
+      if (filters.minGwa) params.minGwa = filters.minGwa;
+      if (filters.maxGwa) params.maxGwa = filters.maxGwa;
 
       if (searchTerm) params.search = searchTerm;
 
@@ -397,15 +436,15 @@ function ScholarshipApplications() {
 
   const clearAllFilters = () => {
     setFilters({
-      status: 'submitted', // Reset to default "submitted" which matches initial state
-      category: 'all',
+      status: 'submitted',
+      category_id: 'all',
+      subcategory_id: 'all',
       level: 'all',
-      school: 'all',
+      school_id: 'all',
       dateFrom: '',
       dateTo: '',
       minGwa: '',
       maxGwa: '',
-      priority: 'all'
     });
     setSearchTerm('');
     setPagination(prev => ({ ...prev, currentPage: 1 }));
@@ -1204,21 +1243,38 @@ function ScholarshipApplications() {
         {showAdvancedFilters && (
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Category */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
                 <select
-                  value={filters.category}
-                  onChange={(e) => updateFilter('category', e.target.value)}
+                  value={filters.category_id}
+                  onChange={(e) => updateFilter('category_id', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 >
                   <option value="all">All Categories</option>
-                  <option value="tertiary">Tertiary Students</option>
-                  <option value="senior high">Senior High School</option>
-                  <option value="technical">Technical Vocational</option>
-                  <option value="als">Alternative Learning System</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
 
+              {/* Subcategory */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subcategory</label>
+                <select
+                  value={filters.subcategory_id}
+                  onChange={(e) => updateFilter('subcategory_id', e.target.value)}
+                  disabled={filters.category_id === 'all' || availableSubcategories.length === 0}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="all">All Subcategories</option>
+                  {availableSubcategories.map(sub => (
+                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Level */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Level</label>
                 <select
@@ -1227,44 +1283,32 @@ function ScholarshipApplications() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 >
                   <option value="all">All Levels</option>
-                  <option value="senior high school">Senior High School</option>
-                  <option value="tertiary">Tertiary/College</option>
-                  <option value="technical">Technical Vocational</option>
-                  <option value="graduate">Graduate School</option>
+                  <option value="SENIOR HIGH SCHOOL">Senior High School</option>
+                  <option value="TERTIARY/COLLEGE">Tertiary/College</option>
+                  <option value="TECHNICAL VOCATIONAL">Technical Vocational</option>
+                  <option value="GRADUATE SCHOOL">Graduate School</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
-                <select
-                  value={filters.priority}
-                  onChange={(e) => updateFilter('priority', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
-                  <option value="all">All Priorities</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                  <option value="normal">Normal</option>
-                </select>
-              </div>
-
+              {/* School */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">School</label>
                 <select
-                  value={filters.school}
-                  onChange={(e) => updateFilter('school', e.target.value)}
+                  value={filters.school_id}
+                  onChange={(e) => updateFilter('school_id', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 >
                   <option value="all">All Schools</option>
-                  <option value="university">University</option>
-                  <option value="college">College</option>
-                  <option value="high school">High School</option>
+                  {schools.map(school => (
+                    <option key={school.id} value={school.id}>
+                      {school.name}{school.campus ? ` — ${school.campus}` : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date From</label>
                 <input
@@ -1319,16 +1363,24 @@ function ScholarshipApplications() {
           <div className="mt-4 flex flex-wrap gap-2">
             {filters.status !== 'all' && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                Status: {filters.status}
+                Status: {getStatusText(filters.status)}
                 <button onClick={() => updateFilter('status', 'all')} className="ml-1 hover:text-orange-600 dark:hover:text-orange-200">
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
-            {filters.category !== 'all' && (
+            {filters.category_id !== 'all' && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                Category: {filters.category}
-                <button onClick={() => updateFilter('category', 'all')} className="ml-1 hover:text-blue-600 dark:hover:text-blue-200">
+                Category: {categories.find(c => String(c.id) === String(filters.category_id))?.name || filters.category_id}
+                <button onClick={() => updateFilter('category_id', 'all')} className="ml-1 hover:text-blue-600 dark:hover:text-blue-200">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {filters.subcategory_id !== 'all' && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                Subcategory: {availableSubcategories.find(s => String(s.id) === String(filters.subcategory_id))?.name || filters.subcategory_id}
+                <button onClick={() => updateFilter('subcategory_id', 'all')} className="ml-1 hover:text-indigo-600 dark:hover:text-indigo-200">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1337,6 +1389,14 @@ function ScholarshipApplications() {
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                 Level: {filters.level}
                 <button onClick={() => updateFilter('level', 'all')} className="ml-1 hover:text-green-600 dark:hover:text-green-200">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {filters.school_id !== 'all' && (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300">
+                School: {(() => { const s = schools.find(sc => String(sc.id) === String(filters.school_id)); return s ? (s.campus ? `${s.name} — ${s.campus}` : s.name) : filters.school_id; })()}
+                <button onClick={() => updateFilter('school_id', 'all')} className="ml-1 hover:text-teal-600 dark:hover:text-teal-200">
                   <X className="w-3 h-3" />
                 </button>
               </span>
