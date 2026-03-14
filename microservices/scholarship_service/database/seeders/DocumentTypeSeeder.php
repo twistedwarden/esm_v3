@@ -138,6 +138,29 @@ class DocumentTypeSeeder extends Seeder
                 'is_active' => true,
             ],
 
+            // Renewal Documents
+            [
+                'name' => 'Certificate of Registration (Renewal)',
+                'description' => 'Certificate of Registration/Enrollment for the new term (renewal requirement)',
+                'is_required' => false,
+                'category' => 'renewal',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Certificate of Grades / TOR (Renewal)',
+                'description' => 'Certificate of Grades or Transcript of Records from the previous term (renewal requirement)',
+                'is_required' => false,
+                'category' => 'renewal',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Other Renewal Document',
+                'description' => 'Any other supporting document for scholarship renewal',
+                'is_required' => false,
+                'category' => 'renewal',
+                'is_active' => true,
+            ],
+
             // Other Documents
             [
                 'name' => 'Medical Certificate',

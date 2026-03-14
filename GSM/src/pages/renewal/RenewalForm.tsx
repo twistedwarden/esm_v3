@@ -85,6 +85,7 @@ export const RenewalForm: React.FC = () => {
   const [isSemester2Open, setIsSemester2Open] = useState<boolean | null>(null);
   const [submittedApplicationNumber, setSubmittedApplicationNumber] = useState<string | null>(null);
   const [academicYears, setAcademicYears] = useState<string[]>([]);
+  const [renewalDocTypeId, setRenewalDocTypeId] = useState<number | null>(null);
 
   const {
     register,
@@ -116,10 +117,17 @@ export const RenewalForm: React.FC = () => {
         setIsLoadingData(true);
 
         // Parallel fetch
-        const [applications, periods] = await Promise.all([
+        const [applications, periods, docTypes] = await Promise.all([
           scholarshipApiService.getUserApplications(),
-          scholarshipApiService.getAcademicPeriods()
+          scholarshipApiService.getAcademicPeriods(),
+          scholarshipApiService.getDocumentTypes().catch(() => [])
         ]);
+
+        // Find renewal document type ID
+        const renewalType = docTypes.find((dt: any) => dt.category === 'renewal');
+        if (renewalType) {
+          setRenewalDocTypeId(renewalType.id);
+        }
 
         // Check for open period specifically at semester 2
         const openPeriod = periods.find(p => p.status === 'open' && p.is_current);
@@ -257,8 +265,8 @@ export const RenewalForm: React.FC = () => {
       formData.append('file', file);
       formData.append('application_id', String(applicationId));
       formData.append('student_id', String(studentId));
-      // Use a generic document type - document_type_id 1 as default for renewal uploads
-      formData.append('document_type_id', '1');
+      // Use the renewal document type if available, otherwise fallback to generic
+      formData.append('document_type_id', String(renewalDocTypeId || 1));
 
       const response = await fetch(
         getScholarshipServiceUrl('/api/forms/upload-document'),

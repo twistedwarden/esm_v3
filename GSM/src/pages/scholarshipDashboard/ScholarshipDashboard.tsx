@@ -1556,8 +1556,9 @@ export const ScholarshipDashboard: React.FC = () => {
               <div className="space-y-4">
                 {documentsChecklist.length > 0 ? (
                   (() => {
-                    const requiredItems  = documentsChecklist.filter(d => d.isRequired);
-                    const optionalItems  = documentsChecklist.filter(d => !d.isRequired);
+                    const renewalItems   = documentsChecklist.filter(d => d.category === 'renewal');
+                    const requiredItems  = documentsChecklist.filter(d => d.isRequired && d.category !== 'renewal');
+                    const optionalItems  = documentsChecklist.filter(d => !d.isRequired && d.category !== 'renewal');
 
                     // Group a list of items by category
                     const groupByCategory = (items: typeof documentsChecklist) =>
@@ -1573,6 +1574,7 @@ export const ScholarshipDashboard: React.FC = () => {
                       academic: '📚 Academic Documents',
                       financial: '💰 Financial Documents',
                       personal: '🆔 Personal Documents',
+                      renewal: '🔄 Renewal Documents',
                       other: '📄 Other Documents'
                     };
 
@@ -1705,6 +1707,20 @@ export const ScholarshipDashboard: React.FC = () => {
                               <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-700">{requiredItems.length}</span>
                             </div>
                             {renderGroup(requiredItems)}
+                          </div>
+                        )}
+
+                        {/* Renewal Requirements */}
+                        {renewalItems.length > 0 && (
+                          <div className="pt-4 border-t-2 border-green-200">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Renewal Requirements</span>
+                              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">{renewalItems.length}</span>
+                            </div>
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                              <p className="text-xs text-green-700">These documents were submitted as part of your scholarship renewal application.</p>
+                            </div>
+                            {renderGroup(renewalItems)}
                           </div>
                         )}
 
