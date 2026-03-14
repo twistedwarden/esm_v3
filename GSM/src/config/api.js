@@ -37,6 +37,11 @@ export const API_CONFIG = {
             APPLICATION_REVIEW: (id) => `/api/applications/${id}/review`,
             APPLICATION_COMPLIANCE: (id) => `/api/applications/${id}/compliance`,
 
+            // Document type management (Requirements)
+            DOCUMENT_TYPES: '/api/document-types',
+            DOCUMENT_TYPE: (id) => `/api/document-types/${id}`,
+            DOCUMENT_TYPE_TOGGLE: (id) => `/api/document-types/${id}/toggle`,
+
             // Document management
             DOCUMENTS: '/api/documents',
             DOCUMENT: (id) => `/api/documents/${id}`,

@@ -501,6 +501,47 @@ class ScholarshipApiService {
     return response.data?.data || [];
   }
 
+  // Admin CRUD for document types (Requirements Management)
+  async adminGetDocumentTypes(): Promise<DocumentType[]> {
+    const response = await this.makeRequest<{ data: DocumentType[] }>(
+      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).DOCUMENT_TYPES
+    );
+    const payload = response.data as any;
+    if (payload && Array.isArray(payload.data)) return payload.data;
+    return Array.isArray(payload) ? payload : [];
+  }
+
+  async createDocumentType(data: Partial<DocumentType>): Promise<DocumentType> {
+    const response = await this.makeRequest<{ data: DocumentType }>(
+      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).DOCUMENT_TYPES,
+      { method: 'POST', body: JSON.stringify(data) }
+    );
+    return (response.data as any)?.data ?? response.data!;
+  }
+
+  async updateDocumentType(id: number, data: Partial<DocumentType>): Promise<DocumentType> {
+    const response = await this.makeRequest<{ data: DocumentType }>(
+      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).DOCUMENT_TYPE(id),
+      { method: 'PUT', body: JSON.stringify(data) }
+    );
+    return (response.data as any)?.data ?? response.data!;
+  }
+
+  async deleteDocumentType(id: number): Promise<void> {
+    await this.makeRequest(
+      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).DOCUMENT_TYPE(id),
+      { method: 'DELETE' }
+    );
+  }
+
+  async toggleDocumentType(id: number): Promise<DocumentType> {
+    const response = await this.makeRequest<{ data: DocumentType }>(
+      (API_CONFIG.SCHOLARSHIP_SERVICE.ENDPOINTS as any).DOCUMENT_TYPE_TOGGLE(id),
+      { method: 'POST' }
+    );
+    return (response.data as any)?.data ?? response.data!;
+  }
+
   // Student management
   async getStudents(params?: any): Promise<{ data: Student[]; meta?: any }> {
     const queryParams = new URLSearchParams(params).toString();

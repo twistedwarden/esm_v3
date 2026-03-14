@@ -10,7 +10,8 @@ const allSidebarItems = [
             { id: 'scholarship-applications', label: 'Applications' },
             { id: 'scholarship-programs', label: 'Programs' },
             { id: 'scholarship-periods', label: 'Academic Periods' },
-            { id: 'scholarship-ssc', label: 'SSC Management' }
+            { id: 'scholarship-ssc', label: 'SSC Management' },
+            { id: 'scholarship-requirements', label: 'Requirements Management' }
         ]
     },
     {

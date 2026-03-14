@@ -3,6 +3,7 @@ import ApplicationManagement from './modules/scholarship/application/Application
 import ScholarshipPrograms from './modules/scholarship/ScholarshipPrograms'
 import AcademicPeriods from './modules/scholarship/AcademicPeriods'
 import SSCManagement from './modules/scholarship/ssc/SSCManagement'
+import RequirementsManagement from './modules/scholarship/RequirementsManagement'
 import SchoolAidDistribution from './modules/schoolAid/SchoolAidDistribution'
 import DisbursementHistory from './modules/schoolAid/DisbursementHistory'
 import StudentRegistryOverview from './modules/studentRegistry'
@@ -68,6 +69,8 @@ function ContentRenderer({ activeItem, activeTab, onPageChange, userRole, userSy
 			return <div><AcademicPeriods /></div>
 		case 'scholarship-ssc':
 			return <div><SSCManagement /></div>
+		case 'scholarship-requirements':
+			return <div><RequirementsManagement /></div>
 		case 'sad-overview':
 			return <div><SchoolAidDistribution /></div>
 		case 'sad-disbursement-history':
