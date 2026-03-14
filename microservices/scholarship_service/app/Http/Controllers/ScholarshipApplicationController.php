@@ -644,16 +644,18 @@ class ScholarshipApplicationController extends Controller
 
 
 
-        // Rule: Check if student already has an application for this period
-        $existingApplication = ScholarshipApplication::where('student_id', $request->student_id)
-            ->where('academic_period_id', $currentPeriod->id)
-            ->exists();
+        // Rule: Check if student already has an application for this period (skip for renewals)
+        if ($request->type !== 'renewal') {
+            $existingApplication = ScholarshipApplication::where('student_id', $request->student_id)
+                ->where('academic_period_id', $currentPeriod->id)
+                ->exists();
 
-        if ($existingApplication) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You have already submitted an application for this academic period.'
-            ], 400);
+            if ($existingApplication) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have already submitted an application for this academic period.'
+                ], 400);
+            }
         }
 
         // Rule: Renewal Eligibility
