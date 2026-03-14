@@ -26,7 +26,7 @@ const renewalSchema = yup.object({
   // Step 2: Academic & Application Updates (Editable)
   schoolYear: yup.string().required('School year is required'),
   schoolTerm: yup.string().required('School term is required'),
-  currentEducationalLevel: yup.string().required('Educational level is required'),
+  currentEducationalLevel: yup.string().optional().default('Tertiary/College'),
   course: yup.string().required('Course/Program is required'),
   yearLevel: yup.string().required('Year level is required'),
   unitsEnrolled: yup.string().required('Units enrolled is required'),
@@ -102,7 +102,8 @@ export const RenewalForm: React.FC = () => {
       bankName: '',
       walletAccountNumber: '',
       middleName: '',
-      extensionName: ''
+      extensionName: '',
+      currentEducationalLevel: 'Tertiary/College'
     }
   });
 
@@ -483,7 +484,7 @@ export const RenewalForm: React.FC = () => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <form onSubmit={handleSubmit(onSubmit, (validationErrors) => { console.error('Form validation errors:', validationErrors); setError('Please complete all required fields before submitting.'); })} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           {error && (
             <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 mx-6 mt-6 flex items-start">
               <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
