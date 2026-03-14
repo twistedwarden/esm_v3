@@ -471,8 +471,9 @@ export const ScholarshipDashboard: React.FC = () => {
     // If the overall application is approved, treat all submitted documents as verified
     const isApplicationApproved = currentApplication && ['approved', 'grants_processing', 'grants_disbursed'].includes(currentApplication.status.toLowerCase());
 
-    // Determine student's level so we can filter document types
-    const studentLevel = getDbLevel(applicationDetails?.educationalLevel || '');
+    // Determine student's level directly from currentApplication (applicationDetails may not be defined yet)
+    const rawLevel = currentApplication?.student?.current_academic_record?.educational_level || '';
+    const studentLevel = getDbLevel(rawLevel);
 
     // Use API data if available, otherwise fall back to standard documents
     const allDocs = requiredDocuments.length > 0 ? requiredDocuments : standardRequiredDocuments;
