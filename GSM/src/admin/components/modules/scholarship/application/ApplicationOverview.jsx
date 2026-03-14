@@ -356,36 +356,51 @@ function ApplicationOverview() {
       </AnimatedGrid>
 
       {/* Recent Activities */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activities</h3>
-        </div>
+      {(() => {
+        const LIMIT = 5;
+        const [showAll, setShowAll] = React.useState(false);
+        const visible = showAll ? recentActivities : recentActivities.slice(0, LIMIT);
+        return (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activities</h3>
+              {recentActivities.length > LIMIT && (
+                <button
+                  onClick={() => setShowAll(prev => !prev)}
+                  className="text-sm text-orange-600 dark:text-orange-400 hover:underline font-medium"
+                >
+                  {showAll ? 'Show less' : `Show all (${recentActivities.length})`}
+                </button>
+              )}
+            </div>
 
-        {recentActivities.length > 0 ? (
-          <div className="space-y-4">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                <div className="flex-shrink-0 mt-1">
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900 dark:text-white">{activity.message}</p>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getActivityColor(activity.status)}`}>
-                      {activity.status.replace(/_/g, ' ')}
-                    </span>
+            {visible.length > 0 ? (
+              <div className="space-y-4">
+                {visible.map((activity) => (
+                  <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                    <div className="flex-shrink-0 mt-1">
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900 dark:text-white">{activity.message}</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getActivityColor(activity.status)}`}>
+                          {activity.status.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                No recent activities found
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            No recent activities found
-          </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
