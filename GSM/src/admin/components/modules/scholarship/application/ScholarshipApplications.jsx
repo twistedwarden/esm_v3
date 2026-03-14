@@ -140,6 +140,29 @@ function ScholarshipApplications() {
     fetchApplications();
   }, [filters, searchTerm, pagination.currentPage, pagination.perPage]);
 
+  // Fetch overall stats once on mount (not affected by filters)
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const resp = await scholarshipApiService.getApplications({ per_page: 1000 });
+      const list = Array.isArray(resp.data) ? resp.data : [];
+      const total = resp.meta?.total || list.length;
+      const newStats = {
+        total,
+        submitted: list.filter(a => a.status === 'submitted').length,
+        forCompliance: list.filter(a => a.status === 'for_compliance').length,
+        approved: list.filter(a => a.status === 'approved').length,
+        rejected: list.filter(a => a.status === 'rejected').length
+      };
+      setStats(newStats);
+    } catch (e) {
+      // silently fail — stats are non-critical
+    }
+  };
+
   const fetchApplications = async () => {
     try {
       setLoading(true);
@@ -153,9 +176,6 @@ function ScholarshipApplications() {
 
       // Handle special 'all' cases or specific logic
       if (filters.status === 'all') {
-        // If we want to restrict to specific statuses even when 'all' is selected
-        // params.status = ['draft', 'submitted', 'for_compliance']; 
-        // For now, let's just delete the status param if it's all to let backend decide or fetch everything
         delete params.status;
       }
 
@@ -200,23 +220,11 @@ function ScholarshipApplications() {
       }));
 
       setApplications(mapped);
-      updateStats(mapped);
     } catch (e) {
       setError('Failed to load applications');
     } finally {
       setLoading(false);
     }
-  };
-
-  const updateStats = (apps) => {
-    const newStats = {
-      total: apps.length,
-      submitted: apps.filter(app => app.status === 'submitted').length,
-      forCompliance: apps.filter(app => app.status === 'for_compliance').length,
-      approved: apps.filter(app => app.status === 'approved').length,
-      rejected: apps.filter(app => app.status === 'rejected').length
-    };
-    setStats(newStats);
   };
 
   // Filter and sort applications
@@ -469,7 +477,7 @@ function ScholarshipApplications() {
     try {
       // Call API to mark application as reviewed and move to verification stage
       await scholarshipApiService.markAsReviewed(activeApplication.id);
-      await fetchApplications();
+      await Promise.all([fetchApplications(), fetchStats()]);
       setIsReviewModalOpen(false);
       setReviewedConfirmation(''); // Reset confirmation
       showSuccess('Application Reviewed', 'Application has been reviewed and approved. Student is now ready for interview scheduling.');
@@ -497,7 +505,7 @@ function ScholarshipApplications() {
     setReviewLoading(true);
     try {
       await scholarshipApiService.rejectApplication(activeApplication.id, rejectReason.trim());
-      await fetchApplications();
+      await Promise.all([fetchApplications(), fetchStats()]);
       setIsReviewModalOpen(false);
       showSuccess('Application Rejected', 'Application has been successfully rejected.');
 
@@ -529,7 +537,7 @@ function ScholarshipApplications() {
         complianceReason.trim()
       );
 
-      await fetchApplications();
+      await Promise.all([fetchApplications(), fetchStats()]);
       setIsReviewModalOpen(false);
       showSuccess('Application Flagged for Compliance', 'Application has been flagged for compliance review. Student will be notified to correct the information.');
 
@@ -587,7 +595,7 @@ function ScholarshipApplications() {
       console.log('Calling markAsReviewed API for application:', application.id);
       await scholarshipApiService.markAsReviewed(application.id);
       console.log('API call successful, refreshing applications list');
-      await fetchApplications();
+      await Promise.all([fetchApplications(), fetchStats()]);
       showSuccess('Application Reviewed', 'Application has been successfully marked as reviewed.');
     } catch (e) {
       console.error('Quick review failed', e);
@@ -632,7 +640,7 @@ function ScholarshipApplications() {
             return;
           }
           await scholarshipApiService.flagForCompliance(quickActionApplication.id, quickActionReason.trim());
-          await fetchApplications();
+          await Promise.all([fetchApplications(), fetchStats()]);
           showSuccess('Application Flagged for Compliance', 'Application has been flagged for compliance review.');
           break;
         case 'reject':
@@ -642,7 +650,7 @@ function ScholarshipApplications() {
             return;
           }
           await scholarshipApiService.rejectApplication(quickActionApplication.id, quickActionReason.trim());
-          await fetchApplications();
+          await Promise.all([fetchApplications(), fetchStats()]);
           showSuccess('Application Rejected', 'Application has been successfully rejected.');
           break;
         default:
@@ -727,7 +735,7 @@ function ScholarshipApplications() {
       }
 
       await Promise.all(promises);
-      await fetchApplications();
+      await Promise.all([fetchApplications(), fetchStats()]);
       setSelectedApplications([]);
 
       // Trigger notification for bulk action
