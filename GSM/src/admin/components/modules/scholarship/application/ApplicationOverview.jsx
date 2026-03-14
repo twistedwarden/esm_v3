@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 import {
   Users,
   CheckCircle,
@@ -182,17 +182,17 @@ function ApplicationOverview() {
         new Date(app.created_at).toLocaleDateString()
       ]);
 
-      // Use the imported autoTable function
-      autoTable(doc, {
+      // Use doc.autoTable (registered by the side-effect import)
+      doc.autoTable({
         startY: 45,
         head: [['App #', 'Student Name', 'School', 'Category', 'Subcategory', 'Status', 'Date Applied']],
         body: tableRows,
         theme: 'striped',
-        headStyles: { fillColor: [37, 99, 235] }, // blue-600
+        headStyles: { fillColor: [37, 99, 235] },
         styles: { fontSize: 8 },
         columnStyles: {
-          1: { cellWidth: 'auto' }, // Student Name
-          2: { cellWidth: 'auto' }  // School
+          1: { cellWidth: 'auto' },
+          2: { cellWidth: 'auto' }
         }
       });
 
