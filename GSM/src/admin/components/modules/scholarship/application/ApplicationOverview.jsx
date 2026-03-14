@@ -203,7 +203,7 @@ function ApplicationOverview() {
       const tableRows = data.map(app => [
         app.application_number || 'N/A',
         app.student ? `${app.student.first_name} ${app.student.last_name}` : 'N/A',
-        app.school ? app.school.name : 'N/A',
+        app.school ? `${app.school.name}${app.school.campus ? ` - ${app.school.campus}` : ''}` : 'N/A',
         app.category ? app.category.name : 'N/A',
         app.subcategory ? app.subcategory.name : 'N/A',
         app.status.replace(/_/g, ' ').toUpperCase(),
@@ -527,7 +527,9 @@ function ApplicationOverview() {
                       >
                         <option value="all">All Schools</option>
                         {schools.map(school => (
-                          <option key={school.id} value={school.id}>{school.name}</option>
+                          <option key={school.id} value={school.id}>
+                            {school.name}{school.campus ? ` - ${school.campus}` : ''}
+                          </option>
                         ))}
                       </select>
                     </div>
