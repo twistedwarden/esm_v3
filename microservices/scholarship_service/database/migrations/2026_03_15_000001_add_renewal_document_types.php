@@ -7,6 +7,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // First, extend the category enum to include 'renewal'
+        DB::statement("ALTER TABLE document_types MODIFY COLUMN category ENUM('personal', 'academic', 'financial', 'other', 'renewal')");
+
         // Add renewal-specific document types
         $renewalTypes = [
             [
