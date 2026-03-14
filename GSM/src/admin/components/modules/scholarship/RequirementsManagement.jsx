@@ -60,18 +60,9 @@ export default function RequirementsManagement() {
     const loadRequirements = async () => {
         try {
             setLoading(true);
-            // Try admin CRUD endpoint; service falls back to public read if unavailable
-            try {
-                const data = await scholarshipApiService.adminGetDocumentTypes();
-                setRequirements(data);
-                // If we got data via the public fallback, disable write actions
-                setReadOnly(false);
-            } catch {
-                // Both endpoints failed — try public directly
-                const data = await scholarshipApiService.getDocumentTypes();
-                setRequirements(data);
-                setReadOnly(true);
-            }
+            const data = await scholarshipApiService.adminGetDocumentTypes();
+            setRequirements(data);
+            setReadOnly(false);
         } catch (err) {
             console.error(err);
             showError('Failed to load requirements');

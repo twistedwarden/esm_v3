@@ -77,7 +77,6 @@ Route::prefix('public')->group(function () {
     Route::get('/schools', [SchoolController::class, 'index']);
     Route::get('/scholarship-categories', [ScholarshipCategoryController::class, 'index']);
     Route::get('/document-types', [DocumentController::class, 'getDocumentTypes']);
-    Route::get('/document-types', [DocumentController::class, 'getDocumentTypes']);
     Route::get('/required-documents', [DocumentController::class, 'getRequiredDocuments']);
 
 
@@ -310,6 +309,16 @@ Route::prefix('academic-periods')->group(function () {
     Route::get('/{academicPeriod}', [\App\Http\Controllers\AcademicPeriodController::class, 'show']);
     Route::put('/{academicPeriod}', [\App\Http\Controllers\AcademicPeriodController::class, 'update'])->middleware(['auth.auth_service']);
     Route::delete('/{academicPeriod}', [\App\Http\Controllers\AcademicPeriodController::class, 'destroy'])->middleware(['auth.auth_service']);
+});
+
+// Document Type (Requirements Management) routes
+Route::prefix('document-types')->group(function () {
+    Route::get('/', [\App\Http\Controllers\DocumentTypeController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\DocumentTypeController::class, 'store'])->middleware(['auth.auth_service']);
+    Route::get('/{documentType}', [\App\Http\Controllers\DocumentTypeController::class, 'show']);
+    Route::put('/{documentType}', [\App\Http\Controllers\DocumentTypeController::class, 'update'])->middleware(['auth.auth_service']);
+    Route::post('/{documentType}/toggle', [\App\Http\Controllers\DocumentTypeController::class, 'toggle'])->middleware(['auth.auth_service']);
+    Route::delete('/{documentType}', [\App\Http\Controllers\DocumentTypeController::class, 'destroy'])->middleware(['auth.auth_service']);
 });
 
 
