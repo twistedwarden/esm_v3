@@ -398,16 +398,16 @@ export const ScholarshipDashboard: React.FC = () => {
   // Mirrors the document_types table seeder exactly (all is_required=true rows).
   const standardRequiredDocuments = [
     // Academic
-    { id: 1,  name: 'Transcript of Records (Latest)',     description: 'Official transcript showing your latest academic performance and grades',              category: 'academic',  is_required: true, is_active: true, level: 'both', priority: 1 },
-    { id: 2,  name: 'Certificate of Good Moral',          description: 'Certificate from your school confirming your good moral character',                   category: 'academic',  is_required: true, is_active: true, level: 'both', priority: 2 },
-    { id: 7,  name: 'High School Diploma',                description: 'High school diploma or certificate of graduation',                                    category: 'academic',  is_required: true, is_active: true, level: 'both', priority: 3 },
-    { id: 17, name: 'Certificate of Enrollment',          description: 'Document proving your current enrollment status',                                     category: 'academic',  is_required: true, is_active: true, level: 'both', priority: 4 },
+    { id: 1,  name: 'Transcript of Records (Latest)',     description: 'Official transcript showing your latest academic performance and grades',              category: 'academic',  is_required: true, is_active: true, level: 'all', priority: 1 },
+    { id: 2,  name: 'Certificate of Good Moral',          description: 'Certificate from your school confirming your good moral character',                   category: 'academic',  is_required: true, is_active: true, level: 'all', priority: 2 },
+    { id: 7,  name: 'High School Diploma',                description: 'High school diploma or certificate of graduation',                                    category: 'academic',  is_required: true, is_active: true, level: 'all', priority: 3 },
+    { id: 17, name: 'Certificate of Enrollment',          description: 'Document proving your current enrollment status',                                     category: 'academic',  is_required: true, is_active: true, level: 'all', priority: 4 },
     // Financial
-    { id: 3,  name: 'Income Certificate',                 description: "Official document showing your family's income status from BIR or barangay",          category: 'financial', is_required: true, is_active: true, level: 'both', priority: 5 },
+    { id: 3,  name: 'Income Certificate',                 description: "Official document showing your family's income status from BIR or barangay",          category: 'financial', is_required: true, is_active: true, level: 'all', priority: 5 },
     // Personal
-    { id: 4,  name: 'Barangay Certificate',               description: 'Certificate from your barangay confirming your residency',                            category: 'personal',  is_required: true, is_active: true, level: 'both', priority: 6 },
-    { id: 5,  name: 'Valid ID (Government-issued)',        description: 'Government-issued identification document (Driver\'s License, Passport, etc.)',        category: 'personal',  is_required: true, is_active: true, level: 'both', priority: 7 },
-    { id: 6,  name: 'Birth Certificate',                  description: 'Official birth certificate from PSA (Philippine Statistics Authority)',                category: 'personal',  is_required: true, is_active: true, level: 'both', priority: 8 },
+    { id: 4,  name: 'Barangay Certificate',               description: 'Certificate from your barangay confirming your residency',                            category: 'personal',  is_required: true, is_active: true, level: 'all', priority: 6 },
+    { id: 5,  name: 'Valid ID (Government-issued)',        description: 'Government-issued identification document (Driver\'s License, Passport, etc.)',        category: 'personal',  is_required: true, is_active: true, level: 'all', priority: 7 },
+    { id: 6,  name: 'Birth Certificate',                  description: 'Official birth certificate from PSA (Philippine Statistics Authority)',                category: 'personal',  is_required: true, is_active: true, level: 'all', priority: 8 },
   ];
 
   // Map educational level strings from the form to the DB level enum
@@ -431,11 +431,11 @@ export const ScholarshipDashboard: React.FC = () => {
     const allDocs = requiredDocuments.length > 0 ? requiredDocuments : standardRequiredDocuments;
     console.debug('[Checklist] source:', requiredDocuments.length > 0 ? 'API' : 'hardcoded fallback', '| count:', allDocs.length, '| studentLevel:', studentLevel);
 
-    // Filter: keep active docs that match this level (or 'both') — level field may be missing on old data
+    // Filter: keep active docs that match this level (or 'all') — level field may be missing on old data
     const documentsToCheck = allDocs.filter((d: any) => {
       if (!d.is_active && d.is_active !== undefined) return false;
-      const docLevel = d.level || 'both';
-      return docLevel === 'both' || docLevel === studentLevel;
+      const docLevel = d.level || 'all';
+      return docLevel === 'all' || docLevel === studentLevel;
     });
 
     const checklist = documentsToCheck.map(requiredDoc => {

@@ -38,28 +38,28 @@ const LEVELS = [
     { value: 'college',     label: 'College',     icon: GraduationCap },
     { value: 'senior_high', label: 'Senior High', icon: BookOpen      },
     { value: 'vocational',  label: 'Vocational',  icon: Wrench        },
-    { value: 'both',        label: 'All Levels',  icon: ClipboardList }
+    { value: 'all',         label: 'All Levels',  icon: ClipboardList }
 ];
 
 const LEVEL_COLORS = {
     college:     'bg-indigo-100 text-indigo-700',
     senior_high: 'bg-orange-100 text-orange-700',
     vocational:  'bg-yellow-100 text-yellow-700',
-    both:        'bg-teal-100 text-teal-700'
+    all:         'bg-teal-100 text-teal-700'
 };
 
 const LEVEL_LABELS = {
     college:     'College',
     senior_high: 'Senior High',
     vocational:  'Vocational',
-    both:        'All Levels'
+    all:         'All Levels'
 };
 
 const TABS = [
-    { id: 'college',     label: 'College',       icon: GraduationCap },
-    { id: 'senior_high', label: 'Senior High',   icon: BookOpen      },
-    { id: 'vocational',  label: 'Vocational',    icon: Wrench        },
-    { id: 'both',        label: 'Shared / All',  icon: ClipboardList }
+    { id: 'college',     label: 'College',      icon: GraduationCap },
+    { id: 'senior_high', label: 'Senior High',  icon: BookOpen      },
+    { id: 'vocational',  label: 'Vocational',   icon: Wrench        },
+    { id: 'all',         label: 'All Levels',   icon: ClipboardList }
 ];
 
 const EMPTY_FORM = {
@@ -67,7 +67,7 @@ const EMPTY_FORM = {
     description: '',
     category:    'personal',
     is_required: true,
-    level:       'college'
+    level:       'all'
 };
 
 export default function RequirementsManagement() {
@@ -130,7 +130,7 @@ export default function RequirementsManagement() {
             description: req.description || '',
             category:    req.category,
             is_required: req.is_required,
-            level:       req.level || 'both'
+            level:       req.level || 'all'
         });
         setShowEditModal(true);
     };
@@ -211,11 +211,11 @@ export default function RequirementsManagement() {
         }
     };
 
-    // "college/senior_high/vocational" tabs → that level + shared (both)
-    // "both" tab → only the shared ones
+    // "college/senior_high/vocational" tabs → that level + shared (all)
+    // "all" tab → only the shared ones
     const tabFiltered = requirements.filter(r => {
-        if (activeTab === 'both') return r.level === 'both';
-        return r.level === activeTab || r.level === 'both';
+        if (activeTab === 'all') return r.level === 'all';
+        return r.level === activeTab || r.level === 'all';
     });
 
     const filtered = tabFiltered.filter((r) => {
@@ -232,8 +232,8 @@ export default function RequirementsManagement() {
     });
 
     const countFor = (level) => {
-        if (level === 'both') return requirements.filter(r => r.level === 'both').length;
-        return requirements.filter(r => r.level === level || r.level === 'both').length;
+        if (level === 'all') return requirements.filter(r => r.level === 'all').length;
+        return requirements.filter(r => r.level === level || r.level === 'all').length;
     };
 
     const stats = {

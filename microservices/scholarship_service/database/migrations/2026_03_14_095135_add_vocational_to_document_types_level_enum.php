@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE document_types MODIFY COLUMN level ENUM('college', 'senior_high', 'vocational', 'both') NOT NULL DEFAULT 'both'");
+        DB::statement("ALTER TABLE document_types MODIFY COLUMN level ENUM('college', 'senior_high', 'vocational', 'all') NOT NULL DEFAULT 'all'");
+        DB::statement("UPDATE document_types SET level = 'all' WHERE level = 'both'");
     }
 
     public function down(): void
     {
-        // Revert: any 'vocational' rows fall back to 'both' before removing the value
+        DB::statement("UPDATE document_types SET level = 'both' WHERE level = 'all'");
         DB::statement("UPDATE document_types SET level = 'both' WHERE level = 'vocational'");
         DB::statement("ALTER TABLE document_types MODIFY COLUMN level ENUM('college', 'senior_high', 'both') NOT NULL DEFAULT 'both'");
     }

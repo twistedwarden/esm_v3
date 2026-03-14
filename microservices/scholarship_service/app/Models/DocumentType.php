@@ -49,7 +49,7 @@ class DocumentType extends Model
     public function scopeByLevel($query, $level)
     {
         return $query->where(function ($q) use ($level) {
-            $q->where('level', $level)->orWhere('level', 'both');
+            $q->where('level', $level)->orWhere('level', 'all');
         });
     }
 }
