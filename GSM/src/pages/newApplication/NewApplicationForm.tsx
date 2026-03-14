@@ -3301,6 +3301,7 @@ export const NewApplicationForm: React.FC = () => {
                           </select>
                         )}
                       />
+                      <p className="mt-1 text-xs text-gray-400">* 3rd Semester applies to trimester-based programs only</p>
                       {errors.schoolTerm && <p className="mt-1 text-sm text-red-600">{String(errors.schoolTerm.message)}</p>}
                     </div>
 
