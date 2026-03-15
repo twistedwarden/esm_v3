@@ -936,35 +936,6 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                                             </p>
                                         </div>
 
-
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                                Format
-                                            </label>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <button
-                                                    onClick={() => setReportFormat('pdf')}
-                                                    className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border transition-all ${reportFormat === 'pdf'
-                                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 ring-1 ring-red-500/20'
-                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-                                                        }`}
-                                                >
-                                                    <FileText className="w-5 h-5" />
-                                                    <span className="font-medium">PDF Document</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => setReportFormat('csv')}
-                                                    className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-xl border transition-all ${reportFormat === 'csv'
-                                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 ring-1 ring-green-500/20'
-                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-                                                        }`}
-                                                >
-                                                    <FileBarChart className="w-5 h-5" />
-                                                    <span className="font-medium">CSV Spreadsheet</span>
-                                                </button>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <div className="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
