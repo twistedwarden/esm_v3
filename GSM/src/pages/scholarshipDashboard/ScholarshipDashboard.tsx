@@ -1711,7 +1711,7 @@ export const ScholarshipDashboard: React.FC = () => {
                         )}
 
                         {/* Renewal Requirements */}
-                        {renewalItems.length > 0 && (
+                        {renewalItems.length > 0 && scholarshipData.type === 'Renewal Application' && (
                           <div className="pt-4 border-t-2 border-green-200">
                             <div className="flex items-center gap-2 mb-3">
                               <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Renewal Requirements</span>
