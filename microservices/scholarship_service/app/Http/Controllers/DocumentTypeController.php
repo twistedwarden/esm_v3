@@ -48,7 +48,7 @@ class DocumentTypeController extends Controller
         $validator = Validator::make($request->all(), [
             'name'        => 'required|string|max:255|unique:document_types,name',
             'description' => 'nullable|string',
-            'category'    => 'required|in:personal,academic,financial,other',
+            'category'    => 'required|in:personal,academic,financial,renewal,other',
             'is_required' => 'boolean',
             'level'       => 'required|in:college,senior_high,vocational,all',
         ]);
@@ -96,7 +96,7 @@ class DocumentTypeController extends Controller
         $validator = Validator::make($request->all(), [
             'name'        => 'sometimes|required|string|max:255|unique:document_types,name,' . $documentType->id,
             'description' => 'nullable|string',
-            'category'    => 'sometimes|required|in:personal,academic,financial,other',
+            'category'    => 'sometimes|required|in:personal,academic,financial,renewal,other',
             'is_required' => 'boolean',
             'is_active'   => 'boolean',
             'level'       => 'sometimes|required|in:college,senior_high,vocational,all',
