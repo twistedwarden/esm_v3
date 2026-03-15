@@ -48,7 +48,8 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     const [reportPassword, setReportPassword] = useState('');
     const [reportFilters, setReportFilters] = useState({
         startDate: '',
-        endDate: ''
+        endDate: '',
+        grantType: 'all'
     });
 
     // Get current school year (format: YYYY-YYYY)
@@ -269,7 +270,8 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
             if (reportFilters.startDate && reportFilters.endDate) {
                 const analytics = await schoolAidService.getAnalyticsData('payments', 'custom', {
                     startDate: reportFilters.startDate,
-                    endDate: reportFilters.endDate
+                    endDate: reportFilters.endDate,
+                    grantType: reportFilters.grantType !== 'all' ? reportFilters.grantType : undefined
                 });
 
                 if (analytics && analytics.dailyDisbursements) {
@@ -817,6 +819,21 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                                             <p className="text-xs text-slate-500 mt-2">
                                                 Leave empty to generate report for current school year ({selectedSchoolYear}).
                                             </p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Grant Type
+                                            </label>
+                                            <select
+                                                value={reportFilters.grantType}
+                                                onChange={(e) => setReportFilters(prev => ({ ...prev, grantType: e.target.value }))}
+                                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                                            >
+                                                <option value="all">All Grant Types</option>
+                                                <option value="financial_support">Financial Support</option>
+                                                <option value="scholarship_benefits">Scholarship Benefits</option>
+                                            </select>
                                         </div>
 
                                         <div>
