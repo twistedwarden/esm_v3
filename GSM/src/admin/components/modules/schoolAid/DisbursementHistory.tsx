@@ -248,8 +248,6 @@ const DisbursementHistory: React.FC = () => {
               <option value="all">All methods</option>
               <option value="bank_transfer">Bank Transfer</option>
               <option value="digital_wallet">Digital Wallet</option>
-              <option value="gcash">GCash</option>
-              <option value="maya">Maya</option>
               <option value="cheque">Cheque</option>
               <option value="cash">Cash</option>
             </select>
