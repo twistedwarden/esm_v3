@@ -84,6 +84,7 @@ export const Portal: React.FC = () => {
   const [showDirectoryModal, setShowDirectoryModal] = useState(false);
   const [hasActiveApplication, setHasActiveApplication] = useState(false);
   const [canRenew, setCanRenew] = useState(false);
+  const [hasRenewalApplication, setHasRenewalApplication] = useState(false);
   const [hasOpenPeriod, setHasOpenPeriod] = useState<boolean | null>(null);
   const [isSemester2Open, setIsSemester2Open] = useState<boolean>(false);
   const [categories, setCategories] = useState<ScholarshipCategory[]>([]);
@@ -147,6 +148,11 @@ export const Portal: React.FC = () => {
           renewalEligibleStatuses.includes(app.status?.toLowerCase())
         );
 
+        // Check if user already has a renewal application (active or pending)
+        const hasRenewal = applications.some(app => 
+          app.type?.toLowerCase() === 'renewal' && activeStatuses.includes(app.status?.toLowerCase())
+        );
+
         // Check active period
         const periods = await scholarshipApiService.getAcademicPeriods();
         const currentOpenPeriod = periods.find(p => p.status === 'open' && p.is_current);
@@ -158,10 +164,12 @@ export const Portal: React.FC = () => {
 
         setHasActiveApplication(hasActive);
         setCanRenew(hasEligibleApplication);
+        setHasRenewalApplication(hasRenewal);
 
         console.log('User applications:', applications);
         console.log('Has active application:', hasActive);
         console.log('Can renew:', hasEligibleApplication);
+        console.log('Has renewal application:', hasRenewal);
         console.log('Open period:', openPeriod);
         console.log('Is semester 2 open:', sem2Open);
       } catch (error) {
@@ -347,6 +355,20 @@ export const Portal: React.FC = () => {
                     </Button>
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                       Renewal is only available when Semester 2 is open
+                    </div>
+                  </div>
+                ) : hasRenewalApplication ? (
+                  // User already has a renewal application
+                  <div className="relative group">
+                    <Button
+                      size="lg"
+                      disabled
+                      className="bg-gray-300 text-gray-500 border-0 shadow-md px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 text-sm sm:text-base lg:text-lg font-semibold w-full h-10 sm:h-11 lg:h-12 flex items-center justify-center whitespace-nowrap uppercase tracking-wide cursor-not-allowed opacity-60"
+                    >
+                      Renewal Application
+                    </Button>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      You already have a pending renewal application
                     </div>
                   </div>
                 ) : canRenew ? (
