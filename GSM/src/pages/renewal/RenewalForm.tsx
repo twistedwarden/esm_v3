@@ -320,7 +320,14 @@ export const RenewalForm: React.FC = () => {
   };
 
   const onSubmit = async (data: RenewalFormData) => {
-    console.log('[RenewalForm] Form submission started');
+    console.log('[RenewalForm] Form submission started', { currentStep });
+    
+    // Prevent submission if not on step 3
+    if (currentStep !== 3) {
+      console.warn('[RenewalForm] Attempted submission from step', currentStep, '- ignoring');
+      return;
+    }
+    
     setIsSubmitting(true);
     setError(null);
 
@@ -527,7 +534,20 @@ export const RenewalForm: React.FC = () => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit, (validationErrors) => { console.error('Form validation errors:', validationErrors); setError('Please complete all required fields before submitting.'); })} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <form 
+          onSubmit={handleSubmit(onSubmit, (validationErrors) => { 
+            console.error('Form validation errors:', validationErrors); 
+            setError('Please complete all required fields before submitting.'); 
+          })} 
+          onKeyDown={(e) => {
+            // Prevent Enter key from submitting the form unless on step 3 and submit button is focused
+            if (e.key === 'Enter' && currentStep !== 3) {
+              e.preventDefault();
+              console.log('[RenewalForm] Enter key blocked - not on final step');
+            }
+          }}
+          className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+        >
           {error && (
             <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 mx-6 mt-6 flex items-start">
               <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
