@@ -40,6 +40,7 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     const [categoryDistribution, setCategoryDistribution] = useState([]);
     const [error, setError] = useState(null);
     const [availableSchoolYears, setAvailableSchoolYears] = useState([]);
+    const [partnerSchools, setPartnerSchools] = useState([]);
 
     // Report Generation State
     const [showReportModal, setShowReportModal] = useState(false);
@@ -49,7 +50,10 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     const [reportFilters, setReportFilters] = useState({
         startDate: '',
         endDate: '',
-        grantType: 'all'
+        grantType: 'all',
+        schoolId: 'all',
+        method: 'all',
+        status: 'all'
     });
 
     // Get current school year (format: YYYY-YYYY)
@@ -166,9 +170,25 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
         }
     };
 
-    // Fetch available school years on component mount
+    // Fetch available school years and partner schools on component mount
     useEffect(() => {
         fetchSchoolYears();
+        // Fetch partner schools for the filter
+        const fetchSchools = async () => {
+            try {
+                // Adjust the endpoint as per your service, here assuming getting all schools and filtering or getting partner schools
+                const response = await fetch('/api/schools?is_partner_school=1');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        setPartnerSchools(data.data || []);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching partner schools:', err);
+            }
+        };
+        fetchSchools();
     }, []);
 
     // Fetch data when school year changes
@@ -268,11 +288,16 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
             };
 
             if (reportFilters.startDate && reportFilters.endDate) {
-                const analytics = await schoolAidService.getAnalyticsData('payments', 'custom', {
+                const filters = {
                     startDate: reportFilters.startDate,
                     endDate: reportFilters.endDate,
-                    grantType: reportFilters.grantType !== 'all' ? reportFilters.grantType : undefined
-                });
+                };
+                if (reportFilters.grantType !== 'all') filters.grantType = reportFilters.grantType;
+                if (reportFilters.schoolId !== 'all') filters.schoolId = reportFilters.schoolId;
+                if (reportFilters.method !== 'all') filters.method = reportFilters.method;
+                if (reportFilters.status !== 'all') filters.status = reportFilters.status;
+
+                const analytics = await schoolAidService.getAnalyticsData('payments', 'custom', filters);
 
                 if (analytics && analytics.dailyDisbursements) {
                     const totalAmount = analytics.dailyDisbursements.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
@@ -833,6 +858,57 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                                                 <option value="all">All Grant Types</option>
                                                 <option value="financial_support">Financial Support</option>
                                                 <option value="scholarship_benefits">Scholarship Benefits</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                    School
+                                                </label>
+                                                <select
+                                                    value={reportFilters.schoolId}
+                                                    onChange={(e) => setReportFilters(prev => ({ ...prev, schoolId: e.target.value }))}
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                                                >
+                                                    <option value="all">All Schools</option>
+                                                    {partnerSchools.map(school => (
+                                                        <option key={school.id} value={school.id}>{school.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                    Payment Method
+                                                </label>
+                                                <select
+                                                    value={reportFilters.method}
+                                                    onChange={(e) => setReportFilters(prev => ({ ...prev, method: e.target.value }))}
+                                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                                                >
+                                                    <option value="all">All Methods</option>
+                                                    <option value="bank_transfer">Bank Transfer</option>
+                                                    <option value="e_wallet">E-Wallet</option>
+                                                    <option value="cash">Cash</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                Status
+                                            </label>
+                                            <select
+                                                value={reportFilters.status}
+                                                onChange={(e) => setReportFilters(prev => ({ ...prev, status: e.target.value }))}
+                                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                                            >
+                                                <option value="all">All Statuses</option>
+                                                <option value="pending">Pending</option>
+                                                <option value="processing">Processing</option>
+                                                <option value="completed">Completed</option>
+                                                <option value="failed">Failed</option>
                                             </select>
                                         </div>
 
