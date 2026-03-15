@@ -465,7 +465,7 @@ export const Portal: React.FC = () => {
                   {documentTypes.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
                       {/* Common Documents (Level: All) */}
-                      {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal').length > 0 && (
+                      {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
                           <div className="bg-blue-50/50 p-4 border-b border-blue-100 flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
@@ -477,20 +477,20 @@ export const Portal: React.FC = () => {
                             </div>
                           </div>
                           <div className="p-4 flex-grow">
-                            <ul className="space-y-3">
-                              {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal').map((doc, index) => (
-                                <li key={index} className="flex items-start text-sm">
-                                  <svg className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
-                                </li>
+                            <div className="flex flex-wrap gap-2">
+                              {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
+                                <span key={index} className="inline-flex items-center text-xs font-medium bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-md border border-blue-100 shadow-sm transition-all hover:bg-blue-100">
+                                  <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  {doc.name}
+                                </span>
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         </div>
                       )}
 
                       {/* College Documents */}
-                      {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal').length > 0 && (
+                      {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
                           <div className="bg-purple-50/50 p-4 border-b border-purple-100 flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
@@ -502,20 +502,20 @@ export const Portal: React.FC = () => {
                             </div>
                           </div>
                           <div className="p-4 flex-grow">
-                            <ul className="space-y-3">
-                              {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal').map((doc, index) => (
-                                <li key={index} className="flex items-start text-sm">
-                                  <svg className="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
-                                </li>
+                            <div className="flex flex-wrap gap-2">
+                              {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
+                                <span key={index} className="inline-flex items-center text-xs font-medium bg-purple-50 text-purple-700 px-2.5 py-1.5 rounded-md border border-purple-100 shadow-sm transition-all hover:bg-purple-100">
+                                  <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  {doc.name}
+                                </span>
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         </div>
                       )}
 
                       {/* SHS Documents */}
-                      {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal').length > 0 && (
+                      {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
                           <div className="bg-green-50/50 p-4 border-b border-green-100 flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
@@ -527,20 +527,20 @@ export const Portal: React.FC = () => {
                             </div>
                           </div>
                           <div className="p-4 flex-grow">
-                            <ul className="space-y-3">
-                              {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal').map((doc, index) => (
-                                <li key={index} className="flex items-start text-sm">
-                                  <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
-                                </li>
+                            <div className="flex flex-wrap gap-2">
+                              {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
+                                <span key={index} className="inline-flex items-center text-xs font-medium bg-green-50 text-green-700 px-2.5 py-1.5 rounded-md border border-green-100 shadow-sm transition-all hover:bg-green-100">
+                                  <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  {doc.name}
+                                </span>
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         </div>
                       )}
 
                       {/* Vocational Documents */}
-                      {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal').length > 0 && (
+                      {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
                           <div className="bg-amber-50/50 p-4 border-b border-amber-100 flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
@@ -552,20 +552,20 @@ export const Portal: React.FC = () => {
                             </div>
                           </div>
                           <div className="p-4 flex-grow">
-                            <ul className="space-y-3">
-                              {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal').map((doc, index) => (
-                                <li key={index} className="flex items-start text-sm">
-                                  <svg className="w-5 h-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
-                                </li>
+                            <div className="flex flex-wrap gap-2">
+                              {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
+                                <span key={index} className="inline-flex items-center text-xs font-medium bg-amber-50 text-amber-700 px-2.5 py-1.5 rounded-md border border-amber-100 shadow-sm transition-all hover:bg-amber-100">
+                                  <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  {doc.name}
+                                </span>
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         </div>
                       )}
 
                       {/* Renewal Documents */}
-                      {documentTypes.filter(d => d.category === 'renewal').length > 0 && (
+                      {documentTypes.filter(d => d.category === 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
                           <div className="bg-rose-50/50 p-4 border-b border-rose-100 flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
@@ -577,14 +577,14 @@ export const Portal: React.FC = () => {
                             </div>
                           </div>
                           <div className="p-4 flex-grow">
-                            <ul className="space-y-3">
-                              {documentTypes.filter(d => d.category === 'renewal').map((doc, index) => (
-                                <li key={index} className="flex items-start text-sm">
-                                  <svg className="w-5 h-5 text-rose-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
-                                </li>
+                            <div className="flex flex-wrap gap-2">
+                              {documentTypes.filter(d => d.category === 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
+                                <span key={index} className="inline-flex items-center text-xs font-medium bg-rose-50 text-rose-700 px-2.5 py-1.5 rounded-md border border-rose-100 shadow-sm transition-all hover:bg-rose-100">
+                                  <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  {doc.name}
+                                </span>
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         </div>
                       )}
