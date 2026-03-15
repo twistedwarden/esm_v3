@@ -214,6 +214,46 @@ export const validateSchoolData = (schoolData) => {
   };
 };
 
+/**
+ * Export schools
+ * @param {Object} filters - School filters
+ * @param {string} format - Export format (csv, pdf)
+ * @returns {Promise<Blob>} - Response Blob
+ */
+export const exportSchools = async (filters = {}, format = 'csv') => {
+  try {
+    const queryParams = new URLSearchParams();
+    
+    queryParams.append('format', format);
+
+    if (filters.search) queryParams.append('search', filters.search);
+    if (filters.is_active !== undefined) queryParams.append('is_active', filters.is_active);
+    if (filters.classification) queryParams.append('classification', filters.classification);
+    if (filters.is_public !== undefined) queryParams.append('is_public', filters.is_public);
+    if (filters.is_partner_school !== undefined) queryParams.append('is_partner_school', filters.is_partner_school);
+
+    const endpoint = `/api/schools/export?${queryParams.toString()}`;
+    
+    // We can't use makeAuthenticatedRequest here because we need responseType: 'blob'
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'GET',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`);
+    }
+
+    return await response.blob();
+  } catch (error) {
+    console.error('Error exporting schools:', error);
+    throw error;
+  }
+};
+
 export default {
   getSchools,
   getSchoolById,
@@ -221,6 +261,7 @@ export default {
   updateSchool,
   deleteSchool,
   getSchoolClassifications,
-  validateSchoolData
+  validateSchoolData,
+  exportSchools
 };
 

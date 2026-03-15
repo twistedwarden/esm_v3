@@ -263,5 +263,127 @@ class SchoolController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Export schools based on filters
+     */
+    public function exportSchools(Request $request)
+    {
+        try {
+            $format = $request->get('format', 'csv');
+            $query = School::query();
+
+            // Apply filters identically to index
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('campus', 'like', "%{$search}%")
+                        ->orWhere('city', 'like', "%{$search}%");
+                });
+            }
+
+            if ($request->has('classification')) {
+                $query->where('classification', $request->classification);
+            }
+
+            if ($request->has('is_partner_school')) {
+                $query->where('is_partner_school', $request->boolean('is_partner_school'));
+            }
+
+            if ($request->has('is_public')) {
+                $query->where('is_public', $request->boolean('is_public'));
+            }
+
+            if ($request->has('is_active')) {
+                $query->where('is_active', $request->boolean('is_active'));
+            }
+
+            $query->orderBy('name', 'asc');
+
+            if ($format === 'pdf') {
+                $schools = $query->get();
+                $html = '<h1>School Management Export</h1>';
+                $html .= '<table border="1" cellpadding="5" cellspacing="0" width="100%">';
+                $html .= '<tr><th>School Name</th><th>Campus</th><th>Classification</th><th>Location</th><th>Contact Details</th><th>Type</th><th>Status</th></tr>';
+                foreach ($schools as $school) {
+                    $location = implode(', ', array_filter([$school->address, $school->city, $school->region]));
+                    $contact = implode(' / ', array_filter([$school->email, $school->contact_number]));
+                    
+                    $html .= '<tr>';
+                    $html .= '<td>' . ($school->name ?? 'N/A') . '</td>';
+                    $html .= '<td>' . ($school->campus ?? 'N/A') . '</td>';
+                    $html .= '<td>' . ($school->classification ?? 'N/A') . '</td>';
+                    $html .= '<td>' . ($location ?: 'N/A') . '</td>';
+                    $html .= '<td>' . ($contact ?: 'N/A') . '</td>';
+                    $html .= '<td>' . ($school->is_public ? 'Public' : 'Private') . '</td>';
+                    $html .= '<td>' . ($school->is_active ? 'Active' : 'Inactive') . '</td>';
+                    $html .= '</tr>';
+                }
+                $html .= '</table>';
+
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'landscape');
+                return $pdf->download('school_management_' . date('Ymd_His') . '.pdf');
+            }
+
+            // CSV Export
+            $filename = 'school_management_' . date('Ymd_His') . '.csv';
+            $headers = [
+                "Content-type"        => "text/csv",
+                "Content-Disposition" => "attachment; filename=$filename",
+                "Pragma"              => "no-cache",
+                "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+                "Expires"             => "0"
+            ];
+
+            $callback = function () use ($query) {
+                $file = fopen('php://output', 'w');
+                fputcsv($file, [
+                    'School Name',
+                    'Campus',
+                    'Classification',
+                    'Address',
+                    'City',
+                    'Region',
+                    'Email',
+                    'Contact Number',
+                    'Website',
+                    'Type',
+                    'Status',
+                    'Partner School'
+                ]);
+
+                $query->chunk(100, function ($schools) use ($file) {
+                    foreach ($schools as $school) {
+                        fputcsv($file, [
+                            $school->name ?? 'N/A',
+                            $school->campus ?? 'N/A',
+                            $school->classification ?? 'N/A',
+                            $school->address ?? 'N/A',
+                            $school->city ?? 'N/A',
+                            $school->region ?? 'N/A',
+                            $school->email ?? 'N/A',
+                            $school->contact_number ?? 'N/A',
+                            $school->website ?? 'N/A',
+                            $school->is_public ? 'Public' : 'Private',
+                            $school->is_active ? 'Active' : 'Inactive',
+                            $school->is_partner_school ? 'Yes' : 'No'
+                        ]);
+                    }
+                });
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('School Export Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Export failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
 

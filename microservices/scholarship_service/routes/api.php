@@ -278,6 +278,7 @@ Route::post('/test-upload', function (Request $request) {
 // School routes
 Route::prefix('schools')->group(function () {
     Route::get('/top', [SchoolController::class, 'getTopSchools']);
+    Route::get('/export', [SchoolController::class, 'exportSchools']);
     Route::get('/', [SchoolController::class, 'index']);
     Route::post('/', [SchoolController::class, 'store'])->middleware(['auth.auth_service']);
     Route::get('/{school}', [SchoolController::class, 'show']);

@@ -1,9 +1,10 @@
 import React from 'react';
-import { School as SchoolIcon, Plus, Search, Filter, Edit, Trash2, Eye, MapPin, Users, Phone, Mail, Globe, Building, CheckCircle, XCircle, AlertCircle, Grid3X3, List, CheckSquare, Square } from 'lucide-react';
+import { School as SchoolIcon, Plus, Search, Filter, Edit, Trash2, Eye, MapPin, Users, Phone, Mail, Globe, Building, CheckCircle, XCircle, AlertCircle, Grid3X3, List, CheckSquare, Square, Download, FileText, FileSpreadsheet, ChevronDown, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import AddSchoolModal from './AddSchoolModal';
 import EditSchoolModal from './EditSchoolModal';
 import BulkDeleteModal from './BulkDeleteModal';
-import { getSchools, deleteSchool, getSchoolById } from '../../../../services/schoolService';
+import { getSchools, deleteSchool, getSchoolById, exportSchools } from '../../../../services/schoolService';
 import { API_CONFIG } from '../../../../config/api';
 
 function PSDSchoolManagement() {
@@ -23,9 +24,39 @@ function PSDSchoolManagement() {
     const [showBulkDeleteModal, setShowBulkDeleteModal] = React.useState(false);
     const [isBulkDeleting, setIsBulkDeleting] = React.useState(false);
 
+    const [isExporting, setIsExporting] = React.useState(false);
+    const [showExportMenu, setShowExportMenu] = React.useState(false);
+
     // New state for detailed view
     const [schoolDetails, setSchoolDetails] = React.useState(null);
     const [detailsLoading, setDetailsLoading] = React.useState(false);
+
+    const handleExport = async (format) => {
+        setIsExporting(true);
+        setShowExportMenu(false);
+        try {
+            const currentFilters = {
+                search: searchTerm,
+                is_active: filterStatus === 'all' ? undefined : filterStatus === 'active',
+                is_partner_school: true,
+                classification: filterClassification === 'all' ? undefined : filterClassification,
+                is_public: filterType === 'all' ? undefined : filterType === 'public',
+            };
+            const blob = await exportSchools(currentFilters, format);
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `school_management_${new Date().toISOString().split('T')[0]}.${format}`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error('Failed to export:', error);
+            alert('Failed to export. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     // Fetch schools from API
     const fetchSchools = async () => {
@@ -213,6 +244,44 @@ function PSDSchoolManagement() {
                                     </button>
                                 </div>
                             )}
+
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowExportMenu(!showExportMenu)}
+                                    disabled={isExporting}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors shadow-sm font-medium disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto justify-center"
+                                >
+                                    {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                    <span className="truncate">Export</span>
+                                    <ChevronDown className="w-4 h-4 ml-1" />
+                                </button>
+
+                                <AnimatePresence>
+                                    {showExportMenu && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 10 }}
+                                            className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 py-1 z-50 overflow-hidden"
+                                        >
+                                            <button
+                                                onClick={() => handleExport('pdf')}
+                                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 text-left"
+                                            >
+                                                <FileText className="w-4 h-4 text-red-500" />
+                                                Export as PDF
+                                            </button>
+                                            <button
+                                                onClick={() => handleExport('csv')}
+                                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 text-left"
+                                            >
+                                                <FileSpreadsheet className="w-4 h-4 text-green-500" />
+                                                Export as CSV
+                                            </button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
 
                             <button
                                 onClick={() => setShowAddModal(true)}
