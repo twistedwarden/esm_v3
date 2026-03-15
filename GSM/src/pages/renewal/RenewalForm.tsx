@@ -123,7 +123,7 @@ export const RenewalForm: React.FC = () => {
         const [applications, periods, docTypes] = await Promise.all([
           scholarshipApiService.getUserApplications(),
           scholarshipApiService.getAcademicPeriods(),
-          scholarshipApiService.getDocumentTypes().catch((err) => {
+          scholarshipApiService.adminGetDocumentTypes().catch((err) => {
             console.error('[RenewalForm] Failed to fetch document types:', err);
             return [];
           })
