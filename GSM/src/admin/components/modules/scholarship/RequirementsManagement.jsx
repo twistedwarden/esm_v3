@@ -24,6 +24,7 @@ const CATEGORIES = [
     { value: 'personal',  label: 'Personal'  },
     { value: 'academic',  label: 'Academic'  },
     { value: 'financial', label: 'Financial' },
+    { value: 'renewal',   label: 'Renewal'   },
     { value: 'other',     label: 'Other'     }
 ];
 
@@ -31,6 +32,7 @@ const CATEGORY_COLORS = {
     personal:  'bg-blue-100 text-blue-700',
     academic:  'bg-purple-100 text-purple-700',
     financial: 'bg-green-100 text-green-700',
+    renewal:   'bg-orange-100 text-orange-700',
     other:     'bg-gray-100 text-gray-600'
 };
 
