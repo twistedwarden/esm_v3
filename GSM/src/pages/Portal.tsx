@@ -467,13 +467,13 @@ export const Portal: React.FC = () => {
                       {/* Common Documents (Level: All) */}
                       {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-blue-200 flex flex-col h-full group">
-                          <div className="bg-blue-50/70 p-4 border-b border-blue-200 flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                          <div className="bg-blue-50/70 p-4 border-b border-blue-200 flex flex-col items-center justify-center text-center">
+                            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-lg shadow-inner group-hover:scale-110 transition-transform mb-2">
                               📌
                             </div>
                             <div>
                               <h4 className="font-bold text-gray-800 leading-tight">General Requirements</h4>
-                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Required for all</p>
+                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Required for all</p>
                             </div>
                           </div>
                           <div className="p-4 bg-slate-50/50 flex-grow">
@@ -481,7 +481,6 @@ export const Portal: React.FC = () => {
                               {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
                                 <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between shadow-sm hover:border-blue-300 transition-colors">
                                   <div className="flex items-center space-x-3 overflow-hidden mr-2">
-                                    <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"></div>
                                     <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                     <span className="text-sm font-medium text-gray-700 truncate" title={doc.name}>{doc.name}</span>
                                   </div>
@@ -499,13 +498,13 @@ export const Portal: React.FC = () => {
                       {/* College Documents */}
                       {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-purple-200 flex flex-col h-full group">
-                          <div className="bg-purple-50/70 p-4 border-b border-purple-200 flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                          <div className="bg-purple-50/70 p-4 border-b border-purple-200 flex flex-col items-center justify-center text-center">
+                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-lg shadow-inner group-hover:scale-110 transition-transform mb-2">
                               🎓
                             </div>
                             <div>
                               <h4 className="font-bold text-gray-800 leading-tight">College Students</h4>
-                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Tertiary level</p>
+                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Tertiary level</p>
                             </div>
                           </div>
                           <div className="p-4 bg-slate-50/50 flex-grow">
@@ -513,7 +512,6 @@ export const Portal: React.FC = () => {
                               {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
                                 <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between shadow-sm hover:border-purple-300 transition-colors">
                                   <div className="flex items-center space-x-3 overflow-hidden mr-2">
-                                    <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"></div>
                                     <svg className="w-5 h-5 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                     <span className="text-sm font-medium text-gray-700 truncate" title={doc.name}>{doc.name}</span>
                                   </div>
@@ -531,13 +529,13 @@ export const Portal: React.FC = () => {
                       {/* SHS Documents */}
                       {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-green-200 flex flex-col h-full group">
-                          <div className="bg-green-50/70 p-4 border-b border-green-200 flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                          <div className="bg-green-50/70 p-4 border-b border-green-200 flex flex-col items-center justify-center text-center">
+                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg shadow-inner group-hover:scale-110 transition-transform mb-2">
                               🎒
                             </div>
                             <div>
                               <h4 className="font-bold text-gray-800 leading-tight">Senior High School</h4>
-                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">SHS level</p>
+                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">SHS level</p>
                             </div>
                           </div>
                           <div className="p-4 bg-slate-50/50 flex-grow">
@@ -545,7 +543,6 @@ export const Portal: React.FC = () => {
                               {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
                                 <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between shadow-sm hover:border-green-300 transition-colors">
                                   <div className="flex items-center space-x-3 overflow-hidden mr-2">
-                                    <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"></div>
                                     <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                     <span className="text-sm font-medium text-gray-700 truncate" title={doc.name}>{doc.name}</span>
                                   </div>
@@ -563,13 +560,13 @@ export const Portal: React.FC = () => {
                       {/* Vocational Documents */}
                       {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-amber-200 flex flex-col h-full group">
-                          <div className="bg-amber-50/70 p-4 border-b border-amber-200 flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                          <div className="bg-amber-50/70 p-4 border-b border-amber-200 flex flex-col items-center justify-center text-center">
+                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-lg shadow-inner group-hover:scale-110 transition-transform mb-2">
                               🔧
                             </div>
                             <div>
                               <h4 className="font-bold text-gray-800 leading-tight">Vocational Students</h4>
-                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">TVET level</p>
+                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">TVET level</p>
                             </div>
                           </div>
                           <div className="p-4 bg-slate-50/50 flex-grow">
@@ -577,7 +574,6 @@ export const Portal: React.FC = () => {
                               {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
                                 <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between shadow-sm hover:border-amber-300 transition-colors">
                                   <div className="flex items-center space-x-3 overflow-hidden mr-2">
-                                    <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"></div>
                                     <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                     <span className="text-sm font-medium text-gray-700 truncate" title={doc.name}>{doc.name}</span>
                                   </div>
@@ -595,13 +591,13 @@ export const Portal: React.FC = () => {
                       {/* Renewal Documents */}
                       {documentTypes.filter(d => d.category === 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-rose-200 flex flex-col h-full group">
-                          <div className="bg-rose-50/70 p-4 border-b border-rose-200 flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                          <div className="bg-rose-50/70 p-4 border-b border-rose-200 flex flex-col items-center justify-center text-center">
+                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-lg shadow-inner group-hover:scale-110 transition-transform mb-2">
                               🔄
                             </div>
                             <div>
                               <h4 className="font-bold text-gray-800 leading-tight">Renewal Application</h4>
-                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Continuing Scholars</p>
+                              <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mt-0.5">Continuing Scholars</p>
                             </div>
                           </div>
                           <div className="p-4 bg-slate-50/50 flex-grow">
@@ -609,7 +605,6 @@ export const Portal: React.FC = () => {
                               {documentTypes.filter(d => d.category === 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).map((doc, index) => (
                                 <div key={index} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between shadow-sm hover:border-rose-300 transition-colors">
                                   <div className="flex items-center space-x-3 overflow-hidden mr-2">
-                                    <div className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"></div>
                                     <svg className="w-5 h-5 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                     <span className="text-sm font-medium text-gray-700 truncate" title={doc.name}>{doc.name}</span>
                                   </div>
