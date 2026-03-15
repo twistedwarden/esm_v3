@@ -9,6 +9,8 @@ import { API_CONFIG } from '../../../../config/api';
 function PSDSchoolManagement() {
     const [searchTerm, setSearchTerm] = React.useState('');
     const [filterStatus, setFilterStatus] = React.useState('all');
+    const [filterType, setFilterType] = React.useState('all'); // public, private
+    const [filterClassification, setFilterClassification] = React.useState('all');
     const [showAddModal, setShowAddModal] = React.useState(false);
     const [showEditModal, setShowEditModal] = React.useState(false);
     const [showViewModal, setShowViewModal] = React.useState(false);
@@ -33,7 +35,9 @@ function PSDSchoolManagement() {
             const response = await getSchools({
                 search: searchTerm,
                 is_active: filterStatus === 'all' ? undefined : filterStatus === 'active',
-                is_partner_school: true
+                is_partner_school: true,
+                classification: filterClassification === 'all' ? undefined : filterClassification,
+                is_public: filterType === 'all' ? undefined : filterType === 'public',
             });
 
             if (response.success) {
@@ -51,7 +55,7 @@ function PSDSchoolManagement() {
 
     React.useEffect(() => {
         fetchSchools();
-    }, [searchTerm, filterStatus]);
+    }, [searchTerm, filterStatus, filterClassification, filterType]);
 
     // Handle view details
     const handleViewDetails = async (school) => {
@@ -239,7 +243,7 @@ function PSDSchoolManagement() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <Filter className="w-4 h-4 text-gray-500" />
                                 <select
                                     value={filterStatus}
@@ -250,6 +254,29 @@ function PSDSchoolManagement() {
                                     <option value="active">Active</option>
                                     <option value="inactive">Inactive</option>
                                     <option value="pending">Pending</option>
+                                </select>
+
+                                <select
+                                    value={filterType}
+                                    onChange={(e) => setFilterType(e.target.value)}
+                                    className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white text-sm"
+                                >
+                                    <option value="all">All Types (Public/Private)</option>
+                                    <option value="public">Public Schools</option>
+                                    <option value="private">Private Schools</option>
+                                </select>
+
+                                <select
+                                    value={filterClassification}
+                                    onChange={(e) => setFilterClassification(e.target.value)}
+                                    className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-slate-700 dark:text-white text-sm"
+                                >
+                                    <option value="all">All Classifications</option>
+                                    <option value="LOCAL UNIVERSITY/COLLEGE (LUC)">LUC</option>
+                                    <option value="STATE UNIVERSITY/COLLEGE (SUC)">SUC</option>
+                                    <option value="PRIVATE UNIVERSITY/COLLEGE">Private</option>
+                                    <option value="TECHNICAL/VOCATIONAL INSTITUTE">Tech/Vocational</option>
+                                    <option value="OTHER">Other</option>
                                 </select>
                             </div>
                         </div>
