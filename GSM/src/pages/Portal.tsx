@@ -452,121 +452,163 @@ export const Portal: React.FC = () => {
 
             {/* Document Preparation Checklist */}
             <div className="mt-8 mb-8">
-              <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 sm:p-6 shadow-md border border-orange-200">
-                <div className="text-center mb-6">
-                  <h3 className="text-xl lg:text-2xl font-bold text-gray-800 mb-1">📋 Prepare These Documents</h3>
-                  <p className="text-sm text-gray-600">Get these ready before starting your application</p>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 sm:p-8 shadow-md border border-gray-200">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-sm border border-gray-100 mb-4">
+                    <span className="text-2xl mr-2">📋</span>
+                    <h3 className="text-2xl font-bold text-gray-800 tracking-tight">Prepare These Documents</h3>
+                  </div>
+                  <p className="text-gray-600 font-medium">Have clear scans ready before starting your application.</p>
                 </div>
 
-                <div className="max-w-5xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                   {documentTypes.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
                       {/* Common Documents (Level: All) */}
                       {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal').length > 0 && (
-                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
-                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
-                            <span className="bg-blue-100 text-blue-700 p-1.5 rounded-lg mr-2">📌</span> 
-                            General Requirements
-                          </h4>
-                          <ul className="space-y-2">
-                            {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal').map((doc, index) => (
-                              <li key={index} className="flex items-start text-sm">
-                                <span className="text-green-500 mr-2 font-bold">✓</span>
-                                <span className="text-gray-700">{doc.name}</span>
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
+                          <div className="bg-blue-50/50 p-4 border-b border-blue-100 flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                              📌
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-800 leading-tight">General Requirements</h4>
+                              <p className="text-xs text-blue-600 font-medium uppercase tracking-wider">Required for all</p>
+                            </div>
+                          </div>
+                          <div className="p-4 flex-grow">
+                            <ul className="space-y-3">
+                              {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal').map((doc, index) => (
+                                <li key={index} className="flex items-start text-sm">
+                                  <svg className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
                       )}
 
                       {/* College Documents */}
                       {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal').length > 0 && (
-                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
-                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
-                            <span className="bg-purple-100 text-purple-700 p-1.5 rounded-lg mr-2">🎓</span> 
-                            College Students
-                          </h4>
-                          <ul className="space-y-2">
-                            {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal').map((doc, index) => (
-                              <li key={index} className="flex items-start text-sm">
-                                <span className="text-green-500 mr-2 font-bold">✓</span>
-                                <span className="text-gray-700">{doc.name}</span>
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
+                          <div className="bg-purple-50/50 p-4 border-b border-purple-100 flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                              🎓
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-800 leading-tight">College Students</h4>
+                              <p className="text-xs text-purple-600 font-medium uppercase tracking-wider">Tertiary level</p>
+                            </div>
+                          </div>
+                          <div className="p-4 flex-grow">
+                            <ul className="space-y-3">
+                              {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal').map((doc, index) => (
+                                <li key={index} className="flex items-start text-sm">
+                                  <svg className="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
                       )}
 
                       {/* SHS Documents */}
                       {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal').length > 0 && (
-                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
-                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
-                            <span className="bg-green-100 text-green-700 p-1.5 rounded-lg mr-2">🎒</span> 
-                            Senior High School
-                          </h4>
-                          <ul className="space-y-2">
-                            {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal').map((doc, index) => (
-                              <li key={index} className="flex items-start text-sm">
-                                <span className="text-green-500 mr-2 font-bold">✓</span>
-                                <span className="text-gray-700">{doc.name}</span>
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
+                          <div className="bg-green-50/50 p-4 border-b border-green-100 flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                              🎒
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-800 leading-tight">Senior High School</h4>
+                              <p className="text-xs text-green-600 font-medium uppercase tracking-wider">SHS level</p>
+                            </div>
+                          </div>
+                          <div className="p-4 flex-grow">
+                            <ul className="space-y-3">
+                              {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal').map((doc, index) => (
+                                <li key={index} className="flex items-start text-sm">
+                                  <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
                       )}
 
                       {/* Vocational Documents */}
                       {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal').length > 0 && (
-                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
-                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
-                            <span className="bg-yellow-100 text-yellow-700 p-1.5 rounded-lg mr-2">🔧</span> 
-                            Vocational Students
-                          </h4>
-                          <ul className="space-y-2">
-                            {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal').map((doc, index) => (
-                              <li key={index} className="flex items-start text-sm">
-                                <span className="text-green-500 mr-2 font-bold">✓</span>
-                                <span className="text-gray-700">{doc.name}</span>
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
+                          <div className="bg-amber-50/50 p-4 border-b border-amber-100 flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                              🔧
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-800 leading-tight">Vocational Students</h4>
+                              <p className="text-xs text-amber-600 font-medium uppercase tracking-wider">TVET level</p>
+                            </div>
+                          </div>
+                          <div className="p-4 flex-grow">
+                            <ul className="space-y-3">
+                              {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal').map((doc, index) => (
+                                <li key={index} className="flex items-start text-sm">
+                                  <svg className="w-5 h-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
                       )}
 
                       {/* Renewal Documents */}
                       {documentTypes.filter(d => d.category === 'renewal').length > 0 && (
-                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
-                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
-                            <span className="bg-orange-100 text-orange-700 p-1.5 rounded-lg mr-2">🔄</span> 
-                            Renewal Application
-                          </h4>
-                          <ul className="space-y-2">
-                            {documentTypes.filter(d => d.category === 'renewal').map((doc, index) => (
-                              <li key={index} className="flex items-start text-sm">
-                                <span className="text-green-500 mr-2 font-bold">✓</span>
-                                <span className="text-gray-700">{doc.name}</span>
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
+                          <div className="bg-rose-50/50 p-4 border-b border-rose-100 flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-lg shadow-inner group-hover:scale-110 transition-transform">
+                              🔄
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-800 leading-tight">Renewal Application</h4>
+                              <p className="text-xs text-rose-600 font-medium uppercase tracking-wider">Continuing Scholars</p>
+                            </div>
+                          </div>
+                          <div className="p-4 flex-grow">
+                            <ul className="space-y-3">
+                              {documentTypes.filter(d => d.category === 'renewal').map((doc, index) => (
+                                <li key={index} className="flex items-start text-sm">
+                                  <svg className="w-5 h-5 text-rose-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  <span className="text-gray-700 leading-snug">{doc.name}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="flex justify-center space-x-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {[1, 2, 3].map(i => (
-                        <div key={i} className="w-64 h-32">
-                          <Skeleton variant="rectangular" height="100%" />
+                        <div key={i} className="h-48 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                          <div className="flex items-center space-x-4 mb-6">
+                            <Skeleton variant="circular" width={40} height={40} />
+                            <div className="space-y-2 flex-1">
+                              <Skeleton variant="text" width="60%" />
+                              <Skeleton variant="text" width="40%" />
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <Skeleton variant="text" />
+                            <Skeleton variant="text" />
+                            <Skeleton variant="text" width="80%" />
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
-                </div>
-
-                <div className="mt-6 text-center">
-                  <p className="text-xs text-gray-600 italic flex items-center justify-center">
-                    <span className="text-yellow-500 mr-1">⚡</span> 
-                    Have clear scans ready before you apply
-                  </p>
                 </div>
               </div>
             </div>
