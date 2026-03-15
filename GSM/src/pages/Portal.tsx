@@ -463,7 +463,7 @@ export const Portal: React.FC = () => {
 
                 <div className="max-w-6xl mx-auto">
                   {documentTypes.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
+                    <div className="flex flex-col gap-6 w-full">
                       {/* Common Documents (Level: All) */}
                       {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal' && (d.is_required === 1 || d.is_required === true || String(d.is_required) === '1')).length > 0 && (
                         <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full group">
