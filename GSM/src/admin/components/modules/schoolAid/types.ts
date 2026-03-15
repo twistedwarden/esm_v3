@@ -12,7 +12,7 @@ export type ApplicationStatus =
   | 'received'
   | 'rejected';
 
-export type PaymentMethod = 'bank_transfer' | 'gcash' | 'paymaya' | 'check';
+export type PaymentMethod = 'bank_transfer' | 'digital_wallet' | 'gcash' | 'paymaya' | 'maya' | 'check' | 'cheque' | 'cash';
 
 export interface ScholarshipApplication {
   id: string;
