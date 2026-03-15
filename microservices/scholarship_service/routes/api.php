@@ -122,6 +122,7 @@ Route::get('/students/debug', function () {
 Route::prefix('students')->middleware(['auth.auth_service'])->group(function () {
     Route::get('/', [StudentController::class, 'index']);
     Route::post('/', [StudentController::class, 'store']);
+    Route::get('/export', [StudentController::class, 'exportStudents']);
     Route::get('/{student}', [StudentController::class, 'show']);
     Route::put('/{student}', [StudentController::class, 'update']);
     Route::delete('/{student}', [StudentController::class, 'destroy']);

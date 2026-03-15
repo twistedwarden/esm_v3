@@ -593,6 +593,38 @@ class StudentApiService {
       };
     }
   }
+
+  /**
+   * Export students
+   * @param {Object} filters - Student filters
+   * @param {string} format - Export format (csv, pdf)
+   * @returns {Promise<Blob>} - Response Blob
+   */
+  async exportStudents(filters = {}, format = 'csv') {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      queryParams.append('format', format);
+
+      if (filters.search) queryParams.append('search', filters.search);
+      if (filters.status && filters.status !== 'all') queryParams.append('status', filters.status);
+      if (filters.school && filters.school !== 'all') queryParams.append('school_id', filters.school);
+      if (filters.program && filters.program !== 'all') queryParams.append('program', filters.program);
+      if (filters.year_level && filters.year_level !== 'all') queryParams.append('year_level', filters.year_level);
+      if (filters.academic_status && filters.academic_status !== 'all') queryParams.append('academic_status', filters.academic_status);
+      if (filters.scholarship_status && filters.scholarship_status !== 'all') queryParams.append('scholarship_status', filters.scholarship_status);
+
+      const response = await axios.get(`${this.baseURL}/students/export?${queryParams.toString()}`, {
+        headers: this.getHeaders(),
+        responseType: 'blob' // Important for handling files
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('StudentApiService: Error exporting students:', error);
+      throw error;
+    }
+  }
 }
 
 // Create and export a singleton instance

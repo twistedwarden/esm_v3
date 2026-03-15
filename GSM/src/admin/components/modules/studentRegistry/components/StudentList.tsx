@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
     Eye, Edit, Archive, RotateCcw,
-    CheckSquare, Square, ChevronLeft, ChevronRight, Loader2
+    CheckSquare, Square, ChevronLeft, ChevronRight, Loader2, Download, FileText, FileSpreadsheet, ChevronDown
 } from 'lucide-react';
+import studentApiService from '../../../../../services/studentApiService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStudentData, ViewMode } from '../hooks/useStudentData';
 import StudentStats from './StudentStats';
@@ -29,6 +30,28 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedStudentUuid, setSelectedStudentUuid] = useState<string | number | null>(null);
     const [editStudentData, setEditStudentData] = useState<any>(null);
+    
+    const [isExporting, setIsExporting] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+
+    const handleExport = async (format: 'pdf' | 'csv') => {
+        setIsExporting(true);
+        setShowExportMenu(false);
+        try {
+            const blob = await studentApiService.exportStudents(filters, format);
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `student_directory_${new Date().toISOString().split('T')[0]}.${format}`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error('Failed to export students:', error);
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const handleSelectAll = () => {
         if (selectedStudents.size === studentsArray.length) {
@@ -77,15 +100,43 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
                         Manage and view student records
                     </p>
                 </div>
-                {/* <button
-                    onClick={() => {
-                        setEditStudentData(null);
-                        setShowFormModal(true);
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
-                >
-                    Add Student
-                </button> */}
+                <div className="relative">
+                    <button
+                        onClick={() => setShowExportMenu(!showExportMenu)}
+                        disabled={isExporting}
+                        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors shadow-sm font-medium disabled:opacity-50"
+                    >
+                        {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        Export
+                        <ChevronDown className="w-4 h-4 ml-1" />
+                    </button>
+
+                    <AnimatePresence>
+                        {showExportMenu && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                                className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700 py-1 z-50 overflow-hidden"
+                            >
+                                <button
+                                    onClick={() => handleExport('pdf')}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 text-left"
+                                >
+                                    <FileText className="w-4 h-4 text-red-500" />
+                                    Export as PDF
+                                </button>
+                                <button
+                                    onClick={() => handleExport('csv')}
+                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 text-left"
+                                >
+                                    <FileSpreadsheet className="w-4 h-4 text-green-500" />
+                                    Export as CSV
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
 
             <StudentStats />

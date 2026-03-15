@@ -1441,4 +1441,158 @@ class StudentController extends Controller
         $random = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
         return "GSM{$year}{$random}";
     }
+
+    /**
+     * Export students
+     */
+    public function exportStudents(Request $request)
+    {
+        try {
+            $format = $request->get('format', 'csv');
+            $query = Student::query();
+
+            // Apply filters (reuse index logic)
+            if ($request->has('search')) {
+                $search = $request->get('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('student_id_number', 'like', "%{$search}%")
+                      ->orWhere('email_address', 'like', "%{$search}%");
+                });
+            }
+
+            if ($request->has('status') && $request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('is_currently_enrolled')) {
+                $query->where('is_currently_enrolled', $request->boolean('is_currently_enrolled'));
+            }
+
+            if ($request->has('scholarship_status') && $request->scholarship_status !== 'all') {
+                $query->where('scholarship_status', $request->scholarship_status);
+            }
+
+            if ($request->has('program') && $request->program !== 'all') {
+                $query->whereHas('currentAcademicRecord', function ($q) use ($request) {
+                    $q->where('program', $request->program);
+                });
+            }
+            
+            if ($request->has('year_level') && $request->year_level !== 'all') {
+                $query->whereHas('currentAcademicRecord', function ($q) use ($request) {
+                    $q->where('year_level', $request->year_level);
+                });
+            }
+            
+            if ($request->has('academic_status') && $request->academic_status !== 'all') {
+                $query->whereHas('currentAcademicRecord', function ($q) use ($request) {
+                    $q->where('academic_status', $request->academic_status);
+                });
+            }
+
+            if ($request->has('school_id') && $request->school_id !== 'all') {
+                $query->whereHas('currentAcademicRecord', function ($q) use ($request) {
+                    $q->where('school_id', $request->school_id);
+                });
+            }
+
+            if ($request->has('sort')) {
+                $sortField = $request->get('sort');
+                $sortOrder = $request->get('order', 'desc');
+                $query->orderBy($sortField, $sortOrder);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+
+            $query->with(['currentAcademicRecord.school']);
+
+            if ($format === 'pdf') {
+                $students = $query->get();
+                // Simple HTML rendering for DOMPDF
+                $html = '<h1>Student Directory Export</h1>';
+                $html .= '<table border="1" cellpadding="5" cellspacing="0" width="100%">';
+                $html .= '<tr><th>ID Number</th><th>Name</th><th>Email</th><th>School</th><th>Program</th><th>Year Level</th><th>Status</th><th>Scholarship Status</th></tr>';
+                foreach ($students as $student) {
+                    $schoolName = $student->currentAcademicRecord && $student->currentAcademicRecord->school ? $student->currentAcademicRecord->school->name : 'N/A';
+                    $html .= '<tr>';
+                    $html .= '<td>' . ($student->student_id_number ?? 'N/A') . '</td>';
+                    $html .= '<td>' . $student->first_name . ' ' . $student->last_name . '</td>';
+                    $html .= '<td>' . ($student->email_address ?? 'N/A') . '</td>';
+                    $html .= '<td>' . $schoolName . '</td>';
+                    $html .= '<td>' . ($student->currentAcademicRecord->program ?? 'N/A') . '</td>';
+                    $html .= '<td>' . ($student->currentAcademicRecord->year_level ?? 'N/A') . '</td>';
+                    $html .= '<td>' . ($student->is_currently_enrolled ? 'Active' : 'Inactive') . '</td>';
+                    $html .= '<td>' . ($student->scholarship_status ?? 'N/A') . '</td>';
+                    $html .= '</tr>';
+                }
+                $html .= '</table>';
+
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'landscape');
+                return $pdf->download('student_directory_' . date('Ymd_His') . '.pdf');
+            }
+
+            // CSV Export
+            $filename = 'student_directory_' . date('Ymd_His') . '.csv';
+            $headers = [
+                "Content-type"        => "text/csv",
+                "Content-Disposition" => "attachment; filename=$filename",
+                "Pragma"              => "no-cache",
+                "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+                "Expires"             => "0"
+            ];
+
+            $callback = function () use ($query) {
+                $file = fopen('php://output', 'w');
+                fputcsv($file, [
+                    'ID Number',
+                    'First Name',
+                    'Last Name',
+                    'Email Address',
+                    'Contact Number',
+                    'School',
+                    'Program',
+                    'Year Level',
+                    'Academic Status',
+                    'Enrollment Status',
+                    'Scholarship Status',
+                    'Created At'
+                ]);
+
+                $query->chunk(100, function ($students) use ($file) {
+                    foreach ($students as $student) {
+                        $schoolName = $student->currentAcademicRecord && $student->currentAcademicRecord->school 
+                                      ? $student->currentAcademicRecord->school->name : 'N/A';
+                                      
+                        fputcsv($file, [
+                            $student->student_id_number ?? 'N/A',
+                            $student->first_name ?? 'N/A',
+                            $student->last_name ?? 'N/A',
+                            $student->email_address ?? 'N/A',
+                            $student->contact_number ?? 'N/A',
+                            $schoolName,
+                            $student->currentAcademicRecord->program ?? 'N/A',
+                            $student->currentAcademicRecord->year_level ?? 'N/A',
+                            $student->currentAcademicRecord->academic_status ?? 'N/A',
+                            $student->is_currently_enrolled ? 'Active' : 'Inactive',
+                            $student->scholarship_status ?? 'N/A',
+                            $student->created_at ? $student->created_at->format('Y-m-d H:i:s') : 'N/A'
+                        ]);
+                    }
+                });
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Student Export Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Export failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
