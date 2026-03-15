@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-    MoreVertical, Eye, Edit, Archive, Trash2, RotateCcw,
+    Eye, Edit, Archive, RotateCcw,
     CheckSquare, Square, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -150,11 +150,15 @@ const StudentList: React.FC<StudentListProps> = ({ viewMode }) => {
                                     </button>
                                 </th>
                                 <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700" onClick={() => handleSortChange('last_name')}>
-                                    Student
+                                    Student {sort.field === 'last_name' && (sort.order === 'asc' ? '↑' : '↓')}
                                 </th>
-                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
+                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700" onClick={() => handleSortChange('student_id_number')}>
+                                    ID {sort.field === 'student_id_number' && (sort.order === 'asc' ? '↑' : '↓')}
+                                </th>
                                 <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Program</th>
-                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700" onClick={() => handleSortChange('is_currently_enrolled')}>
+                                    Status {sort.field === 'is_currently_enrolled' && (sort.order === 'asc' ? '↑' : '↓')}
+                                </th>
                                 <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>

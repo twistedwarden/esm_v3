@@ -67,8 +67,53 @@ class StudentController extends Controller
             $query->where('is_currently_enrolled', $request->boolean('is_currently_enrolled'));
         }
 
+        if ($request->has('scholarship_status') && $request->scholarship_status !== 'all') {
+            $query->where('scholarship_status', $request->scholarship_status);
+        }
+
+        if ($request->has('program') && $request->program !== 'all') {
+            $query->whereHas('currentAcademicRecord', function ($q) use ($request) {
+                $q->where('program', $request->program);
+            });
+        }
+        
+        if ($request->has('year_level') && $request->year_level !== 'all') {
+            $query->whereHas('currentAcademicRecord', function ($q) use ($request) {
+                $q->where('year_level', $request->year_level);
+            });
+        }
+        
+        if ($request->has('academic_status') && $request->academic_status !== 'all') {
+            $query->whereHas('currentAcademicRecord', function ($q) use ($request) {
+                $q->where('academic_status', $request->academic_status);
+            });
+        }
+
+        if ($request->has('school_id') && $request->school_id !== 'all') {
+            $query->whereHas('currentAcademicRecord', function ($q) use ($request) {
+                $q->where('school_id', $request->school_id);
+            });
+        } elseif ($request->has('school_name') && $request->school_name !== 'all') {
+            $query->whereHas('currentAcademicRecord.school', function ($q) use ($request) {
+                $q->where('name', $request->school_name);
+            });
+        }
+
+        if ($request->has('sort')) {
+            $sortField = $request->get('sort');
+            $sortOrder = $request->get('order', 'desc');
+            $allowedSortFields = ['created_at', 'updated_at', 'first_name', 'last_name', 'student_id_number', 'scholarship_status', 'is_currently_enrolled'];
+            
+            if (in_array($sortField, $allowedSortFields)) {
+                $query->orderBy($sortField, $sortOrder);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
         $students = $query->with(['currentAcademicRecord.school'])
-            ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 15));
 
         return response()->json([
@@ -1320,7 +1365,7 @@ class StudentController extends Controller
             $programs = \App\Models\AcademicRecord::distinct()->pluck('program')->filter()->values();
 
             // Get schools
-            $schools = \App\Models\School::select('id', 'name')->get();
+            $schools = \App\Models\School::select('id', 'name', 'campus')->get();
 
             return response()->json([
                 'success' => true,

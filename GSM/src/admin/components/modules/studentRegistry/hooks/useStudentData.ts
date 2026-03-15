@@ -67,7 +67,7 @@ export const useStudentData = (viewMode: ViewMode = 'all') => {
             }
 
             // Apply manual filters
-            if (filters.school !== 'all') apiFilters.school_name = filters.school;
+            if (filters.school !== 'all') apiFilters.school_id = filters.school;
             if (filters.program !== 'all') apiFilters.program = filters.program;
             if (filters.year_level !== 'all') apiFilters.year_level = filters.year_level;
             if (filters.academic_status !== 'all') apiFilters.academic_status = filters.academic_status;

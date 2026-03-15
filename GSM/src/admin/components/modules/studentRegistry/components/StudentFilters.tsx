@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
 import { StudentFilters as FilterState } from '../hooks/useStudentData';
 import studentApiService from '../../../../../services/studentApiService';
 
@@ -21,9 +21,9 @@ const StudentFilters: React.FC<StudentFiltersProps> = ({ filters, onFilterChange
     useEffect(() => {
         const fetchOptions = async () => {
             try {
-                const response = await studentApiService.getFilterOptions();
+                const response: any = await studentApiService.getFilterOptions();
                 if (response?.data) {
-                    setOptions(prev => ({ ...prev, ...response.data }));
+                    setOptions((prev: any) => ({ ...prev, ...(response.data as any) }));
                 }
             } catch (error: any) {
                 // API endpoint may not exist (404), use default options
@@ -80,8 +80,8 @@ const StudentFilters: React.FC<StudentFiltersProps> = ({ filters, onFilterChange
                         >
                             <option value="all">All Schools</option>
                             {options.schools?.map((school: any) => (
-                                <option key={school.id || school} value={school.name || school}>
-                                    {school.name || school}
+                                <option key={school.id || school} value={school.id || school.name || school}>
+                                    {school.name || school}{school.campus ? ` - ${school.campus}` : ''}
                                 </option>
                             ))}
                         </select>
