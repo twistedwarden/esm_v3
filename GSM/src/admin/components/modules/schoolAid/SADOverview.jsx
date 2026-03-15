@@ -177,9 +177,9 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
         // Fetch partner schools for the filter
         const fetchSchools = async () => {
             try {
-                const response = await getSchools({ is_partner_school: true, is_active: true });
+                const response = await getSchools({ is_partner_school: true, is_active: true, per_page: 9999 });
                 if (response.success) {
-                    setPartnerSchools(response.data || []);
+                    setPartnerSchools(response.data?.data || []);
                 }
             } catch (err) {
                 console.error('Error fetching partner schools:', err);
