@@ -192,7 +192,7 @@ export const Portal: React.FC = () => {
       try {
         const [categoriesData, docTypesData] = await Promise.all([
           scholarshipApiService.getScholarshipCategories(),
-          scholarshipApiService.getDocumentTypes()
+          scholarshipApiService.adminGetDocumentTypes()
         ]);
         console.log('Fetched scholarship categories:', categoriesData);
         console.log('Fetched document types:', docTypesData);
