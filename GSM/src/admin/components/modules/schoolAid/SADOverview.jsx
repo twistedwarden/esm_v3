@@ -876,7 +876,7 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
                                                 >
                                                     <option value="all">All Schools</option>
                                                     {partnerSchools.map(school => (
-                                                        <option key={school.id} value={school.id}>{school.name}</option>
+                                                        <option key={school.id} value={school.id}>{school.name}{school.campus ? ` - ${school.campus}` : ''}</option>
                                                     ))}
                                                 </select>
                                             </div>
