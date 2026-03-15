@@ -32,6 +32,7 @@ import {
 } from 'recharts';
 import { schoolAidService } from './services/schoolAidService';
 import dashboardService from '../../../../services/dashboardService';
+import { getSchools } from '../../../../services/schoolService';
 
 function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
     const [loading, setLoading] = useState(true);
@@ -176,13 +177,9 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
         // Fetch partner schools for the filter
         const fetchSchools = async () => {
             try {
-                // Adjust the endpoint as per your service, here assuming getting all schools and filtering or getting partner schools
-                const response = await fetch('/api/schools?is_partner_school=1');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        setPartnerSchools(data.data || []);
-                    }
+                const response = await getSchools({ is_partner_school: true, is_active: true });
+                if (response.success) {
+                    setPartnerSchools(response.data || []);
                 }
             } catch (err) {
                 console.error('Error fetching partner schools:', err);
