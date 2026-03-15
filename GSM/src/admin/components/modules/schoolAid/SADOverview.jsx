@@ -179,7 +179,13 @@ function SADOverview({ onPageChange, lastUpdated = null, onTabChange }) {
             try {
                 const response = await getSchools({ is_partner_school: true, is_active: true, per_page: 9999 });
                 if (response.success) {
-                    setPartnerSchools(response.data?.data || []);
+                    let schoolsData = [];
+                    if (Array.isArray(response.data)) {
+                        schoolsData = response.data;
+                    } else if (response.data && Array.isArray(response.data.data)) {
+                        schoolsData = response.data.data;
+                    }
+                    setPartnerSchools(schoolsData);
                 }
             } catch (err) {
                 console.error('Error fetching partner schools:', err);
