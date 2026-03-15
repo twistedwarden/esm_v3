@@ -86,6 +86,7 @@ export const RenewalForm: React.FC = () => {
   const [submittedApplicationNumber, setSubmittedApplicationNumber] = useState<string | null>(null);
   const [academicYears, setAcademicYears] = useState<string[]>([]);
   const [renewalDocTypes, setRenewalDocTypes] = useState<any[]>([]);
+  const [isDocTypesLoaded, setIsDocTypesLoaded] = useState(false);
 
   const {
     register,
@@ -117,15 +118,31 @@ export const RenewalForm: React.FC = () => {
         setIsLoadingData(true);
 
         // Parallel fetch
+        console.log('[RenewalForm] Starting data fetch...');
         const [applications, periods, docTypes] = await Promise.all([
           scholarshipApiService.getUserApplications(),
           scholarshipApiService.getAcademicPeriods(),
-          scholarshipApiService.getDocumentTypes().catch(() => [])
+          scholarshipApiService.getDocumentTypes().catch((err) => {
+            console.error('[RenewalForm] Failed to fetch document types:', err);
+            return [];
+          })
         ]);
+
+        console.log('[RenewalForm] Fetched data:', {
+          applicationsCount: applications.length,
+          periodsCount: periods.length,
+          docTypesCount: docTypes.length,
+          allDocTypes: docTypes
+        });
 
         // Find all renewal document types from the API
         const renewalTypes = docTypes.filter((dt: any) => dt.category === 'renewal');
+        console.log('[RenewalForm] Filtered renewal document types:', {
+          renewalTypesCount: renewalTypes.length,
+          renewalTypes: renewalTypes
+        });
         setRenewalDocTypes(renewalTypes);
+        setIsDocTypesLoaded(true);
 
         // Check for open period specifically at semester 2
         const openPeriod = periods.find(p => p.status === 'open' && p.is_current);
@@ -179,13 +196,21 @@ export const RenewalForm: React.FC = () => {
           eligibleStatuses.includes(app.status?.toLowerCase())
         );
 
+        console.log('[RenewalForm] Eligibility check:', {
+          totalApplications: applications.length,
+          eligibleApplications: eligibleApps.length,
+          applicationStatuses: applications.map(app => app.status)
+        });
+
         if (eligibleApps.length === 0) {
+          console.warn('[RenewalForm] User not eligible for renewal');
           setIsEligible(false);
           setError('You are not eligible for renewal. You must have an existing scholarship application from Semester 1.');
           setTimeout(() => navigate('/portal'), 3000);
           return;
         }
 
+        console.log('[RenewalForm] User is eligible for renewal');
         setIsEligible(true);
 
         // Find the latest eligible application to pre-fill
@@ -226,10 +251,11 @@ export const RenewalForm: React.FC = () => {
           setValue('emailAddress', currentUser?.email || '');
         }
       } catch (err) {
-        console.error('Error fetching previous application:', err);
+        console.error('[RenewalForm] Error fetching previous application:', err);
         setError('Failed to load previous application data. Please try again.');
         setIsEligible(false);
       } finally {
+        console.log('[RenewalForm] Data loading complete');
         setIsLoadingData(false);
       }
     };
@@ -294,15 +320,23 @@ export const RenewalForm: React.FC = () => {
   };
 
   const onSubmit = async (data: RenewalFormData) => {
+    console.log('[RenewalForm] Form submission started');
     setIsSubmitting(true);
     setError(null);
 
-    // Validate files
+    // Validate files - only require uploads if renewal document types are configured
     const fileEntries = Object.entries(uploadedFiles);
-    if (fileEntries.length === 0) {
+    console.log('[RenewalForm] Uploaded files:', { count: fileEntries.length, files: uploadedFiles });
+    
+    if (renewalDocTypes.length > 0 && fileEntries.length === 0) {
+      console.warn('[RenewalForm] No documents uploaded but document types are available');
       setError('Please upload at least one renewal document (e.g., Grades, Certificate of Registration).');
       setIsSubmitting(false);
       return;
+    }
+    
+    if (renewalDocTypes.length === 0) {
+      console.log('[RenewalForm] No renewal document types configured - proceeding without new document uploads');
     }
 
     try {
@@ -763,6 +797,18 @@ export const RenewalForm: React.FC = () => {
                         )}
                       </div>
                     ))}
+                  </div>
+                ) : isDocTypesLoaded ? (
+                  <div className="border-2 border-dashed border-yellow-300 rounded-lg p-8 text-center bg-yellow-50">
+                    <AlertCircle className="h-12 w-12 text-yellow-600 mx-auto mb-3" />
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">No Renewal Document Types Found</h4>
+                    <p className="text-gray-600 text-sm mb-4">
+                      The system administrator needs to configure renewal document types before you can submit documents.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      You can still proceed with the renewal, but you won't be able to upload new documents at this time.
+                      Your previous documents will be carried over automatically.
+                    </p>
                   </div>
                 ) : (
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
