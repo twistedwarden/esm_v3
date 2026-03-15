@@ -582,6 +582,11 @@ class SchoolAidController extends Controller
                 $query->where('method', $method);
             }
 
+            $schoolId = $request->get('school_id');
+            if ($schoolId) {
+                $query->where('school_id', $schoolId);
+            }
+
             $reference = $request->get('reference');
             if ($reference) {
                 $query->where('reference_number', 'like', '%' . $reference . '%');

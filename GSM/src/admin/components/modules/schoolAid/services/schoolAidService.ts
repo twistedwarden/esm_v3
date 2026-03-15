@@ -305,6 +305,8 @@ class SchoolAidService {
   async getDisbursementHistory(filters?: {
     search?: string;
     method?: string;
+    schoolId?: string;
+    reference?: string;
     dateFrom?: string;
     dateTo?: string;
     sortBy?: string;
@@ -313,6 +315,8 @@ class SchoolAidService {
     const params = new URLSearchParams();
     if (filters?.search) params.append('search', filters.search);
     if (filters?.method) params.append('method', filters.method);
+    if (filters?.schoolId) params.append('school_id', filters.schoolId);
+    if (filters?.reference) params.append('reference', filters.reference);
     if (filters?.dateFrom) params.append('date_from', filters.dateFrom);
     if (filters?.dateTo) params.append('date_to', filters.dateTo);
     if (filters?.sortBy) params.append('sortBy', filters.sortBy);
