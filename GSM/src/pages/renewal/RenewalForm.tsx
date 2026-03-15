@@ -87,6 +87,7 @@ export const RenewalForm: React.FC = () => {
   const [academicYears, setAcademicYears] = useState<string[]>([]);
   const [renewalDocTypes, setRenewalDocTypes] = useState<any[]>([]);
   const [isDocTypesLoaded, setIsDocTypesLoaded] = useState(false);
+  const [userClickedSubmit, setUserClickedSubmit] = useState(false);
 
   const {
     register,
@@ -320,16 +321,27 @@ export const RenewalForm: React.FC = () => {
   };
 
   const onSubmit = async (data: RenewalFormData) => {
-    console.log('[RenewalForm] Form submission started', { currentStep });
+    console.log('[RenewalForm] Form submission started', { 
+      currentStep, 
+      userClickedSubmit,
+      timestamp: new Date().toISOString() 
+    });
     
-    // Prevent submission if not on step 3
+    // Prevent submission if not on step 3 OR if user didn't explicitly click submit
     if (currentStep !== 3) {
-      console.warn('[RenewalForm] Attempted submission from step', currentStep, '- ignoring');
+      console.warn('[RenewalForm] Attempted submission from step', currentStep, '- BLOCKED');
       return;
     }
     
+    if (!userClickedSubmit) {
+      console.warn('[RenewalForm] Submission attempted without user clicking submit button - BLOCKED');
+      return;
+    }
+    
+    console.log('[RenewalForm] Submission validation passed - proceeding');
     setIsSubmitting(true);
     setError(null);
+    setUserClickedSubmit(false); // Reset flag
 
     // Validate files - only require uploads if renewal document types are configured
     const fileEntries = Object.entries(uploadedFiles);
@@ -857,6 +869,10 @@ export const RenewalForm: React.FC = () => {
               <Button
                 type="submit"
                 disabled={isSubmitting}
+                onClick={() => {
+                  console.log('[RenewalForm] Submit button clicked');
+                  setUserClickedSubmit(true);
+                }}
                 className="bg-green-600 hover:bg-green-700 text-white min-w-[150px]"
                 id="renewal-submit-btn"
               >
