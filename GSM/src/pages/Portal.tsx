@@ -88,6 +88,7 @@ export const Portal: React.FC = () => {
   const [hasOpenPeriod, setHasOpenPeriod] = useState<boolean | null>(null);
   const [isSemester2Open, setIsSemester2Open] = useState<boolean>(false);
   const [categories, setCategories] = useState<ScholarshipCategory[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<any[]>([]);
   const [isCheckingApplications, setIsCheckingApplications] = useState(true);
   const [showToast, setShowToast] = useState(false);
   const [showHumanVerification, setShowHumanVerification] = useState(false);
@@ -185,19 +186,24 @@ export const Portal: React.FC = () => {
     checkApplicationsAndRenewal();
   }, [currentUser]);
 
-  // Fetch scholarship categories
+  // Fetch scholarship categories and document types
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const data = await scholarshipApiService.getScholarshipCategories();
-        console.log('Fetched scholarship categories:', data);
-        setCategories(data);
+        const [categoriesData, docTypesData] = await Promise.all([
+          scholarshipApiService.getScholarshipCategories(),
+          scholarshipApiService.getDocumentTypes()
+        ]);
+        console.log('Fetched scholarship categories:', categoriesData);
+        console.log('Fetched document types:', docTypesData);
+        setCategories(categoriesData);
+        setDocumentTypes(docTypesData);
       } catch (error) {
-        console.error('Error fetching scholarship categories:', error);
+        console.error('Error fetching data:', error);
       }
     };
 
-    fetchCategories();
+    fetchData();
   }, []);
 
   // Show modal after component mounts (after login)
@@ -447,33 +453,119 @@ export const Portal: React.FC = () => {
             {/* Document Preparation Checklist */}
             <div className="mt-8 mb-8">
               <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 sm:p-6 shadow-md border border-orange-200">
-                <div className="text-center mb-4">
+                <div className="text-center mb-6">
                   <h3 className="text-xl lg:text-2xl font-bold text-gray-800 mb-1">📋 Prepare These Documents</h3>
                   <p className="text-sm text-gray-600">Get these ready before starting your application</p>
                 </div>
 
-                <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {[
-                    'Birth Certificate (PSA)',
-                    'Transcript of Records',
-                    'Certificate of Enrollment',
-                    'Certificate of Good Moral',
-                    'Income Certificate',
-                    'Barangay Certificate',
-                    'Valid Government ID'
-                  ].map((doc, index) => (
-                    <div key={index} className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg shadow-sm">
-                      <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-                        <span className="text-green-600 text-xs font-bold">{index + 1}</span>
-                      </div>
-                      <p className="text-gray-800 text-sm font-medium">{doc}</p>
+                <div className="max-w-5xl mx-auto">
+                  {documentTypes.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {/* Common Documents (Level: All) */}
+                      {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal').length > 0 && (
+                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
+                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
+                            <span className="bg-blue-100 text-blue-700 p-1.5 rounded-lg mr-2">📌</span> 
+                            General Requirements
+                          </h4>
+                          <ul className="space-y-2">
+                            {documentTypes.filter(d => d.level === 'all' && d.category !== 'renewal').map((doc, index) => (
+                              <li key={index} className="flex items-start text-sm">
+                                <span className="text-green-500 mr-2 font-bold">✓</span>
+                                <span className="text-gray-700">{doc.name}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* College Documents */}
+                      {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal').length > 0 && (
+                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
+                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
+                            <span className="bg-purple-100 text-purple-700 p-1.5 rounded-lg mr-2">🎓</span> 
+                            College Students
+                          </h4>
+                          <ul className="space-y-2">
+                            {documentTypes.filter(d => d.level === 'college' && d.category !== 'renewal').map((doc, index) => (
+                              <li key={index} className="flex items-start text-sm">
+                                <span className="text-green-500 mr-2 font-bold">✓</span>
+                                <span className="text-gray-700">{doc.name}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* SHS Documents */}
+                      {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal').length > 0 && (
+                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
+                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
+                            <span className="bg-green-100 text-green-700 p-1.5 rounded-lg mr-2">🎒</span> 
+                            Senior High School
+                          </h4>
+                          <ul className="space-y-2">
+                            {documentTypes.filter(d => d.level === 'senior_high' && d.category !== 'renewal').map((doc, index) => (
+                              <li key={index} className="flex items-start text-sm">
+                                <span className="text-green-500 mr-2 font-bold">✓</span>
+                                <span className="text-gray-700">{doc.name}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Vocational Documents */}
+                      {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal').length > 0 && (
+                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
+                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
+                            <span className="bg-yellow-100 text-yellow-700 p-1.5 rounded-lg mr-2">🔧</span> 
+                            Vocational Students
+                          </h4>
+                          <ul className="space-y-2">
+                            {documentTypes.filter(d => d.level === 'vocational' && d.category !== 'renewal').map((doc, index) => (
+                              <li key={index} className="flex items-start text-sm">
+                                <span className="text-green-500 mr-2 font-bold">✓</span>
+                                <span className="text-gray-700">{doc.name}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Renewal Documents */}
+                      {documentTypes.filter(d => d.category === 'renewal').length > 0 && (
+                        <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-100">
+                          <h4 className="font-bold text-gray-800 mb-3 flex items-center text-sm border-b pb-2">
+                            <span className="bg-orange-100 text-orange-700 p-1.5 rounded-lg mr-2">🔄</span> 
+                            Renewal Application
+                          </h4>
+                          <ul className="space-y-2">
+                            {documentTypes.filter(d => d.category === 'renewal').map((doc, index) => (
+                              <li key={index} className="flex items-start text-sm">
+                                <span className="text-green-500 mr-2 font-bold">✓</span>
+                                <span className="text-gray-700">{doc.name}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="flex justify-center space-x-4">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="w-64 h-32">
+                          <Skeleton variant="rectangular" height="100%" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-4 text-center">
-                  <p className="text-xs text-gray-600 italic">
-                    💡 Have clear scans ready before you apply
+                <div className="mt-6 text-center">
+                  <p className="text-xs text-gray-600 italic flex items-center justify-center">
+                    <span className="text-yellow-500 mr-1">⚡</span> 
+                    Have clear scans ready before you apply
                   </p>
                 </div>
               </div>
