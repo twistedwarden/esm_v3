@@ -133,11 +133,24 @@ export const RenewalForm: React.FC = () => {
           applicationsCount: applications.length,
           periodsCount: periods.length,
           docTypesCount: docTypes.length,
-          allDocTypes: docTypes
+          allDocTypes: docTypes,
+          firstDocType: docTypes[0],
+          docTypeCategories: docTypes.map((dt: any) => ({ id: dt.id, name: dt.name, category: dt.category }))
         });
 
         // Find all renewal document types from the API
-        const renewalTypes = docTypes.filter((dt: any) => dt.category === 'renewal');
+        // Try both 'renewal' and case variations
+        const renewalTypes = docTypes.filter((dt: any) => {
+          const category = dt.category?.toLowerCase();
+          console.log('[RenewalForm] Checking doc type:', { 
+            id: dt.id, 
+            name: dt.name, 
+            category: dt.category,
+            categoryLower: category,
+            matches: category === 'renewal'
+          });
+          return category === 'renewal';
+        });
         console.log('[RenewalForm] Filtered renewal document types:', {
           renewalTypesCount: renewalTypes.length,
           renewalTypes: renewalTypes
